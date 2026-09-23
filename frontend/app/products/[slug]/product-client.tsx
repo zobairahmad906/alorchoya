@@ -1,0 +1,4 @@
+"use client";
+import { useCart } from "../../cart";
+import type { Product } from "../../types";
+export default function ProductClient({ product }: { product: Product }) { const { add } = useCart(); const image = product.images.find(x => x.is_primary)?.image || product.images[0]?.image; return <main className="detail"><div className="detail-image">{image ? <img src={image} alt={product.name}/> : <div className="placeholder">No image</div>}</div><div className="detail-copy"><p>{product.category.name.toUpperCase()}</p><h1>{product.name}</h1><strong>${Number(product.price).toFixed(2)}</strong><p className="description">{product.description || "Thoughtfully selected for your space and everyday rituals."}</p><p className="stock">{product.stock ? `${product.stock} in stock` : "Out of stock"}</p><button className="wide" onClick={() => add(product)} disabled={!product.stock}>Add to bag</button></div></main>; }

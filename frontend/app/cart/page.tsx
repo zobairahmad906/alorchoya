@@ -1,0 +1,5 @@
+"use client";
+import Link from "next/link";
+import { Header } from "../components";
+import { useCart } from "../cart";
+export default function CartPage() { const { items, total, change, remove } = useCart(); return <><Header/><main className="cart"><div><p className="eyebrow">YOUR BAG</p><h1>{items.length ? "The good things" : "Your bag is empty"}</h1>{items.map(item => <div className="cart-row" key={item.id}><div><h3>{item.name}</h3><p>${Number(item.price).toFixed(2)}</p></div><div className="quantity"><button onClick={() => change(item.id, item.quantity - 1)}>−</button>{item.quantity}<button onClick={() => change(item.id, item.quantity + 1)}>+</button></div><button className="text-button" onClick={() => remove(item.id)}>Remove</button></div>)}{!items.length && <Link className="wide continue" href="/">Continue shopping</Link>}</div>{items.length > 0 && <aside className="summary"><p>ORDER SUMMARY</p><div><span>Subtotal</span><strong>${total.toFixed(2)}</strong></div><Link className="wide" href="/checkout">Proceed to checkout</Link></aside>}</main></>; }
