@@ -1,0 +1,4 @@
+{
+  "nav": { "home": "Home", "shop": "Shop", "categories": "Categories", "contact": "Contact", "cart": "Cart", "language": "বাংলা" },
+  "home": { "eyebrow": "HOME DECOR & FURNITURE", "title": "Your home is a reflection of your taste", "lede": "Bring elegance and comfort to every corner with pieces chosen for the way you live.", "shop": "Shop now →", "categories": "View categories", "categoryTitle": "Shop by category", "offerTitle": "Special offer", "offerText": "Up to 30% off selected pieces for a limited time", "offerButton": "See offers →", "popular": "Featured products", "popularText": "A selection of our most-loved pieces", "why": "Why choose Alor Chhoya Mart?", "reviews": "Customer reviews", "question": "Have a question?", "whatsapp": "Message on WhatsApp" }
+}

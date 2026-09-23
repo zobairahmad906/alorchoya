@@ -31,7 +31,7 @@ class ProductSerializer(serializers.ModelSerializer):
     images = ProductImageSerializer(many=True, read_only=True)
     class Meta:
         model = Product
-        fields = ("id", "name", "slug", "description", "price", "stock", "category", "images")
+        fields = ("id", "name", "slug", "description", "price", "discount_price", "stock", "is_featured", "category", "images")
 
 class OrderItemInputSerializer(serializers.Serializer):
     product_id = serializers.IntegerField()

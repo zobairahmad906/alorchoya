@@ -11,8 +11,13 @@ class ProductList(generics.ListAPIView):
     serializer_class = ProductSerializer
     def get_queryset(self):
         qs = Product.objects.filter(is_active=True).select_related("category").prefetch_related("images")
+        featured = self.request.query_params.get("featured")
+        if featured and featured.lower() in ("true", "1"):
+            qs = qs.filter(is_featured=True)
         category = self.request.query_params.get("category")
-        return qs.filter(category__slug=category) if category else qs
+        if category:
+            qs = qs.filter(category__slug=category)
+        return qs.order_by("-id")
 
 class ProductDetail(generics.RetrieveAPIView):
     queryset = Product.objects.filter(is_active=True).select_related("category").prefetch_related("images")

@@ -3,11 +3,14 @@ import Link from "next/link";
 import { useState } from "react";
 import { useCart } from "./cart";
 import type { Product } from "./types";
+import { useTranslations } from "next-intl";
 
 export function Header() {
   const { count } = useCart();
   const [open, setOpen] = useState(false);
-  return <><header><div className="wrap nav"><Link href="/" className="brand"><span className="mark">আ</span><span className="brand-name">আলোর ছোঁয়া মার্ট<small>Alor Chhoya Mart</small></span></Link><nav className="links"><Link href="/">হোম</Link><Link href="/#shop">শপ</Link><Link href="/#categories">ক্যাটাগরি</Link><Link href="/#contact">যোগাযোগ</Link></nav><div className="nav-right"><button className="lang-switch">বাংলা</button><button className="icon-btn" aria-label="Search">⌕</button><button className="icon-btn" onClick={() => setOpen(true)} aria-label="Cart">▱ <span>{count}</span></button></div></div></header><CartDrawer open={open} close={() => setOpen(false)} /></>;
+  const t = useTranslations("nav");
+  const switchLanguage = () => { document.cookie = `NEXT_LOCALE=${document.documentElement.lang === "bn" ? "en" : "bn"}; path=/; max-age=31536000`; window.location.reload(); };
+  return <><header><div className="wrap nav"><Link href="/" className="brand"><img className="brand-logo" src="/alorchoya-logo.jpeg" alt="আলোর ছোঁয়া মার্ট" /><span className="brand-name">আলোর ছোঁয়া মার্ট<small>Alor Chhoya Mart</small></span></Link><nav className="links"><Link href="/">{t("home")}</Link><Link href="/#shop">{t("shop")}</Link><Link href="/#categories">{t("categories")}</Link><Link href="/#contact">{t("contact")}</Link></nav><div className="nav-right"><button className="lang-switch" onClick={switchLanguage}>{t("language")}</button><button className="icon-btn" aria-label="Search">⌕</button><button className="icon-btn" onClick={() => setOpen(true)} aria-label={t("cart")}>▱ <span>{count}</span></button></div></div></header><CartDrawer open={open} close={() => setOpen(false)} /></>;
 }
 
 export function ProductCard({ product }: { product: Product }) {
