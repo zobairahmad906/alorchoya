@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import type { Product } from "./types";
@@ -24,6 +24,10 @@ export function HeroSlider({
   const sliderProducts = products.slice(0, 5);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => { const media = window.matchMedia("(max-width: 640px)"); const update = () => setIsMobile(media.matches); update(); media.addEventListener("change", update); return () => media.removeEventListener("change", update); }, []);
+  const [outgoingProduct, setOutgoingProduct] = useState<Product | null>(null);
+  const previousProduct = useRef<Product | null>(null);
 
   const nextSlide = useCallback(() => {
     if (sliderProducts.length === 0) return;
@@ -43,6 +47,13 @@ export function HeroSlider({
     }, 2500);
     return () => clearInterval(interval);
   }, [isPaused, sliderProducts.length, nextSlide]);
+
+  useEffect(() => {
+    setOutgoingProduct(previousProduct.current);
+    previousProduct.current = sliderProducts[currentIndex] || null;
+    const timer = window.setTimeout(() => setOutgoingProduct(null), 850);
+    return () => window.clearTimeout(timer);
+  }, [currentIndex]);
 
   if (sliderProducts.length === 0) {
     return (
@@ -69,12 +80,18 @@ export function HeroSlider({
   }
 
   const activeProduct = sliderProducts[currentIndex];
-  const primaryImg = activeProduct.images?.find((img) => img.is_primary)?.image || activeProduct.images?.[0]?.image;
+  const imageFor = (product: Product | null) => {
+    if (!product) return undefined;
+    const source = product.images?.find((img) => img.is_primary) || product.images?.[0];
+    return (isMobile ? source?.hero_mobile || source?.hero_desktop : source?.hero_desktop || source?.hero_mobile) || source?.image;
+  };
+  const primaryImg = imageFor(activeProduct);
+  const outgoingImg = imageFor(outgoingProduct);
 
   return (
     <section className="hero-slider-section" onMouseEnter={() => setIsPaused(true)} onMouseLeave={() => setIsPaused(false)}>
       <div className="wrap hero-slider-container">
-        <div className="hero-slide-card">
+        <div className="hero-slide-card hero-slide-transition">
           <div className="hero-slide-content">
             <div className="hero-badge-row">
               <span className="hero-badge">★ বিশেষ অফার</span>
@@ -112,15 +129,10 @@ export function HeroSlider({
           </div>
 
           <div className="hero-slide-image-wrapper">
+            {primaryImg && <div className="hero-image-backdrop" style={{ backgroundImage: "url(" + primaryImg + ")" }} />}
+            {outgoingImg && <Image src={outgoingImg} alt="" width={500} height={400} key={outgoingProduct?.id} className="hero-slider-img hero-image-outgoing" />}
             {primaryImg ? (
-              <Image
-                src={primaryImg}
-                alt={activeProduct.name}
-                width={500}
-                height={400}
-                className="hero-slider-img"
-                priority
-              />
+              <Image src={primaryImg} alt={activeProduct.name} width={500} height={400} key={activeProduct.id} className="hero-slider-img hero-image-incoming" priority />
             ) : (
               <div className="hero-img-placeholder">
                 <div className="hero-shelf"><i/><i/><i/><i/><i/><i/></div>

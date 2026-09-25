@@ -35,3 +35,17 @@ This project includes an Nginx reverse proxy and `cloudflared` service. In Cloud
 - `minio-alorchoya.newsmartagent.com` → public product-image bucket
 
 Copy the remotely-managed tunnel token into `CLOUDFLARE_TUNNEL_TOKEN` in `.env` (the value must not be blank), then run `docker compose up --build -d`. Keep that token private: it authorizes a connector to your tunnel. The Cloudflare hostname routes determine the destination; Nginx routes each hostname to the appropriate internal Docker service.
+
+## Operations
+
+Apply migrations and create standard staff roles:
+
+`docker compose exec backend python manage.py setup_staff_groups`
+
+Create a database backup in the mounted `backups/` directory:
+
+`docker compose exec backend python manage.py backup_store`
+
+The backend health endpoint checks both the application and database:
+
+`/api/health/`

@@ -1,0 +1,5 @@
+import { Header, ProductCatalog } from "../components";
+import type { Product } from "../types";
+const API = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+async function getProducts(): Promise<Product[]> { try { const response = await fetch(`${API}/products/`, { next: { revalidate: 30 } }); return response.ok ? response.json() : []; } catch { return []; } }
+export default async function OffersPage() { const products = (await getProducts()).filter(product => Boolean(product.discount_price)); return <><Header /><main className="listing-page"><div className="listing-shell"><div className="listing-heading offer-heading"><span className="checkout-kicker">বিশেষ অফার</span><h1>অফার ও ডিসকাউন্ট</h1><p>সীমিত সময়ের জন্য নির্বাচিত পণ্যে সাশ্রয়ী দাম।</p></div>{products.length ? <ProductCatalog products={products} /> : <section className="empty-cart-card"><div>🏷️</div><h2>এই মুহূর্তে কোনো অফার নেই</h2><p>নতুন অফারের জন্য আবার ফিরে আসুন।</p></section>}</div></main></>; }
