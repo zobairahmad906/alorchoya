@@ -32,7 +32,6 @@ import {
   ChevronRight,
 } from "lucide-react";
 import toast from "react-hot-toast";
-import "./dashboard.css";
 
 export type ImageAssetLink = {
   id: number;
