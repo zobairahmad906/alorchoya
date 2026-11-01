@@ -286,7 +286,7 @@ export default function ProductForm({
   // Variant operations
   const addOrUpdateVariant = () => {
     if (!variantDraft.attributes_text && !variantDraft.sku) {
-      alert("অনুগ্রহ করে ভ্যারিয়েন্টের বৈশিষ্ট্য (যেমন Size: L) অথবা SKU লিখুন।");
+      alert("Please provide variant attribute (e.g. Size: L) or SKU.");
       return;
     }
     setDirty(true);
@@ -359,11 +359,11 @@ export default function ProductForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim()) {
-      alert("পণ্যের নাম আবশ্যক।");
+      alert("Product name is required.");
       return;
     }
     if (!form.base_price) {
-      alert("পণ্যের রেগুলার মূল্য (Base Price) আবশ্যক।");
+      alert("Product regular price (Base Price) is required.");
       return;
     }
 
@@ -407,7 +407,7 @@ export default function ProductForm({
 
       if (!res.ok) {
         const errData = await res.json();
-        alert(errData.error || "পণ্য সংরক্ষণ করা সম্ভব হয়নি।");
+        alert(errData.error || "Failed to save product.");
         setSaving(false);
         return;
       }
@@ -466,14 +466,14 @@ export default function ProductForm({
       setSaving(false);
       onSaveSuccess();
     } catch (err) {
-      alert("সংরক্ষণ করার সময় সমস্যা হয়েছে।");
+      alert("An error occurred while saving.");
       setSaving(false);
     }
   };
 
   // Image actions for existing images
   const handleDeleteExistingImage = async (imgId: number) => {
-    if (!confirm("আপনি কি নিশ্চিতভাবে এই ছবিটি মুছে ফেলতে চান?")) return;
+    if (!confirm("Are you sure you want to delete this image?")) return;
     try {
       const res = await fetch(getApiUrl(`/admin/products/images/${imgId}/`), {
         method: "DELETE",
@@ -483,7 +483,7 @@ export default function ProductForm({
         setExistingGallery((prev) => prev.filter((img) => img.id !== imgId));
       }
     } catch {
-      alert("ছবি মুছতে ব্যর্থ হয়েছে।");
+      alert("Failed to delete image.");
     }
   };
 
@@ -501,7 +501,7 @@ export default function ProductForm({
         );
       }
     } catch {
-      alert("প্রাইমারি ছবি নির্ধারণ ব্যর্থ হয়েছে।");
+      alert("Failed to set primary image.");
     }
   };
 
@@ -547,7 +547,7 @@ export default function ProductForm({
                 margin: 0,
               }}
             >
-              {isEdit ? `পণ্য সম্পাদনা #${form.id}` : "নতুন পণ্য তৈরি করুন"}
+              {isEdit ? `Edit Product #${form.id}` : "Create New Product"}
             </h2>
             {dirty && (
               <span
@@ -561,12 +561,12 @@ export default function ProductForm({
                   borderRadius: "20px",
                 }}
               >
-                অসংরক্ষিত পরিবর্তন
+                Unsaved Changes
               </span>
             )}
           </div>
           <p style={{ margin: "4px 0 0", fontSize: "13px", color: "var(--coffee)", opacity: 0.85 }}>
-            AI গ্রাহক অনুসন্ধান, লাইভ ইনভেন্টরি ও স্বয়ংক্রিয় বিক্রয়ের জন্য পূর্ণাঙ্গ ক্যাটালগ স্পেসিফিকেশন।
+            Complete catalog specifications for AI customer search, live inventory, and automated sales.
           </p>
         </div>
 
@@ -585,7 +585,7 @@ export default function ProductForm({
               cursor: "pointer",
             }}
           >
-            বাতিল / তালিকা দেখুন
+            Cancel / View Catalog
           </button>
           <button
             type="button"
@@ -608,7 +608,7 @@ export default function ProductForm({
             }}
           >
             <Save size={16} />
-            {saving ? "সংরক্ষণ হচ্ছে..." : isEdit ? "আপডেট করুন" : "পণ্য সংরক্ষণ করুন"}
+            {saving ? "Saving..." : isEdit ? "Update Product" : "Save Product"}
           </button>
         </div>
       </div>
@@ -634,18 +634,18 @@ export default function ProductForm({
               borderBottom: "1px solid var(--line)",
             }}
           >
-            ১. সাধারণ তথ্য ও মূল্য নির্ধারণ (Basic Specs & Pricing)
+            1. Basic Specs & Pricing
           </h3>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "16px" }}>
             <div>
               <label style={{ display: "block", fontSize: "13px", fontWeight: 700, color: "var(--ink)", marginBottom: "6px" }}>
-                পণ্যের নাম <span style={{ color: "#ef4444" }}>*</span>
+                Product Name <span style={{ color: "#ef4444" }}>*</span>
               </label>
               <input
                 type="text"
                 required
-                placeholder="যেমন: প্রিমিয়াম কটন পাঞ্জাবি"
+                placeholder="e.g. Premium Cotton Panjabi / Notebook"
                 value={form.name}
                 onChange={(e) => setValue("name", e.target.value)}
                 style={{
@@ -662,7 +662,7 @@ export default function ProductForm({
 
             <div>
               <label style={{ display: "block", fontSize: "13px", fontWeight: 700, color: "var(--ink)", marginBottom: "6px" }}>
-                ক্যাটাগরি
+                Category
               </label>
               <select
                 value={form.category_id}
@@ -697,7 +697,7 @@ export default function ProductForm({
           >
             <div>
               <label style={{ display: "block", fontSize: "13px", fontWeight: 700, color: "var(--ink)", marginBottom: "6px" }}>
-                প্রাথমিক স্টক (Initial Stock)
+                Initial Stock
               </label>
               <input
                 type="number"
@@ -718,7 +718,7 @@ export default function ProductForm({
 
             <div>
               <label style={{ display: "block", fontSize: "13px", fontWeight: 700, color: "var(--ink)", marginBottom: "6px" }}>
-                রেগুলার মূল্য (৳) <span style={{ color: "#ef4444" }}>*</span>
+                Regular Price (৳) <span style={{ color: "#ef4444" }}>*</span>
               </label>
               <input
                 type="number"
@@ -741,12 +741,12 @@ export default function ProductForm({
 
             <div>
               <label style={{ display: "block", fontSize: "13px", fontWeight: 700, color: "var(--ink)", marginBottom: "6px" }}>
-                সেল / ডিসকাউন্ট মূল্য (৳)
+                Sale / Discount Price (৳)
               </label>
               <input
                 type="number"
                 step="any"
-                placeholder="ঐচ্ছিক ছাড় মূল্য"
+                placeholder="Optional discount price"
                 value={form.sale_price}
                 onChange={(e) => setValue("sale_price", e.target.value)}
                 style={{
@@ -763,7 +763,7 @@ export default function ProductForm({
 
             <div>
               <label style={{ display: "block", fontSize: "13px", fontWeight: 700, color: "var(--forest)", marginBottom: "6px" }}>
-                ক্রয় খরচ / পাইকারি মূল্য (৳)
+                Cost / Wholesale Price (৳)
               </label>
               <input
                 type="number"
@@ -808,7 +808,7 @@ export default function ProductForm({
                 <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                   <Wallet size={15} style={{ color: "var(--forest)" }} />
                   <span style={{ fontSize: "11px", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--forest)" }}>
-                    রিয়েল-টাইম লাভ ও ইউনিট ইকোনমিক্স বিশ্লেষণ (Unit Economics & Profit)
+                    Real-time Unit Economics & Profit Analysis
                   </span>
                 </div>
                 {financialMetrics.discountPercent > 0 && (
@@ -823,7 +823,7 @@ export default function ProductForm({
                       borderRadius: "6px",
                     }}
                   >
-                    {financialMetrics.discountPercent}% ছাড় প্রযোজ্য
+                    {financialMetrics.discountPercent}% discount active
                   </span>
                 )}
               </div>
@@ -846,9 +846,9 @@ export default function ProductForm({
                   >
                     <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: "2px" }} />
                     <div>
-                      <strong>সতর্কতা: বিক্রয়মূল্য ক্রয় খরচের চেয়ে কম!</strong>
+                      <strong>Warning: Selling price is lower than cost price!</strong>
                       <p style={{ margin: "2px 0 0" }}>
-                        কার্যকরী বিক্রয়মূল্য (৳{financialMetrics.effectivePrice.toFixed(2)}) ক্রয়মূল্য (৳{financialMetrics.cost.toFixed(2)}) থেকে কম। প্রতি ইউনিটে ৳{Math.abs(financialMetrics.unitProfit || 0).toFixed(2)} লোকসান হবে।
+                        Effective price (৳{financialMetrics.effectivePrice.toFixed(2)}) is lower than cost (৳{financialMetrics.cost.toFixed(2)}). Unit loss: ৳{Math.abs(financialMetrics.unitProfit || 0).toFixed(2)}.
                       </p>
                     </div>
                   </div>
@@ -857,19 +857,19 @@ export default function ProductForm({
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "10px" }}>
                   <div style={{ background: "#fff", padding: "10px", borderRadius: "10px", border: "1px solid var(--line)" }}>
                     <span style={{ fontSize: "11px", color: "#64748b", fontWeight: 600 }}>
-                      <FinancialTooltip termKey="effective_price">কার্যকরী বিক্রয়মূল্য</FinancialTooltip>
+                      <FinancialTooltip termKey="effective_price">Effective Selling Price</FinancialTooltip>
                     </span>
                     <p style={{ margin: "4px 0 0", fontSize: "16px", fontWeight: 900, color: "var(--ink)" }}>
                       ৳{financialMetrics.effectivePrice.toFixed(2)}
                     </p>
                     <span style={{ fontSize: "10px", color: "#94a3b8" }}>
-                      {financialMetrics.sale > 0 ? "সেল মূল্য থেকে" : "রেগুলার মূল্য"}
+                      {financialMetrics.sale > 0 ? "From sale price" : "Regular price"}
                     </span>
                   </div>
 
                   <div style={{ background: "#fff", padding: "10px", borderRadius: "10px", border: "1px solid var(--line)" }}>
                     <span style={{ fontSize: "11px", color: "#64748b", fontWeight: 600 }}>
-                      <FinancialTooltip termKey="unit_profit">একক লাভ (Unit Profit)</FinancialTooltip>
+                      <FinancialTooltip termKey="unit_profit">Unit Profit</FinancialTooltip>
                     </span>
                     <p
                       style={{
@@ -885,32 +885,32 @@ export default function ProductForm({
                     </p>
                     <span style={{ fontSize: "10px", color: "#94a3b8" }}>
                       {financialMetrics.marginPercent !== null
-                        ? `${financialMetrics.marginPercent}% মোট লাভ হার`
-                        : "ক্রয় খরচ দিলে দেখা যাবে"}
+                        ? `${financialMetrics.marginPercent}% margin`
+                        : "Enter cost price to calculate"}
                     </span>
                   </div>
 
                   <div style={{ background: "#fff", padding: "10px", borderRadius: "10px", border: "1px solid var(--line)" }}>
                     <span style={{ fontSize: "11px", color: "#64748b", fontWeight: 600 }}>
-                      <FinancialTooltip termKey="markup">মার্কআপ (ROI %)</FinancialTooltip>
+                      <FinancialTooltip termKey="markup">Markup (ROI %)</FinancialTooltip>
                     </span>
                     <p style={{ margin: "4px 0 0", fontSize: "16px", fontWeight: 900, color: "var(--forest)" }}>
                       {financialMetrics.markupPercent !== null ? `${financialMetrics.markupPercent}%` : "—"}
                     </p>
-                    <span style={{ fontSize: "10px", color: "#94a3b8" }}>ইনভেস্টমেন্টের উপর রিটার্ন</span>
+                    <span style={{ fontSize: "10px", color: "#94a3b8" }}>Return on Investment</span>
                   </div>
 
                   <div style={{ background: "#fff", padding: "10px", borderRadius: "10px", border: "1px solid var(--line)" }}>
                     <span style={{ fontSize: "11px", color: "#64748b", fontWeight: 600 }}>
-                      <FinancialTooltip termKey="locked_capital">স্টকে আটকে থাকা মূলধন</FinancialTooltip>
+                      <FinancialTooltip termKey="locked_capital">Capital Locked in Stock</FinancialTooltip>
                     </span>
                     <p style={{ margin: "4px 0 0", fontSize: "16px", fontWeight: 900, color: "var(--forest)" }}>
                       {financialMetrics.totalStockCost > 0 ? `৳${financialMetrics.totalStockCost.toLocaleString()}` : "—"}
                     </p>
                     <span style={{ fontSize: "10px", color: "#94a3b8" }}>
                       {financialMetrics.totalPotentialProfit > 0
-                        ? `সম্ভাব্য লাভ: ৳${financialMetrics.totalPotentialProfit.toLocaleString()}`
-                        : `${financialMetrics.stock} পিস স্টক`}
+                        ? `Potential Profit: ৳${financialMetrics.totalPotentialProfit.toLocaleString()}`
+                        : `${financialMetrics.stock} units in stock`}
                     </span>
                   </div>
                 </div>
@@ -934,11 +934,11 @@ export default function ProductForm({
                 <span style={{ fontSize: "11px", fontWeight: 400, color: "#64748b" }}>
                   {isEdit
                     ? skuLocked
-                      ? "(রেফারেন্স সুরক্ষার জন্য লক করা)"
-                      : "(আনলক করা — SKU পরিবর্তন প্রভাব ফেলতে পারে)"
+                      ? "(Locked for reference protection)"
+                      : "(Unlocked — changing SKU may affect references)"
                     : skuTouched
-                    ? "(কাস্টম SKU)"
-                    : "(পণ্যের নাম থেকে স্বয়ংক্রিয় সাজেস্টেড)"}
+                    ? "(Custom SKU)"
+                    : "(Auto-suggested from title)"}
                 </span>
               </label>
 
@@ -962,7 +962,7 @@ export default function ProductForm({
                       textDecoration: "underline",
                     }}
                   >
-                    অটো-সাজেস্ট SKU
+                    Auto-Suggest SKU
                   </button>
                 )}
 
@@ -970,7 +970,7 @@ export default function ProductForm({
                   <button
                     type="button"
                     onClick={() => {
-                      if (skuLocked && !confirm("সতর্কতা: বিদ্যমান পণ্যের Base SKU পরিবর্তন করলে রেফারেন্সে প্রভাব পড়তে পারে। আপনি কি নিশ্চিত আনলক করবেন?")) {
+                      if (skuLocked && !confirm("Warning: Changing the Base SKU may affect existing references. Are you sure you want to unlock?")) {
                         return;
                       }
                       setSkuLocked((prev) => !prev);
@@ -990,7 +990,7 @@ export default function ProductForm({
                     }}
                   >
                     {skuLocked ? <Lock size={12} /> : <Unlock size={12} />}
-                    {skuLocked ? "SKU আনলক করুন" : "আনলকড"}
+                    {skuLocked ? "Unlock SKU" : "Unlocked"}
                   </button>
                 )}
               </div>
@@ -1032,7 +1032,7 @@ export default function ProductForm({
           >
             <div>
               <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "var(--ink)", marginBottom: "4px" }}>
-                স্ট্যাটাস (Status)
+                Product Status
               </label>
               <select
                 value={form.status}
@@ -1048,14 +1048,14 @@ export default function ProductForm({
                   background: "#fff",
                 }}
               >
-                <option value="active">Active (সক্রিয় ও AI সার্চে দৃশ্যমান)</option>
-                <option value="inactive">Inactive (লুকায়িত)</option>
+                <option value="active">Active (Visible in AI search & storefront)</option>
+                <option value="inactive">Inactive (Hidden)</option>
               </select>
             </div>
 
             <div>
               <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "var(--ink)", marginBottom: "4px" }}>
-                ওজন (Weight kg)
+                Weight (kg)
               </label>
               <input
                 type="number"
@@ -1078,7 +1078,7 @@ export default function ProductForm({
 
             <div>
               <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "var(--ink)", marginBottom: "4px" }}>
-                দৈর্ঘ্য (Length cm)
+                Length (cm)
               </label>
               <input
                 type="number"
@@ -1101,7 +1101,7 @@ export default function ProductForm({
 
             <div>
               <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "var(--ink)", marginBottom: "4px" }}>
-                প্রস্থ (Width cm)
+                Width (cm)
               </label>
               <input
                 type="number"
@@ -1124,7 +1124,7 @@ export default function ProductForm({
 
             <div>
               <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "var(--ink)", marginBottom: "4px" }}>
-                উচ্চতা (Height cm)
+                Height (cm)
               </label>
               <input
                 type="number"
@@ -1147,7 +1147,7 @@ export default function ProductForm({
 
             <div>
               <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "var(--ink)", marginBottom: "4px" }}>
-                কম স্টক এলার্ট
+                Low Stock Alert Threshold
               </label>
               <input
                 type="number"
@@ -1189,7 +1189,7 @@ export default function ProductForm({
               borderBottom: "1px solid var(--line)",
             }}
           >
-            ২. পণ্যের বৈশিষ্ট্য ও বিবরণ (Attributes & Rich Description)
+            2. Attributes & Rich Description
           </h3>
 
           <div style={{ marginBottom: "16px" }}>
@@ -1201,24 +1201,24 @@ export default function ProductForm({
 
           <div style={{ marginBottom: "16px" }}>
             <label style={{ display: "block", fontSize: "13px", fontWeight: 700, color: "var(--forest)", marginBottom: "6px" }}>
-              বিস্তারিত বিবরণ (MS Word Style WYSIWYG Editor)
+              Detailed Description (Rich Text Editor)
             </label>
             <WordLikeEditor
               value={form.description}
               onChange={(val) => setValue("description", val)}
-              placeholder="পণ্যের উপাদান, ফ্যাব্রিক, ব্যবহারবিধি, সাইজ নির্দেশিকা ইত্যাদি এখানে বিস্তারিত লিখুন..."
+              placeholder="Enter detailed product specs, fabric/materials, usage, size guide, etc..."
             />
           </div>
 
           <div>
             <label style={{ display: "block", fontSize: "13px", fontWeight: 700, color: "var(--forest)", marginBottom: "6px" }}>
-              ওয়ারেন্টি / গ্যারান্টি তথ্য (Warranty Information)
+              Warranty Information
             </label>
             <textarea
               rows={2}
               value={form.warranty_information}
               onChange={(e) => setValue("warranty_information", e.target.value)}
-              placeholder="যেমন: ৭ দিনের ফ্রি রিপ্লেসমেন্ট গ্যারান্টি অথবা কোনো ওয়ারেন্টি প্রযোজ্য নয়"
+              placeholder="e.g. 7-day replacement warranty or standard brand warranty"
               style={{
                 width: "100%",
                 boxSizing: "border-box",
@@ -1260,10 +1260,10 @@ export default function ProductForm({
               </div>
               <div>
                 <h4 style={{ margin: 0, fontSize: "14px", fontWeight: 800, color: "var(--forest)" }}>
-                  কল কনফার্মেশন অডিও (Product Voice Audio)
+                  Product Voice Audio (Call Confirmation)
                 </h4>
                 <p style={{ margin: "2px 0 0", fontSize: "11px", color: "#64748b" }}>
-                  গ্রাহক এই পণ্যটি অর্ডার করলে এই কাস্টম অডিওটি বাজবে (MP3 / WAV ফাইল)।
+                  Plays this custom audio clip when a customer orders this product (MP3 / WAV).
                 </p>
               </div>
             </div>
@@ -1288,7 +1288,7 @@ export default function ProductForm({
                   cursor: "pointer",
                 }}
               >
-                অডিও মুছুন
+                Delete Audio
               </button>
             )}
           </div>
@@ -1311,7 +1311,7 @@ export default function ProductForm({
               <Volume2 size={16} />
               <span>{form.voice_audio_file.name}</span>
               <span style={{ marginLeft: "auto", fontSize: "11px", color: "#64748b", fontWeight: 400 }}>
-                (সংরক্ষণ করলে আপলোড হবে)
+                (Will upload upon saving)
               </span>
             </div>
           ) : form.voice_audio_file_url ? (
@@ -1337,7 +1337,7 @@ export default function ProductForm({
                   textDecoration: "underline",
                 }}
               >
-                পরিবর্তন করুন
+                Change Audio
                 <input
                   type="file"
                   accept="audio/mp3,audio/wav,audio/mpeg,audio/ogg"
@@ -1366,7 +1366,7 @@ export default function ProductForm({
             >
               <Volume2 size={16} style={{ color: "var(--forest)" }} />
               <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--forest)" }}>
-                কাস্টম ভয়েস ফাইল নির্বাচন করুন (ঐচ্ছিক)
+                Select Custom Voice Audio (Optional)
               </span>
               <input
                 type="file"
@@ -1395,10 +1395,10 @@ export default function ProductForm({
             <div>
               <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 800, color: "var(--forest)", display: "flex", alignItems: "center", gap: "6px" }}>
                 <Layers size={18} />
-                প্রোডাক্ট ভ্যারিয়েন্টস ({form.variants.length})
+                Product Variants ({form.variants.length})
               </h3>
               <p style={{ margin: "2px 0 0", fontSize: "11px", color: "#64748b" }}>
-                সাইজ বা কালার ভ্যারিয়েন্ট যোগ করে আলাদা মূল্য, স্টক ও SKU নিয়ন্ত্রণ করুন।
+                Add size or color variants with independent pricing, stock, and SKU tracking.
               </p>
             </div>
           </div>
@@ -1475,7 +1475,7 @@ export default function ProductForm({
               type="number"
               step="any"
               min="0"
-              placeholder={`মূল্য (৳${form.sale_price || form.base_price || "Base"})`}
+              placeholder={`Price (৳${form.sale_price || form.base_price || "Base"})`}
               value={variantDraft.price}
               onChange={(e) => setVariantDraft({ ...variantDraft, price: e.target.value })}
               style={{
@@ -1492,7 +1492,7 @@ export default function ProductForm({
               <input
                 type="number"
                 min="0"
-                placeholder="স্টক"
+                placeholder="Stock"
                 value={variantDraft.stock}
                 onChange={(e) => setVariantDraft({ ...variantDraft, stock: e.target.value })}
                 style={{
@@ -1523,7 +1523,7 @@ export default function ProductForm({
                 }}
               >
                 <Plus size={14} />
-                {editingVariantIndex !== null ? "আপডেট" : "যোগ"}
+                {editingVariantIndex !== null ? "Update" : "Add Variant"}
               </button>
             </div>
           </div>
@@ -1553,7 +1553,7 @@ export default function ProductForm({
                     {/* Variant Image Trigger Button */}
                     <button
                       type="button"
-                      title="ভ্যারিয়েন্ট ছবি সেট বা পরিবর্তন করুন"
+                      title="Set or change variant image"
                       onClick={() => setActiveVariantModalIndex(index)}
                       style={{
                         width: "36px",
@@ -1647,7 +1647,7 @@ export default function ProductForm({
                       min="0"
                       value={variant.stock}
                       onChange={(e) => updateInlineVariantField(index, "stock", e.target.value)}
-                      placeholder="স্টক"
+                      placeholder="Stock"
                       style={{
                         padding: "6px 8px",
                         borderRadius: "6px",
@@ -1673,7 +1673,7 @@ export default function ProductForm({
                           cursor: "pointer",
                         }}
                       >
-                        ড্রাফট
+                        Draft
                       </button>
                       <button
                         type="button"
@@ -1717,10 +1717,10 @@ export default function ProductForm({
             <div>
               <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 800, color: "var(--forest)", display: "flex", alignItems: "center", gap: "6px" }}>
                 <ImageIcon size={18} />
-                প্রোডাক্ট ও ভ্যারিয়েন্ট ছবি গ্যালারি (Product Images)
+                Product & Variant Images Gallery
               </h3>
               <p style={{ margin: "2px 0 0", fontSize: "11px", color: "#64748b" }}>
-                সরাসরি ডিভাইস থেকে ছবি আপলোড করুন এবং প্রয়োজন অনুযায়ী ভ্যারিয়েন্টের সাথে ট্যাগ করুন।
+                Upload images directly from your device and tag them to variants as needed.
               </p>
             </div>
           </div>
@@ -1729,7 +1729,7 @@ export default function ProductForm({
           {isEdit && existingGallery.length > 0 && (
             <div style={{ marginBottom: "18px" }}>
               <p style={{ margin: "0 0 8px", fontSize: "12px", fontWeight: 700, color: "var(--forest)" }}>
-                সংযুক্ত ছবি ({existingGallery.length} টি):
+                Attached Images ({existingGallery.length}):
               </p>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: "10px" }}>
                 {existingGallery.map((img) => (
@@ -1760,13 +1760,13 @@ export default function ProductForm({
                             borderRadius: "10px",
                           }}
                         >
-                          প্রাইমারি
+                          Primary
                         </span>
                       )}
                       <div style={{ position: "absolute", top: "4px", right: "4px", display: "flex", gap: "4px" }}>
                         <button
                           type="button"
-                          title="প্রাইমারি ছবি হিসেবে সেট করুন"
+                          title="Set as Primary Image"
                           onClick={() => handleSetPrimaryImage(img.id)}
                           style={{
                             padding: "3px 4px",
@@ -1781,7 +1781,7 @@ export default function ProductForm({
                         </button>
                         <button
                           type="button"
-                          title="ছবি মুছুন"
+                          title="Delete Image"
                           onClick={() => handleDeleteExistingImage(img.id)}
                           style={{
                             padding: "3px 4px",
@@ -1808,7 +1808,7 @@ export default function ProductForm({
                           border: "1px solid var(--line)",
                         }}
                       >
-                        <option value="">সাধারণ প্রোডাক্ট ছবি</option>
+                        <option value="">General Product Image</option>
                         {form.variants.map((v) => (
                           <option key={v.id} value={v.id}>
                             {v.attributes_text || v.sku || `Variant #${v.id}`}
@@ -1826,7 +1826,7 @@ export default function ProductForm({
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "12px" }}>
             <div>
               <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "var(--ink)", marginBottom: "4px" }}>
-                নতুন ছবি নির্বাচন করুন
+                Select New Images
               </label>
               <input
                 type="file"
@@ -1865,7 +1865,7 @@ export default function ProductForm({
 
             <div>
               <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "var(--ink)", marginBottom: "4px" }}>
-                নতুন ছবির ডিফল্ট অ্যাসাইনমেন্ট
+                Default Assignment for New Images
               </label>
               <select
                 value={galleryVariantKey}
@@ -1880,7 +1880,7 @@ export default function ProductForm({
                   background: "#fff",
                 }}
               >
-                <option value="">সাধারণ প্রোডাক্ট ছবি (সকল ভ্যারিয়েন্ট)</option>
+                <option value="">General Product Image (All Variants)</option>
                 {form.variants.map((v, idx) => (
                   <option key={v.id || idx} value={v.id ? `id:${v.id}` : String(idx)}>
                     {v.attributes_text || v.sku || `Variant ${idx + 1}`}
@@ -1894,7 +1894,7 @@ export default function ProductForm({
           {galleryFiles.length > 0 && (
             <div style={{ marginTop: "14px" }}>
               <p style={{ margin: "0 0 6px", fontSize: "11px", fontWeight: 700, color: "var(--forest)" }}>
-                আপলোডের জন্য নির্বাচিত ছবি ({galleryFiles.length} টি):
+                Staged Images for Upload ({galleryFiles.length}):
               </p>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: "8px" }}>
                 {galleryFiles.map((file, idx) => {
@@ -1955,7 +1955,7 @@ export default function ProductForm({
                             border: "1px solid var(--line)",
                           }}
                         >
-                          <option value="">সাধারণ প্রোডাক্ট ছবি</option>
+                          <option value="">General Product Image</option>
                           {form.variants.map((v, vIdx) => (
                             <option key={v.id || vIdx} value={v.id ? `id:${v.id}` : String(vIdx)}>
                               {v.attributes_text || v.sku || `Variant ${vIdx + 1}`}
@@ -1996,7 +1996,7 @@ export default function ProductForm({
               cursor: "pointer",
             }}
           >
-            বাতিল
+            Cancel
           </button>
           <button
             type="submit"
@@ -2018,7 +2018,7 @@ export default function ProductForm({
             }}
           >
             <Save size={16} />
-            {saving ? "সংরক্ষণ হচ্ছে..." : isEdit ? "পণ্য আপডেট করুন" : "পণ্য সংরক্ষণ করুন"}
+            {saving ? "Saving..." : isEdit ? "Update Product" : "Save Product"}
           </button>
         </div>
       </form>
@@ -2051,7 +2051,7 @@ export default function ProductForm({
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid var(--line)", paddingBottom: "12px", marginBottom: "16px" }}>
               <div>
                 <h4 style={{ margin: 0, fontSize: "16px", fontWeight: 800, color: "var(--forest)" }}>
-                  ভ্যারিয়েন্ট ছবি অ্যাসাইনমেন্ট
+                  Variant Image Assignment
                 </h4>
                 <p style={{ margin: "2px 0 0", fontSize: "12px", color: "var(--coffee)" }}>
                   {form.variants[activeVariantModalIndex].attributes_text ||
@@ -2070,7 +2070,7 @@ export default function ProductForm({
 
             <div>
               <p style={{ fontSize: "12px", fontWeight: 700, color: "var(--forest)", marginBottom: "8px" }}>
-                সরাসরি এই ভ্যারিয়েন্টের জন্য নতুন ছবি আপলোড করুন:
+                Upload a new image directly for this variant:
               </p>
               <input
                 type="file"
@@ -2109,7 +2109,7 @@ export default function ProductForm({
             {/* Currently assigned to this variant */}
             <div style={{ marginTop: "16px" }}>
               <p style={{ fontSize: "12px", fontWeight: 700, color: "var(--forest)", marginBottom: "8px" }}>
-                বর্তমানে এই ভ্যারিয়েন্টের সাথে যুক্ত ছবি:
+                Images currently linked to this variant:
               </p>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))", gap: "8px" }}>
                 {getVariantImages(form.variants[activeVariantModalIndex], activeVariantModalIndex).map((img, i) => (
@@ -2127,7 +2127,7 @@ export default function ProductForm({
                 ))}
                 {getVariantImages(form.variants[activeVariantModalIndex], activeVariantModalIndex).length === 0 && (
                   <span style={{ fontSize: "11px", color: "#94a3b8", fontStyle: "italic", gridColumn: "1/-1" }}>
-                    এখনো কোনো ছবি অ্যাসাইন করা হয়নি।
+                    No images assigned yet.
                   </span>
                 )}
               </div>
@@ -2148,7 +2148,7 @@ export default function ProductForm({
                   cursor: "pointer",
                 }}
               >
-                সম্পন্ন
+                Done
               </button>
             </div>
           </div>

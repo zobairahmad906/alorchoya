@@ -183,7 +183,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
         setEmbedSummary(embedData);
       }
     } catch {
-      toast.error("গ্যালারি লোড করা সম্ভব হয়নি।");
+      toast.error("Failed to load image gallery.");
     } finally {
       if (!silent) setLoading(false);
     }
@@ -278,16 +278,16 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
 
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.images || err.error || "আপলোড ব্যর্থ হয়েছে।");
+        throw new Error(err.images || err.error || "Upload failed.");
       }
 
       const uploadedAssets = await res.json();
-      toast.success(`${uploadedAssets.length} টি ছবি সফলভাবে গ্যালারিতে যোগ হয়েছে!`);
+      toast.success(`${uploadedAssets.length} images added to gallery successfully!`);
       setPendingFiles([]);
       setUploadProgress(100);
       await loadAll(true);
     } catch (err: any) {
-      toast.error(err.message || "ছবি আপলোড করা সম্ভব হয়নি।");
+      toast.error(err.message || "Failed to upload images.");
     } finally {
       setTimeout(() => {
         setUploading(false);
@@ -302,13 +302,13 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
       payload.asset_ids = assetIds;
     } else if (selectedOnly) {
       if (!selectedIds.length) {
-        toast.error("অন্তত একটি ছবি নির্বাচন করুন");
+        toast.error("Please select at least one image.");
         return;
       }
       payload.asset_ids = selectedIds;
     } else if (onlyFailed) {
       if (stats.failed === 0) {
-        toast.success("কোনো ফেইলড ছবি নেই");
+        toast.success("No failed images found.");
         return;
       }
       payload.only_failed = true;
@@ -329,12 +329,12 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
       if (res.ok) {
         const data = await res.json();
         await loadAll(true);
-        toast.success(`${data.queued || 0} টি ছবি প্রসেসিং কিউতে যুক্ত হয়েছে।`);
+        toast.success(`${data.queued || 0} images added to processing queue.`);
       } else {
-        toast.error("প্রিপারেশন কিউ শুরু করা যায়নি।");
+        toast.error("Failed to start preparation queue.");
       }
     } catch {
-      toast.error("সার্ভার ত্রুটি ঘটেছে।");
+      toast.error("Server error occurred.");
     } finally {
       setEmbeddingBusy(false);
     }
@@ -362,10 +362,10 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
 
       if (res.ok) {
         await loadAll(true);
-        toast.success("ইমেজের ক্রম সংরক্ষিত হয়েছে।");
+        toast.success("Image order updated successfully.");
       }
     } catch {
-      toast.error("ক্রম পরিবর্তন সম্ভব হয়নি।");
+      toast.error("Failed to update image order.");
     }
   };
 
@@ -392,12 +392,12 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
       if (res.ok) {
         await loadAll(true);
         if (onRefreshProducts) onRefreshProducts();
-        toast.success("ইমেজ মেটাডেটা সংরক্ষিত হয়েছে।");
+        toast.success("Image metadata saved successfully.");
       } else {
-        toast.error("তথ্য সংরক্ষণ করা যায়নি।");
+        toast.error("Failed to save image metadata.");
       }
     } catch {
-      toast.error("ত্রুটি ঘটেছে।");
+      toast.error("An error occurred.");
     } finally {
       setSavingDetails(false);
     }
@@ -405,7 +405,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
 
   const handleLinkProduct = async (assetId: number, productId: number) => {
     if (!productId) {
-      toast.error("একটি প্রোডাক্ট নির্বাচন করুন");
+      toast.error("Please select a target product.");
       return;
     }
     setBusy(true);
@@ -424,13 +424,13 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
         setLinkModalAsset(null);
         await loadAll(true);
         if (onRefreshProducts) onRefreshProducts();
-        toast.success("ছবিটি প্রোডাক্টের সাথে সফলভাবে যুক্ত হয়েছে!");
+        toast.success("Image linked to product successfully!");
       } else {
         const err = await res.json();
-        toast.error(err.error || "যুক্ত করা সম্ভব হয়নি।");
+        toast.error(err.error || "Failed to link image.");
       }
     } catch {
-      toast.error("ত্রুটি ঘটেছে।");
+      toast.error("An error occurred.");
     } finally {
       setBusy(false);
     }
@@ -447,18 +447,18 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
       if (res.ok) {
         await loadAll(true);
         if (onRefreshProducts) onRefreshProducts();
-        toast.success("প্রোডাক্ট লিংক সরানো হয়েছে।");
+        toast.success("Product link removed successfully.");
       } else {
-        toast.error("আনলিংক করা যায়নি।");
+        toast.error("Failed to unlink product.");
       }
     } catch {
-      toast.error("ত্রুটি ঘটেছে।");
+      toast.error("An error occurred.");
     }
   };
 
   const handleBulkLink = async () => {
     if (!selectedIds.length || !targetProductId) {
-      toast.error("ছবি ও টার্গেট প্রোডাক্ট নির্বাচন করুন");
+      toast.error("Please select images and target product.");
       return;
     }
     setBusy(true);
@@ -479,9 +479,9 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
       setSelectedIds([]);
       await loadAll(true);
       if (onRefreshProducts) onRefreshProducts();
-      toast.success(`${selectedIds.length} টি ছবি প্রোডাক্টে লিংক হয়েছে!`);
+      toast.success(`${selectedIds.length} images linked to product!`);
     } catch {
-      toast.error("কিছু ছবি লিংক করা যায়নি।");
+      toast.error("Some images could not be linked.");
     } finally {
       setBusy(false);
     }
@@ -492,7 +492,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
       (assets.find((a) => a.id === id)?.links || []).map((l) => ({ ...l, asset_id: id }))
     );
     if (!links.length) {
-      toast.error("নির্বাচিত ছবিগুলোতে কোনো সক্রিয় প্রোডাক্ট লিংক নেই।");
+      toast.error("Selected images have no active product links.");
       return;
     }
     setBusy(true);
@@ -509,9 +509,9 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
       setSelectedIds([]);
       await loadAll(true);
       if (onRefreshProducts) onRefreshProducts();
-      toast.success("নির্বাচিত ছবিগুলোর সব লিংক বিচ্ছিন্ন করা হয়েছে।");
+      toast.success("All product links unlinked for selected images.");
     } catch {
-      toast.error("কিছু লিংক সরানো সম্ভব হয়নি।");
+      toast.error("Failed to unlink some products.");
     } finally {
       setBusy(false);
     }
@@ -531,10 +531,10 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
         setSelectedIds((curr) => curr.filter((item) => item !== id));
         await loadAll(true);
         if (onRefreshProducts) onRefreshProducts();
-        toast.success("ছবি মুছে ফেলা হয়েছে।");
+        toast.success("Image deleted successfully.");
       }
     } catch {
-      toast.error("মুছে ফেলা সম্ভব হয়নি।");
+      toast.error("Failed to delete image.");
     } finally {
       setConfirmBusy(false);
       setConfirmDialog(null);
@@ -557,9 +557,9 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
       setSelectedIds([]);
       await loadAll(true);
       if (onRefreshProducts) onRefreshProducts();
-      toast.success("নির্বাচিত ছবিগুলো মুছে ফেলা হয়েছে।");
+      toast.success("Selected images deleted successfully.");
     } catch {
-      toast.error("কিছু ছবি মুছে ফেলা সম্ভব হয়নি।");
+      toast.error("Failed to delete some images.");
     } finally {
       setConfirmBusy(false);
       setConfirmDialog(null);
@@ -574,11 +574,11 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
       <div className="gallery-header-card">
         <div className="gallery-header-info">
           <h1>
-            🖼️ প্রোডাক্ট ইমেজ গ্যালারি (Image Gallery)
-            <span className="gallery-badge-emerald">{assets.length} টি অ্যাসেট</span>
+            Product Image Gallery
+            <span className="gallery-badge-emerald">{assets.length} Total Assets</span>
           </h1>
           <p>
-            আলোছায়ার সেন্ট্রাল রিইউজেবল ইমেজ লাইব্রেরি — আপলোড করুন, এআই মেটাডেটা প্রিপেয়ার করুন এবং যেকোনো প্রোডাক্টে লিংক করুন।
+            Central reusable product media library — upload, prepare AI metadata, and link to products.
           </p>
         </div>
 
@@ -589,7 +589,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
             className="gallery-btn-white"
           >
             <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
-            রিফ্রেশ
+            Refresh
           </button>
         </div>
       </div>
@@ -603,15 +603,15 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
             </div>
             <div>
               <div className="gallery-section-heading">
-                <h2>ইমেজ প্রিপারেশন ও ইনডেক্সিং স্ট্যাটাস</h2>
+                <h2>Image Preparation & AI Indexing Status</h2>
                 <span className="gallery-badge-emerald">Auto-Ready Pipeline</span>
               </div>
               <p className="gallery-section-sub">
-                সর্বশেষ প্রিপারেশন:{" "}
+                Last Preparation:{" "}
                 <b style={{ color: "#334155" }}>
                   {embedSummary?.last_embedded_at
                     ? new Date(embedSummary.last_embedded_at).toLocaleString("bn-BD")
-                    : "সম্পূর্ণ হয়েছে"}
+                    : "Completed"}
                 </b>
               </p>
             </div>
@@ -626,7 +626,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
                 className="gallery-btn-danger"
               >
                 <RefreshCw size={14} />
-                রিট্রাই ফেইলড ({stats.failed})
+                Retry Failed ({stats.failed})
               </button>
             )}
 
@@ -636,7 +636,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
                 onClick={() => setShowErrorLogs((v) => !v)}
                 className="gallery-btn-white"
               >
-                {showErrorLogs ? "এরর লুকান" : "এরর ডিটেইলস"}
+                {showErrorLogs ? "Hide Error Logs" : "View Error Logs"}
               </button>
             )}
 
@@ -647,7 +647,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
               className="gallery-btn-primary"
             >
               <Sparkles size={14} />
-              {embeddingBusy ? "প্রসেসিং হচ্ছে..." : `পেন্ডিং প্রিপেয়ার (${stats.pending + stats.failed})`}
+              {embeddingBusy ? "Processing..." : `Prepare Pending (${stats.pending + stats.failed})`}
             </button>
           </div>
         </div>
@@ -659,7 +659,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
             value={stats.pending}
             icon={<Clock size={18} />}
             color="orange"
-            subValue="কিউতে অপেক্ষমান"
+            subValue="In Queue"
             active={statusFilter === "pending"}
             onClick={() => setStatusFilter(statusFilter === "pending" ? "all" : "pending")}
           />
@@ -668,7 +668,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
             value={stats.processing}
             icon={<Cpu size={18} />}
             color="blue"
-            subValue="অ্যাক্টিভ প্রসেসিং"
+            subValue="Active Processing"
             active={statusFilter === "processing"}
             onClick={() => setStatusFilter(statusFilter === "processing" ? "all" : "processing")}
           />
@@ -677,7 +677,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
             value={stats.ready}
             icon={<CheckCircle2 size={18} />}
             color="green"
-            subValue={`${stats.progressPercent}% সম্পন্ন`}
+            subValue={`${stats.progressPercent}% Completed`}
             active={statusFilter === "ready"}
             onClick={() => setStatusFilter(statusFilter === "ready" ? "all" : "ready")}
           />
@@ -686,7 +686,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
             value={stats.linked}
             icon={<Link2 size={18} />}
             color="purple"
-            subValue="প্রোডাক্টে যুক্ত"
+            subValue="Linked to Products"
             active={statusFilter === "linked"}
             onClick={() => setStatusFilter(statusFilter === "linked" ? "all" : "linked")}
           />
@@ -695,7 +695,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
             value={stats.unlinked}
             icon={<Unlink size={18} />}
             color="indigo"
-            subValue="ব্যবহারের জন্য প্রস্তুত"
+            subValue="Ready in Library"
             active={statusFilter === "unlinked"}
             onClick={() => setStatusFilter(statusFilter === "unlinked" ? "all" : "unlinked")}
           />
@@ -704,7 +704,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
             value={stats.failed}
             icon={<AlertCircle size={18} />}
             color="red"
-            subValue={stats.failed > 0 ? "পুনরায় চেষ্টা প্রয়োজন" : "কোনো ত্রুটি নেই"}
+            subValue={stats.failed > 0 ? "Requires Retry" : "No Errors"}
             active={statusFilter === "failed"}
             onClick={() => setStatusFilter(statusFilter === "failed" ? "all" : "failed")}
           />
@@ -715,10 +715,10 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
           <div className="gallery-progress-labels">
             <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
               <Sparkles size={13} style={{ color: "#10b981" }} />
-              রেডিনেস প্রগ্রেস
+              Readiness Progress
             </span>
             <span className="gallery-progress-pct">
-              {stats.ready} / {stats.total} রেডি ({stats.progressPercent}%)
+              {stats.ready} / {stats.total} Ready ({stats.progressPercent}%)
             </span>
           </div>
           <div className="gallery-progress-track">
@@ -732,7 +732,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
         {/* Diagnostic error logs */}
         {showErrorLogs && failedItems.length > 0 && (
           <div style={{ marginTop: "14px", borderRadius: "12px", border: "1px solid #fecdd3", background: "#fff1f2", padding: "14px" }}>
-            <b style={{ color: "#9f1239", fontSize: "12px" }}>ফেইলড ইমেজ লগ:</b>
+            <b style={{ color: "#9f1239", fontSize: "12px" }}>Failed Image Logs:</b>
             <div style={{ marginTop: "8px", maxHeight: "150px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "6px" }}>
               {failedItems.map((item) => (
                 <div
@@ -740,7 +740,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
                   style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#ffffff", padding: "8px 12px", borderRadius: "8px", border: "1px solid #ffe4e6", fontSize: "12px", color: "#be123c" }}
                 >
                   <span style={{ fontWeight: 700 }}>#{item.id} — {item.filename}</span>
-                  <span style={{ fontFamily: "monospace", fontSize: "11px" }}>{item.processing_error || "ত্রুটি ঘটেছে"}</span>
+                  <span style={{ fontFamily: "monospace", fontSize: "11px" }}>{item.processing_error || "Processing Error"}</span>
                 </div>
               ))}
             </div>
@@ -766,10 +766,10 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
             </div>
             <div>
               <div className="gallery-dropzone-title">
-                এখানে ছবি ড্রপ করুন, অথবা ক্লিক করে ব্রাউজ করুন
+                Drag & drop product images here, or click to browse
               </div>
               <div className="gallery-dropzone-subtitle">
-                PNG, JPG, WEBP সাপোর্ট করে (সর্বোচ্চ ১৫ মেগাবাইট)। একাধিক ছবি একসাথে আপলোড করতে পারবেন।
+                Supports PNG, JPG, WEBP (Max 15 MB). Multiple files supported.
               </div>
             </div>
             <input
@@ -785,21 +785,21 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
           {pendingFiles.length > 0 && (
             <div className="gallery-staged-actions">
               <span className="gallery-badge-emerald">
-                {pendingFiles.length} টি সিলেক্টেড
+                {pendingFiles.length} Staged
               </span>
               <button
                 type="button"
                 onClick={() => setPendingFiles([])}
                 className="gallery-btn-white"
               >
-                বাতিল
+                Clear
               </button>
               <button
                 type="submit"
                 disabled={uploading}
                 className="gallery-btn-primary"
               >
-                {uploading ? `আপলোড হচ্ছে (${uploadProgress}%)` : "আপলোড শুরু করুন"}
+                {uploading ? `Uploading (${uploadProgress}%)` : "Start Upload"}
               </button>
             </div>
           )}
@@ -842,7 +842,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
             <Search size={14} className="search-icon" />
             <input
               type="text"
-              placeholder="ফাইলের নাম, অল্টার টেক্সট বা প্রোডাক্ট সার্চ..."
+              placeholder="Search by filename, alt text, or product..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -862,7 +862,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
             onChange={(e) => setStatusFilter(e.target.value)}
             className="gallery-select"
           >
-            <option value="all">সব স্ট্যাটাস ({assets.length})</option>
+            <option value="all">All Statuses ({assets.length})</option>
             <option value="ready">Ready ({stats.ready})</option>
             <option value="pending">Pending ({stats.pending})</option>
             <option value="processing">Processing ({stats.processing})</option>
@@ -877,7 +877,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
             className="gallery-select"
             style={{ maxWidth: "220px" }}
           >
-            <option value="all">সব প্রোডাক্ট</option>
+            <option value="all">All Products</option>
             {products.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}
@@ -892,7 +892,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
               type="button"
               onClick={() => setView("grid")}
               className={view === "grid" ? "active" : ""}
-              title="গ্রিড ভিউ"
+              title="Grid View"
             >
               <Grid size={15} />
             </button>
@@ -900,7 +900,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
               type="button"
               onClick={() => setView("masonry")}
               className={view === "masonry" ? "active" : ""}
-              title="ম্যাসনরি ভিউ"
+              title="Masonry View"
             >
               <SlidersHorizontal size={15} />
             </button>
@@ -908,7 +908,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
               type="button"
               onClick={() => setView("list")}
               className={view === "list" ? "active" : ""}
-              title="লিস্ট ভিউ"
+              title="List View"
             >
               <List size={15} />
             </button>
@@ -930,7 +930,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
             ) : (
               <Square size={14} />
             )}
-            সিলেক্ট ({selectedIds.length})
+            Select ({selectedIds.length})
           </button>
         </div>
       </div>
@@ -940,7 +940,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
         <div className="gallery-bulk-action-bar">
           <div className="gallery-bulk-count">
             <span className="bulk-count-pill">{selectedIds.length}</span>
-            <span>টি ছবি নির্বাচিত হয়েছে</span>
+            <span>image(s) selected</span>
           </div>
 
           <div className="gallery-bulk-buttons">
@@ -950,7 +950,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
               className="gallery-select"
               style={{ padding: "6px 10px", fontSize: "12px" }}
             >
-              <option value="">প্রোডাক্ট সিলেক্ট করুন...</option>
+              <option value="">Select target product...</option>
               {products.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
@@ -965,7 +965,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
               className="gallery-btn-indigo"
             >
               <Link2 size={13} />
-              বাল্ক লিংক
+              Bulk Link
             </button>
 
             <button
@@ -976,7 +976,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
               style={{ padding: "7px 12px", fontSize: "12px" }}
             >
               <Unlink size={13} />
-              সব লিংক কাটুন
+              Unlink All
             </button>
 
             <button
@@ -987,7 +987,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
               style={{ padding: "7px 12px", fontSize: "12px" }}
             >
               <Trash2 size={13} />
-              মুছে ফেলুন ({selectedIds.length})
+              Delete Selected ({selectedIds.length})
             </button>
 
             <button
@@ -1005,14 +1005,14 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
       {loading ? (
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 20px", background: "#ffffff", borderRadius: "20px", border: "1px solid #e2e8f0" }}>
           <div className="animate-spin" style={{ width: "36px", height: "36px", borderRadius: "50%", border: "3px solid #e2e8f0", borderTopColor: "#10b981", marginBottom: "14px" }} />
-          <p style={{ fontSize: "13px", fontWeight: 700, color: "#64748b" }}>ইমেজ লাইব্রেরি লোড হচ্ছে...</p>
+          <p style={{ fontSize: "13px", fontWeight: 700, color: "#64748b" }}>Loading image library...</p>
         </div>
       ) : filteredAssets.length === 0 ? (
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 20px", background: "#ffffff", borderRadius: "20px", border: "1px solid #e2e8f0", textAlign: "center" }}>
           <FileImage size={48} style={{ color: "#cbd5e1", marginBottom: "12px" }} />
-          <h3 style={{ fontSize: "16px", fontWeight: 800, color: "#334155", margin: "0 0 6px" }}>কোনো ছবি পাওয়া যায়নি</h3>
+          <h3 style={{ fontSize: "16px", fontWeight: 800, color: "#334155", margin: "0 0 6px" }}>No images found</h3>
           <p style={{ fontSize: "13px", color: "#64748b", maxWidth: "360px", margin: 0 }}>
-            উপরে ড্র্যাগ অ্যান্ড ড্রপ বক্সে ছবি ড্রপ করুন অথবা অন্য ফিল্টারে সার্চ করুন।
+            Drag & drop images above or adjust your search filter.
           </p>
         </div>
       ) : (
@@ -1059,7 +1059,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
                       <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "3px", fontSize: "11px", color: "#64748b" }}>
                         <span>{formatBytes(asset.file_size)}</span>
                         {asset.dimensions && <span>• {asset.dimensions.width}×{asset.dimensions.height}</span>}
-                        <span>• {new Date(asset.created_at).toLocaleDateString("bn-BD")}</span>
+                        <span>• {new Date(asset.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}</span>
                       </div>
                     </div>
                   </div>
@@ -1071,10 +1071,10 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
 
                     {asset.links && asset.links.length > 0 ? (
                       <span className="gallery-card-link-badge">
-                        {asset.links.length} লিংকড
+                        {asset.links.length} linked
                       </span>
                     ) : (
-                      <span style={{ fontSize: "11px", color: "#94a3b8" }}>আনলিংকড</span>
+                      <span style={{ fontSize: "11px", color: "#94a3b8" }}>Unlinked</span>
                     )}
 
                     <div style={{ display: "flex", alignItems: "center", gap: "4px" }} onClick={(e) => e.stopPropagation()}>
@@ -1083,7 +1083,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
                         onClick={() => reorderAsset(asset.id, -1)}
                         disabled={index === 0}
                         style={{ background: "transparent", border: "none", color: "#64748b", cursor: "pointer", padding: "4px", opacity: index === 0 ? 0.3 : 1 }}
-                        title="উপরে নিন"
+                        title="Move Up"
                       >
                         <ArrowUp size={14} />
                       </button>
@@ -1092,7 +1092,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
                         onClick={() => reorderAsset(asset.id, 1)}
                         disabled={index === filteredAssets.length - 1}
                         style={{ background: "transparent", border: "none", color: "#64748b", cursor: "pointer", padding: "4px", opacity: index === filteredAssets.length - 1 ? 0.3 : 1 }}
-                        title="নিচে নিন"
+                        title="Move Down"
                       >
                         <ArrowDown size={14} />
                       </button>
@@ -1100,7 +1100,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
                         type="button"
                         onClick={() => setLinkModalAsset(asset)}
                         style={{ background: "transparent", border: "none", color: "#4f46e5", cursor: "pointer", padding: "4px" }}
-                        title="প্রোডাক্টে লিংক করুন"
+                        title="Link to Product"
                       >
                         <Link2 size={14} />
                       </button>
@@ -1108,7 +1108,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
                         type="button"
                         onClick={() => setConfirmDialog({ type: "single", id: asset.id })}
                         style={{ background: "transparent", border: "none", color: "#e11d48", cursor: "pointer", padding: "4px" }}
-                        title="মুছে ফেলুন"
+                        title="Delete Image"
                       >
                         <Trash2 size={14} />
                       </button>
@@ -1155,7 +1155,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
                         type="button"
                         onClick={() => reorderAsset(asset.id, -1)}
                         disabled={index === 0}
-                        title="পূর্বে নিন"
+                        title="Move Left"
                       >
                         <ArrowUp size={13} style={{ transform: "rotate(-90deg)" }} />
                       </button>
@@ -1163,7 +1163,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
                         type="button"
                         onClick={() => reorderAsset(asset.id, 1)}
                         disabled={index === filteredAssets.length - 1}
-                        title="পরে নিন"
+                        title="Move Right"
                       >
                         <ArrowDown size={13} style={{ transform: "rotate(-90deg)" }} />
                       </button>
@@ -1174,7 +1174,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
                         type="button"
                         onClick={() => setLinkModalAsset(asset)}
                         className="overlay-btn-indigo"
-                        title="প্রোডাক্টে লিংক করুন"
+                        title="Link to Product"
                       >
                         <Link2 size={13} />
                       </button>
@@ -1182,7 +1182,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
                         type="button"
                         onClick={() => setConfirmDialog({ type: "single", id: asset.id })}
                         className="overlay-btn-danger"
-                        title="ডিলিট"
+                        title="Delete"
                       >
                         <Trash2 size={13} />
                       </button>
@@ -1195,17 +1195,17 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
                     {asset.filename}
                   </div>
                   <div className="gallery-card-alt" title={asset.alt_text}>
-                    {asset.alt_text || "কোনো অল্টার টেক্সট নেই"}
+                    {asset.alt_text || "No alt text"}
                   </div>
 
                   <div className="gallery-card-meta">
                     <span>{formatBytes(asset.file_size)}</span>
                     {asset.links && asset.links.length > 0 ? (
                       <span className="gallery-card-link-badge">
-                        {asset.links.length} লিংকড
+                        {asset.links.length} linked
                       </span>
                     ) : (
-                      <span className="gallery-card-unlinked">ফ্রি</span>
+                      <span className="gallery-card-unlinked">Unlinked</span>
                     )}
                   </div>
                 </div>
@@ -1234,7 +1234,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
                   <h3 style={{ margin: 0, fontSize: "14px", fontWeight: 800, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "260px" }}>
                     {activeAsset.filename}
                   </h3>
-                  <p style={{ margin: "2px 0 0", fontSize: "11px", color: "#64748b" }}>ইমেজ ইন্সপেক্টর ও মেটাডেটা</p>
+                  <p style={{ margin: "2px 0 0", fontSize: "11px", color: "#64748b" }}>Image Inspector & Metadata</p>
                 </div>
               </div>
 
@@ -1257,29 +1257,29 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
                 target="_blank"
                 rel="noreferrer"
               >
-                ফুল প্রিভিউ <ExternalLink size={12} />
+                Full Image <ExternalLink size={12} />
               </a>
             </div>
 
             <div className="gallery-drawer-stats">
               <div className="gallery-drawer-stat-box">
-                <span className="gallery-drawer-stat-label">ফাইল সাইজ</span>
+                <span className="gallery-drawer-stat-label">File Size</span>
                 <span className="gallery-drawer-stat-val">{formatBytes(activeAsset.file_size)}</span>
               </div>
               <div className="gallery-drawer-stat-box">
-                <span className="gallery-drawer-stat-label">ডাইমেনশন</span>
+                <span className="gallery-drawer-stat-label">Dimensions</span>
                 <span className="gallery-drawer-stat-val">
                   {activeAsset.dimensions ? `${activeAsset.dimensions.width} × ${activeAsset.dimensions.height} px` : "N/A"}
                 </span>
               </div>
               <div className="gallery-drawer-stat-box">
-                <span className="gallery-drawer-stat-label">আপলোড তারিখ</span>
+                <span className="gallery-drawer-stat-label">Upload Date</span>
                 <span className="gallery-drawer-stat-val">
-                  {new Date(activeAsset.created_at).toLocaleDateString("bn-BD")}
+                  {new Date(activeAsset.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
                 </span>
               </div>
               <div className="gallery-drawer-stat-box">
-                <span className="gallery-drawer-stat-label">স্ট্যাটাস</span>
+                <span className="gallery-drawer-stat-label">Status</span>
                 <span className="gallery-drawer-stat-val" style={{ color: "#047857" }}>
                   {activeAsset.processing_status}
                 </span>
@@ -1289,7 +1289,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
             {/* Form */}
             <form onSubmit={saveAssetDetails} style={{ marginTop: "16px" }}>
               <div className="gallery-form-group">
-                <label>ফাইলের নাম (Filename)</label>
+                <label>Filename</label>
                 <input
                   type="text"
                   value={editDraft.filename}
@@ -1299,24 +1299,24 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
               </div>
 
               <div className="gallery-form-group">
-                <label>অল্টার টেক্সট (Alt Text / SEO)</label>
+                <label>Alt Text (SEO)</label>
                 <input
                   type="text"
                   value={editDraft.alt_text}
                   onChange={(e) => setEditDraft({ ...editDraft, alt_text: e.target.value })}
                   className="gallery-input"
-                  placeholder="যেমন: আলোছায়া বিশেষ ডায়েরি বাঁধাই..."
+                  placeholder="e.g. Alorchoya Premium Diary Notebook..."
                 />
               </div>
 
               <div className="gallery-form-group">
-                <label>এআই ভিজ্যুয়াল ডেসক্রিপশন / ক্যাপশন</label>
+                <label>AI Visual Description / Caption</label>
                 <textarea
                   rows={2}
                   value={editDraft.image_caption}
                   onChange={(e) => setEditDraft({ ...editDraft, image_caption: e.target.value })}
                   className="gallery-textarea"
-                  placeholder="এআই ভিজ্যুয়াল ক্যাপশন..."
+                  placeholder="AI visual description / details..."
                 />
               </div>
 
@@ -1326,7 +1326,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
                 className="gallery-btn-primary"
                 style={{ width: "100%", justifyContent: "center", marginTop: "14px", padding: "10px" }}
               >
-                {savingDetails ? "সংরক্ষণ হচ্ছে..." : "মেটাডেটা আপডেট করুন"}
+                {savingDetails ? "Saving..." : "Save Metadata"}
               </button>
             </form>
 
@@ -1334,7 +1334,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
             <div style={{ marginTop: "24px", paddingTop: "18px", borderTop: "1px solid #e2e8f0" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
                 <h4 style={{ margin: 0, fontSize: "12px", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.06em", color: "#334155" }}>
-                  সংযুক্ত প্রোডাক্টসমূহ ({activeAsset.links?.length || 0})
+                  Linked Products ({activeAsset.links?.length || 0})
                 </h4>
               </div>
 
@@ -1353,24 +1353,24 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
                         type="button"
                         onClick={() => handleUnlink(activeAsset.id, link.id)}
                         style={{ background: "transparent", border: "none", color: "#e11d48", fontWeight: 700, fontSize: "11px", display: "flex", alignItems: "center", gap: "4px", cursor: "pointer" }}
-                        title="আনলিংক"
+                        title="Unlink"
                       >
                         <Unlink size={12} />
-                        আনলিংক
+                        Unlink
                       </button>
                     </div>
                   ))}
                 </div>
               ) : (
                 <p style={{ fontSize: "12px", color: "#94a3b8", fontStyle: "italic", marginBottom: "16px" }}>
-                  এই ছবিটি এখনো কোনো প্রোডাক্টে যুক্ত করা হয়নি।
+                  This image is not linked to any product yet.
                 </p>
               )}
 
               {/* Quick Link to Product Form */}
               <div style={{ padding: "14px", borderRadius: "12px", border: "1px solid #e0e7ff", background: "#eef2ff" }}>
                 <label style={{ display: "block", fontSize: "12px", fontWeight: 800, color: "#1e1b4b", marginBottom: "8px" }}>
-                  নতুন প্রোডাক্টের সাথে লিংক করুন
+                  Link to a New Product
                 </label>
                 <div style={{ display: "flex", gap: "8px" }}>
                   <select
@@ -1379,7 +1379,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
                     className="gallery-select"
                     style={{ flex: 1, padding: "8px 10px", fontSize: "12px" }}
                   >
-                    <option value="">প্রোডাক্ট সিলেক্ট করুন...</option>
+                    <option value="">Select target product...</option>
                     {products.map((p) => (
                       <option key={p.id} value={p.id}>
                         {p.name}
@@ -1392,7 +1392,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
                     onClick={() => handleLinkProduct(activeAsset.id, Number(targetProductId))}
                     className="gallery-btn-indigo"
                   >
-                    লিংক
+                    Link
                   </button>
                 </div>
               </div>
@@ -1407,7 +1407,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
                 style={{ width: "100%", justifyContent: "center", padding: "10px" }}
               >
                 <Trash2 size={14} />
-                এই ছবিটি সম্পূর্ণ মুছে ফেলুন
+                Delete this image permanently
               </button>
             </div>
           </div>
@@ -1427,7 +1427,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: "12px", borderBottom: "1px solid #f1f5f9" }}>
               <h3 style={{ margin: 0, fontSize: "15px", fontWeight: 800, color: "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
                 <Link2 size={16} style={{ color: "#4f46e5" }} />
-                প্রোডাক্টের সাথে লিংক করুন
+                Link Image to Product
               </h3>
               <button
                 type="button"
@@ -1449,14 +1449,14 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
                   {linkModalAsset.filename}
                 </p>
                 <p style={{ margin: "2px 0 0", fontSize: "11px", color: "#64748b", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                  {linkModalAsset.alt_text || "কোনো অল্টার টেক্সট নেই"}
+                  {linkModalAsset.alt_text || "No alt text"}
                 </p>
               </div>
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
               <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155" }}>
-                প্রোডাক্ট নির্বাচন করুন:
+                Select Target Product:
               </label>
               <select
                 value={targetProductId}
@@ -1464,7 +1464,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
                 className="gallery-select"
                 style={{ width: "100%" }}
               >
-                <option value="">তালিকায় থাকা প্রোডাক্ট বেছে নিন...</option>
+                <option value="">Choose a product from catalog...</option>
                 {products.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}
@@ -1478,7 +1478,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
                   onClick={() => setLinkModalAsset(null)}
                   className="gallery-btn-white"
                 >
-                  বাতিল
+                  Clear
                 </button>
                 <button
                   type="button"
@@ -1487,7 +1487,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
                   className="gallery-btn-indigo"
                   style={{ padding: "9px 18px", fontSize: "13px" }}
                 >
-                  {busy ? "লিংক হচ্ছে..." : "লিংক কনফার্ম করুন"}
+                  {busy ? "Linking..." : "Confirm Link"}
                 </button>
               </div>
             </div>
@@ -1511,11 +1511,11 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
             </div>
             <h3 style={{ margin: "0 0 6px", fontSize: "16px", fontWeight: 800, color: "#0f172a" }}>
               {confirmDialog.type === "bulk"
-                ? `${selectedIds.length} টি ছবি মুছে ফেলতে চান?`
-                : "এই ছবিটি মুছে ফেলতে চান?"}
+                ? `Delete ${selectedIds.length} selected images?`
+                : "Delete this image?"}
             </h3>
             <p style={{ margin: "0 0 20px", fontSize: "13px", color: "#64748b", lineHeight: 1.5 }}>
-              এই ছবি মুছে ফেললে তা স্টোরেজ থেকে চিরতরে মুছে যাবে এবং সংযুক্ত সব প্রোডাক্ট থেকেও অপসারিত হবে।
+              Deleting this image will remove it permanently from storage and unlink it from all associated products.
             </p>
 
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px" }}>
@@ -1525,7 +1525,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
                 className="gallery-btn-white"
                 style={{ flex: 1, justifyContent: "center" }}
               >
-                না, রাখুন
+                Cancel
               </button>
               <button
                 type="button"
@@ -1540,7 +1540,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
                 className="gallery-btn-danger"
                 style={{ flex: 1, justifyContent: "center", background: "#e11d48", color: "#ffffff", border: "none" }}
               >
-                {confirmBusy ? "মুছে ফেলা হচ্ছে..." : "হ্যাঁ, মুছে ফেলুন"}
+                {confirmBusy ? "Deleting..." : "Yes, Delete"}
               </button>
             </div>
           </div>

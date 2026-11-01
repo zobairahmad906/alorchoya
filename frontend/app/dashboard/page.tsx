@@ -166,7 +166,7 @@ export default function AdminDashboardPage() {
     try {
       const statsRes = await fetch(getApiUrl("/admin/dashboard/stats/"), { credentials: "include" });
       if (statsRes.status === 403 || statsRes.status === 401) {
-        setError("আপনার অ্যাডমিন পারমিশন নেই। দয়া করে অ্যাকাউন্ট দিয়ে লগইন করুন।");
+        setError("You do not have admin permissions. Please log in with an admin account.");
         setLoading(false);
         return;
       }
@@ -199,7 +199,7 @@ export default function AdminDashboardPage() {
       }
     } catch (err) {
       console.error(err);
-      setError("ডেটা লোড করতে সমস্যা হয়েছে। সার্ভার স্ট্যাটাস চেক করুন।");
+      setError("Failed to load dashboard data. Please check server status.");
     } finally {
       setLoading(false);
     }
@@ -256,7 +256,7 @@ export default function AdminDashboardPage() {
         fetchDashboardData();
       }
     } catch (err) {
-      alert("স্ট্যাটাস পরিবর্তন ব্যর্থ হয়েছে।");
+      alert("Failed to update order status.");
     }
   };
 
@@ -267,19 +267,19 @@ export default function AdminDashboardPage() {
       const url = isEdit ? getApiUrl("/admin/products/" + editingProduct.id + "/") : getApiUrl("/admin/products/");
       const res = await fetch(url, { method: isEdit ? "PATCH" : "POST", headers: { "Content-Type": "application/json", ...(csrfToken ? { "X-CSRFToken": csrfToken } : {}) }, credentials: "include", body: JSON.stringify(productForm) });
       const savedProduct = await res.json().catch(() => ({}));
-      if (!res.ok) { alert(savedProduct.error || savedProduct.detail || "পণ্য সংরক্ষণ করা সম্ভব হয়নি।"); return; }
+      if (!res.ok) { alert(savedProduct.error || savedProduct.detail || "Failed to save product."); return; }
       if (imageFile && savedProduct.id) {
         const uploadData = new FormData();
         uploadData.append("images", imageFile);
         const uploadRes = await fetch(getApiUrl("/products/" + savedProduct.id + "/upload-images/"), { method: "POST", headers: csrfToken ? { "X-CSRFToken": csrfToken } : {}, credentials: "include", body: uploadData });
-        if (!uploadRes.ok) { alert("পণ্য সংরক্ষণ হয়েছে, কিন্তু image upload হয়নি।"); }
+        if (!uploadRes.ok) { alert("Product saved, but image upload failed."); }
       }
       setShowProductModal(false); setEditingProduct(null); setImageFile(null); setDescriptionMode("write"); fetchDashboardData();
-    } catch (err) { alert("ত্রুটি ঘটেছে। আবার চেষ্টা করুন।"); }
+    } catch (err) { alert("An error occurred. Please try again."); }
   };
 
   const handleDeleteProduct = async (productId: number) => {
-    if (!confirm("আপনি কি নিশ্চিতভাবে এই পণ্যটি মুছে ফেলতে চান?")) return;
+    if (!confirm("Are you sure you want to delete this product?")) return;
     try {
       const res = await fetch(getApiUrl(`/admin/products/${productId}/`), {
         method: "DELETE",
@@ -291,7 +291,7 @@ export default function AdminDashboardPage() {
         fetchDashboardData();
       }
     } catch (err) {
-      alert("মুছে ফেলা সম্ভব হয়নি।");
+      alert("Failed to delete product.");
     }
   };
 
@@ -305,7 +305,7 @@ export default function AdminDashboardPage() {
     setShowProductForm(true);
   };
 
-  const insertMarkdown = (before: string, after = "", placeholder = "লিখুন") => {
+  const insertMarkdown = (before: string, after = "", placeholder = "text") => {
     const area = descriptionRef.current;
     if (!area) return;
     const start = area.selectionStart; const end = area.selectionEnd;
@@ -342,10 +342,10 @@ export default function AdminDashboardPage() {
           window.location.reload();
         }
       } else {
-        setLoginError(data.error || "লগইন ব্যর্থ হয়েছে। তথ্য আবার চেক করুন।");
+        setLoginError(data.error || "Login failed. Please verify your credentials.");
       }
     } catch (err) {
-      setLoginError("সার্ভারের সাথে সংযোগ স্থাপন করা সম্ভব হয়নি।");
+      setLoginError("Could not connect to the server.");
     } finally {
       setIsSubmittingLogin(false);
     }
@@ -366,9 +366,9 @@ export default function AdminDashboardPage() {
         <div className="admin-login-wrapper">
           <div className="admin-login-card">
             <div className="admin-login-icon">🔐</div>
-            <h2 className="admin-login-title">অ্যাডমিন পোর্টাল লগইন</h2>
+            <h2 className="admin-login-title">Admin Portal Login</h2>
             <p className="admin-login-subtitle">
-              ড্যাশবোর্ডে প্রবেশ করতে আপনার Admin/Superuser অ্যাকাউন্টের ইউজারনেম ও পাসওয়ার্ড দিন।
+              Enter your Admin / Superuser username and password to access the dashboard.
             </p>
 
             {loginError && (
@@ -378,16 +378,16 @@ export default function AdminDashboardPage() {
             )}
 
             <a className="google-btn" href={getApiUrl("/auth/google/start/?next=/dashboard")} style={{ display: "flex", justifyContent: "center", marginBottom: "16px", textDecoration: "none" }}>
-              <span className="google-mark">G</span> Google account দিয়ে প্রবেশ করুন
+              <span className="google-mark">G</span> Continue with Google Account
             </a>
-            <div style={{ textAlign: "center", color: "#64748b", fontSize: "12px", marginBottom: "14px" }}>অথবা Admin username/password ব্যবহার করুন</div>
+            <div style={{ textAlign: "center", color: "#64748b", fontSize: "12px", marginBottom: "14px" }}>Or use Admin username & password</div>
             <form onSubmit={handleAdminLogin}>
               <div className="admin-form-group">
-                <label>ইউজারনেম বা ইমেইল</label>
+                <label>Username or Email</label>
                 <input
                   type="text"
                   required
-                  placeholder="যেমন: zobair"
+                  placeholder="e.g. admin"
                   value={loginUsername}
                   onChange={e => setLoginUsername(e.target.value)}
                   className="admin-input-field"
@@ -395,7 +395,7 @@ export default function AdminDashboardPage() {
               </div>
 
               <div className="admin-form-group">
-                <label>পাসওয়ার্ড</label>
+                <label>Password</label>
                 <input
                   type="password"
                   required
@@ -411,7 +411,7 @@ export default function AdminDashboardPage() {
                 disabled={isSubmittingLogin}
                 className="admin-submit-btn"
               >
-                {isSubmittingLogin ? "লগইন হচ্ছে..." : "প্রবেশ করুন ➔"}
+                {isSubmittingLogin ? "Signing in..." : "Sign In ➔"}
               </button>
             </form>
 
@@ -471,7 +471,7 @@ export default function AdminDashboardPage() {
       <!DOCTYPE html>
       <html>
         <head>
-          <title>ইনভয়েস মেমো #${order.id} - আলোছায়া</title>
+          <title>Invoice #${order.id} - Alorchoya</title>
           <style>
             body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; padding: 40px; color: #173f35; background: #fff; line-height: 1.5; }
             .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #173f35; padding-bottom: 16px; margin-bottom: 24px; }
@@ -490,36 +490,36 @@ export default function AdminDashboardPage() {
         <body>
           <div class="header">
             <div>
-              <h1 class="brand">আলোছায়া (Alorchoya)</h1>
-              <div class="tagline">বুকস & ক্রাফট শপ | আলোর সাথে পথচলা</div>
+              <h1 class="brand">Alorchoya</h1>
+              <div class="tagline">Books & Craft Shop | Living With Light</div>
             </div>
             <div>
-              <h2 class="inv-title">ক্যাশ মেমো / ইনভয়েস</h2>
-              <div class="inv-meta">অর্ডার নং: <strong>#${order.id}</strong></div>
-              <div class="inv-meta">তারিখ: ${new Date(order.created_at).toLocaleDateString("bn-BD")}</div>
+              <h2 class="inv-title">INVOICE / CASH MEMO</h2>
+              <div class="inv-meta">Order No: <strong>#${order.id}</strong></div>
+              <div class="inv-meta">Date: ${new Date(order.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}</div>
             </div>
           </div>
 
           <div class="box-grid">
             <div>
-              <strong style="color: #64748b; font-size: 12px; text-transform: uppercase;">গ্রাহকের তথ্য:</strong>
+              <strong style="color: #64748b; font-size: 12px; text-transform: uppercase;">Customer Details:</strong>
               <div style="font-size: 16px; font-weight: 700; color: #173f35; margin-top: 4px;">${order.customer_name}</div>
               <div>${order.address}</div>
             </div>
             <div style="text-align: right;">
-              <strong style="color: #64748b; font-size: 12px; text-transform: uppercase;">পেমেন্ট বিবরণ:</strong>
-              <div style="font-size: 14px; font-weight: 700; color: #10b981; margin-top: 4px;">মেথড: ${order.payment_method.toUpperCase()}</div>
-              <div>স্ট্যাটাস: ${order.status_display || order.status}</div>
+              <strong style="color: #64748b; font-size: 12px; text-transform: uppercase;">Payment Details:</strong>
+              <div style="font-size: 14px; font-weight: 700; color: #10b981; margin-top: 4px;">Method: ${order.payment_method.toUpperCase()}</div>
+              <div>Status: ${order.status_display || order.status}</div>
             </div>
           </div>
 
           <table>
             <thead>
               <tr>
-                <th>আইটেমের বিবরণ</th>
-                <th style="text-align: center;">পরিমাণ</th>
-                <th style="text-align: right;">একক মূল্য</th>
-                <th style="text-align: right;">মোট</th>
+                <th>Item Description</th>
+                <th style="text-align: center;">Qty</th>
+                <th style="text-align: right;">Unit Price</th>
+                <th style="text-align: right;">Total</th>
               </tr>
             </thead>
             <tbody>
@@ -528,13 +528,13 @@ export default function AdminDashboardPage() {
           </table>
 
           <div class="totals">
-            <div>ডেলিভারি চার্জ: ৳${order.delivery_charge}</div>
-            <div>ডিসকাউন্ট: -৳${order.discount_amount}</div>
-            <div class="grand-total">সর্বমোট প্রদেয়: ৳${order.total}</div>
+            <div>Delivery Charge: ৳${order.delivery_charge}</div>
+            <div>Discount: -৳${order.discount_amount}</div>
+            <div class="grand-total">Grand Total: ৳${order.total}</div>
           </div>
 
           <div class="footer">
-            ধন্যবাদ আপনার কেনাকাটার জন্য! আলোছায়া - support@alorchoya.com
+            Thank you for shopping with Alorchoya! Support: support@alorchoya.com
           </div>
 
           <script>
@@ -565,13 +565,13 @@ export default function AdminDashboardPage() {
               🌟
             </div>
             <div>
-              <div className="admin-sidebar-brand-text">আলোছায়া</div>
+              <div className="admin-sidebar-brand-text">Alorchoya</div>
               <div className="admin-sidebar-brand-sub">Admin Dashboard</div>
             </div>
           </div>
 
           <nav className="admin-sidebar-nav">
-            <div className="admin-sidebar-nav-label">মেইন মেনু</div>
+            <div className="admin-sidebar-nav-label">MAIN MENU</div>
 
             <button
               onClick={() => { setActiveTab("overview"); setMobileSidebarOpen(false); }}
@@ -579,7 +579,7 @@ export default function AdminDashboardPage() {
             >
               <div className="admin-nav-item-content">
                 <span className="admin-nav-item-icon">📊</span>
-                <span>ওভারভিউ</span>
+                <span>Overview</span>
               </div>
             </button>
 
@@ -589,7 +589,7 @@ export default function AdminDashboardPage() {
             >
               <div className="admin-nav-item-content">
                 <span className="admin-nav-item-icon">📦</span>
-                <span>অর্ডার ম্যানেজমেন্ট</span>
+                <span>Orders</span>
               </div>
               {stats && stats.pending_orders > 0 && (
                 <span className="admin-nav-badge warning">
@@ -604,7 +604,7 @@ export default function AdminDashboardPage() {
             >
               <div className="admin-nav-item-content">
                 <span className="admin-nav-item-icon">🛍️</span>
-                <span>প্রোডাক্ট ও স্টক</span>
+                <span>Products & Stock</span>
               </div>
               <span className="admin-nav-badge">
                 {products.length}
@@ -617,7 +617,7 @@ export default function AdminDashboardPage() {
             >
               <div className="admin-nav-item-content">
                 <span className="admin-nav-item-icon">🖼️</span>
-                <span>ইমেজ গ্যালারি</span>
+                <span>Image Gallery</span>
               </div>
               <span className="admin-nav-badge success">
                 AI Media
@@ -630,7 +630,7 @@ export default function AdminDashboardPage() {
             >
               <div className="admin-nav-item-content">
                 <span className="admin-nav-item-icon">👥</span>
-                <span>গ্রাহক তালিকা</span>
+                <span>Customers</span>
               </div>
               <span className="admin-nav-badge">
                 {customersList.length}
@@ -645,17 +645,17 @@ export default function AdminDashboardPage() {
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: "12px", fontWeight: 700, color: "#f8fafc", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  স্টোর অ্যাডমিন
+                  Store Admin
                 </div>
                 <div style={{ fontSize: "10px", color: "#34d399" }}>
-                  ● অনলাইন সেশন
+                  ● Online Session
                 </div>
               </div>
             </div>
 
             <div className="admin-sidebar-sublinks">
-              <Link href="/" className="admin-sidebar-sublink" title="ওয়েবসাইট দেখুন">
-                🏪 শপ ফ্রন্ট ↗
+              <Link href="/" className="admin-sidebar-sublink" title="View Storefront">
+                🏪 Storefront ↗
               </Link>
               <a
                 href={getApiUrl("/admin/")}
@@ -678,16 +678,16 @@ export default function AdminDashboardPage() {
                 type="button"
                 onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
                 className="admin-topbar-toggle"
-                title="মেনু খুলুন"
+                title="Toggle Menu"
               >
                 ☰
               </button>
               <div className="admin-topbar-title">
-                {activeTab === "overview" && "📊 ড্যাশবোর্ড ওভারভিউ"}
-                {activeTab === "orders" && "📦 অর্ডার ও ডেলিভারি নিয়ন্ত্রণ"}
-                {activeTab === "products" && "🛍️ প্রোডাক্ট ও স্টক ম্যানেজমেন্ট"}
-                {activeTab === "gallery" && "🖼️ সেন্ট্রাল ইমেজ গ্যালারি ও মিডিয়া হাব"}
-                {activeTab === "customers" && "👥 গ্রাহক ডিরেক্টরি"}
+                {activeTab === "overview" && "Dashboard Overview"}
+                {activeTab === "orders" && "Orders & Fulfillment"}
+                {activeTab === "products" && "Products & Inventory"}
+                {activeTab === "gallery" && "Central Image Gallery & Media Hub"}
+                {activeTab === "customers" && "Customer Directory"}
               </div>
             </div>
 
@@ -697,14 +697,14 @@ export default function AdminDashboardPage() {
                 className="admin-header-link"
                 style={{ background: "var(--forest)", color: "#fff", borderColor: "var(--forest)" }}
               >
-                + নতুন প্রোডাক্ট
+                + Add Product
               </button>
               <button
                 onClick={() => fetchDashboardData()}
                 className="admin-header-link"
-                title="তথ্য রিফ্রেশ করুন"
+                title="Refresh Data"
               >
-                🔄 রিফ্রেশ
+                🔄 Refresh
               </button>
             </div>
           </header>
@@ -716,43 +716,43 @@ export default function AdminDashboardPage() {
                 {/* KPI Cards Grid */}
             <div className="admin-kpi-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))" }}>
               <div className="admin-kpi-card">
-                <div className="admin-kpi-title">মোট বিক্রয় (Revenue)</div>
+                <div className="admin-kpi-title">Total Revenue</div>
                 <div className="admin-kpi-val emerald">৳{stats.total_revenue.toLocaleString()}</div>
-                <div className="admin-kpi-sub" style={{ color: "#64748b" }}>গত ৩০ দিনে: ৳{stats.monthly_revenue.toLocaleString()}</div>
+                <div className="admin-kpi-sub" style={{ color: "#64748b" }}>Last 30 Days: ৳{stats.monthly_revenue.toLocaleString()}</div>
               </div>
 
               <div className="admin-kpi-card">
-                <div className="admin-kpi-title">গড় অর্ডার মান (AOV)</div>
+                <div className="admin-kpi-title">Average Order Value (AOV)</div>
                 <div className="admin-kpi-val" style={{ color: "var(--forest)" }}>৳{stats.avg_order_value || 0}</div>
-                <div className="admin-kpi-sub" style={{ color: "#64748b" }}>প্রতি অর্ডারে গড় খরচ</div>
+                <div className="admin-kpi-sub" style={{ color: "#64748b" }}>Avg. spend per order</div>
               </div>
 
               <div className="admin-kpi-card">
-                <div className="admin-kpi-title">মোট অর্ডার</div>
-                <div className="admin-kpi-val">{stats.total_orders} টি</div>
-                <div className="admin-kpi-sub" style={{ color: "#fbbf24" }}>পেন্ডিং: {stats.pending_orders} টি | ডেলিভার্ড: {stats.delivered_orders} টি</div>
+                <div className="admin-kpi-title">Total Orders</div>
+                <div className="admin-kpi-val">{stats.total_orders}</div>
+                <div className="admin-kpi-sub" style={{ color: "#fbbf24" }}>Pending: {stats.pending_orders} | Delivered: {stats.delivered_orders}</div>
               </div>
 
               <div className="admin-kpi-card">
-                <div className="admin-kpi-title">মোট গ্রাহক</div>
-                <div className="admin-kpi-val" style={{ color: "var(--forest)" }}>{stats.unique_customers || customersList.length} জন</div>
-                <div className="admin-kpi-sub" style={{ color: "var(--emerald)" }}>ইউনিক গ্রাহক ডিরেক্টরি</div>
+                <div className="admin-kpi-title">Total Customers</div>
+                <div className="admin-kpi-val" style={{ color: "var(--forest)" }}>{stats.unique_customers || customersList.length} Profiles</div>
+                <div className="admin-kpi-sub" style={{ color: "var(--emerald)" }}>Unique Customer Directory</div>
               </div>
 
               <div className="admin-kpi-card">
-                <div className="admin-kpi-title">পণ্য স্টক স্ট্যাটাস</div>
-                <div className="admin-kpi-val">{stats.total_products} টি প্রোডাক্ট</div>
-                <div className="admin-kpi-sub" style={{ color: "#fb7185" }}>স্টক শেষ: {stats.out_of_stock_products} টি | কম স্টক: {stats.low_stock_products} টি</div>
+                <div className="admin-kpi-title">Inventory & Stock Status</div>
+                <div className="admin-kpi-val">{stats.total_products} Products</div>
+                <div className="admin-kpi-sub" style={{ color: "#fb7185" }}>Out of stock: {stats.out_of_stock_products} | Low stock: {stats.low_stock_products}</div>
               </div>
 
               <div className="admin-kpi-card" style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-                <div className="admin-kpi-title">কুইক অ্যাকশন</div>
+                <div className="admin-kpi-title">Quick Actions</div>
                 <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
                   <button onClick={openCreateModal} className="admin-tab-btn active" style={{ flex: 1, fontSize: "12px", padding: "8px" }}>
-                    + নতুন প্রোডাক্ট
+                    + Add Product
                   </button>
                   <button onClick={() => setActiveTab("orders")} className="admin-header-link" style={{ flex: 1, fontSize: "12px", textAlign: "center" }}>
-                    অর্ডার লিস্ট ➔
+                    Orders List ➔
                   </button>
                 </div>
               </div>
@@ -763,7 +763,7 @@ export default function AdminDashboardPage() {
               {/* Daily Sales Bar Chart */}
               <div className="admin-panel">
                 <h3 style={{ fontFamily: "'Tiro Bangla', serif", fontSize: "20px", color: "var(--forest)", margin: "0 0 20px" }}>
-                  📈 গত ৭ দিনের বিক্রয় চিত্র (Sales Trend)
+                  Sales Analytics (Last 7 Days)
                 </h3>
                 <div style={{ height: "200px", display: "flex", alignItems: "flex-end", gap: "16px", paddingTop: "16px", borderBottom: "1px solid var(--line)", paddingBottom: "8px" }}>
                   {stats.daily_sales.map((day, idx) => {
@@ -784,7 +784,7 @@ export default function AdminDashboardPage() {
               {/* Top Selling Products */}
               <div className="admin-panel">
                 <h3 style={{ fontFamily: "'Tiro Bangla', serif", fontSize: "20px", color: "var(--forest)", margin: "0 0 16px" }}>
-                  🔥 সেরা বিক্রিত বই/পণ্য
+                  Top Selling Products
                 </h3>
                 {stats.top_products && stats.top_products.length > 0 ? (
                   <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
@@ -795,14 +795,14 @@ export default function AdminDashboardPage() {
                           <span style={{ fontWeight: 600, fontSize: "13px", color: "var(--forest)" }}>{item.name}</span>
                         </div>
                         <span style={{ fontSize: "12px", fontWeight: 700, color: "var(--coffee)", background: "var(--cream)", padding: "2px 8px", borderRadius: "6px" }}>
-                          {item.sold} টি বিক্রি
+                          {item.sold} sold
                         </span>
                       </div>
                     ))}
                   </div>
                 ) : (
                   <div style={{ color: "var(--coffee)", fontSize: "13px", textAlign: "center", paddingTop: "30px" }}>
-                    এখনো অর্ডার সম্বলিত তথ্য পাওয়া যায়নি।
+                    No order records available yet.
                   </div>
                 )}
               </div>
@@ -811,9 +811,9 @@ export default function AdminDashboardPage() {
             {/* Recent Orders Overview */}
             <div className="admin-panel">
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
-                <h3 style={{ fontFamily: "'Tiro Bangla', serif", fontSize: "20px", color: "var(--forest)", margin: 0 }}>🚀 সর্বশেষ ১০টি অর্ডার</h3>
+                <h3 style={{ fontSize: "20px", fontWeight: 800, color: "var(--forest)", margin: 0 }}>Recent Orders (Last 10)</h3>
                 <button onClick={() => setActiveTab("orders")} className="admin-header-link" style={{ fontSize: "12px" }}>
-                  সব অর্ডার দেখুন ➔
+                  View All Orders ➔
                 </button>
               </div>
 
@@ -821,12 +821,12 @@ export default function AdminDashboardPage() {
                 <table className="admin-table">
                   <thead>
                     <tr>
-                      <th>অর্ডার আইডি</th>
-                      <th>গ্রাহকের নাম</th>
-                      <th>তারিখ</th>
-                      <th>মোট টাকা</th>
-                      <th>স্ট্যাটাস</th>
-                      <th style={{ textAlign: "right" }}>অ্যাকশন</th>
+                      <th>Order ID</th>
+                      <th>Customer Name</th>
+                      <th>Date</th>
+                      <th>Total</th>
+                      <th>Status</th>
+                      <th style={{ textAlign: "right" }}>Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -847,7 +847,7 @@ export default function AdminDashboardPage() {
                             className="admin-header-link"
                             style={{ padding: "4px 12px", fontSize: "12px" }}
                           >
-                            বিস্তারিত
+                            Details
                           </button>
                         </td>
                       </tr>
@@ -868,7 +868,7 @@ export default function AdminDashboardPage() {
               <div className="admin-panel" style={{ padding: "16px", display: "flex", flexWrap: "wrap", alignItems: "center", gap: "12px" }}>
                 <input
                   type="text"
-                  placeholder="অর্ডার আইডি, নাম বা ফোন নম্বর দিয়ে খুঁজুন..."
+                  placeholder="Search by Order ID, name, or phone..."
                   value={orderSearch}
                   onChange={e => setOrderSearch(e.target.value)}
                   className="admin-input-field"
@@ -880,7 +880,7 @@ export default function AdminDashboardPage() {
                   className="admin-input-field"
                   style={{ width: "auto" }}
                 >
-                  <option value="">সকল স্ট্যাটাস</option>
+                  <option value="">All Statuses</option>
                   <option value="pending">Pending</option>
                   <option value="confirmed">Confirmed</option>
                   <option value="processing">Processing</option>
@@ -894,7 +894,7 @@ export default function AdminDashboardPage() {
               <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                 {filteredOrders.length === 0 ? (
                   <div className="admin-panel" style={{ textAlign: "center", color: "var(--coffee)", padding: "32px" }}>
-                    কোনো অর্ডার পাওয়া যায়নি।
+                    No orders found.
                   </div>
                 ) : (
                   filteredOrders.map(order => (
@@ -940,10 +940,10 @@ export default function AdminDashboardPage() {
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid var(--line)", paddingBottom: "12px" }}>
                   <div>
                     <h3 style={{ fontFamily: "'Tiro Bangla', serif", fontSize: "20px", color: "var(--forest)", margin: 0 }}>
-                      অর্ডার বিস্তারিত <span style={{ color: "var(--emerald)" }}>#{selectedOrder.id}</span>
+                      Order Details <span style={{ color: "var(--emerald)" }}>#{selectedOrder.id}</span>
                     </h3>
                     <p style={{ fontSize: "12px", color: "var(--coffee)", margin: "4px 0 0" }}>
-                      তারিখ: {new Date(selectedOrder.created_at).toLocaleString("bn-BD")}
+                      Date: {new Date(selectedOrder.created_at).toLocaleString("en-US", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                     </p>
                   </div>
                   <div style={{ display: "flex", gap: "8px" }}>
@@ -952,21 +952,21 @@ export default function AdminDashboardPage() {
                       className="admin-tab-btn active"
                       style={{ padding: "4px 12px", fontSize: "12px", marginTop: 0 }}
                     >
-                      📄 প্রিন্ট মেমো / ইনভয়েস
+                      📄 Print Invoice / Memo
                     </button>
                     <button
                       onClick={() => setSelectedOrder(null)}
                       className="admin-header-link"
                       style={{ padding: "4px 12px" }}
                     >
-                      বন্ধ করুন ✕
+                      Close ✕
                     </button>
                   </div>
                 </div>
 
                 {/* Status Updater */}
                 <div style={{ background: "var(--cream)", padding: "14px", borderRadius: "12px", border: "1px solid var(--line)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--forest)" }}>স্ট্যাটাস পরিবর্তন করুন:</span>
+                  <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--forest)" }}>Update Order Status:</span>
                   <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
                     {["pending", "confirmed", "shipped", "delivered", "cancelled"].map(st => (
                       <button
@@ -984,21 +984,21 @@ export default function AdminDashboardPage() {
                 {/* Customer Details */}
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", background: "var(--ivory)", padding: "16px", borderRadius: "12px", border: "1px solid var(--line)", fontSize: "13px" }}>
                   <div>
-                    <div style={{ color: "var(--coffee)", fontWeight: 700, marginBottom: "4px" }}>গ্রাহকের ঠিকানা & নাম</div>
+                    <div style={{ color: "var(--coffee)", fontWeight: 700, marginBottom: "4px" }}>Customer & Delivery Address</div>
                     <div style={{ fontWeight: 700, color: "var(--forest)" }}>{selectedOrder.customer_name}</div>
                     <div style={{ color: "var(--ink)", marginTop: "4px" }}>{selectedOrder.address}</div>
                   </div>
                   <div>
-                    <div style={{ color: "var(--coffee)", fontWeight: 700, marginBottom: "4px" }}>পেমেন্ট & ডেলিভারি</div>
-                    <div style={{ color: "var(--ink)" }}>মেথড: <span style={{ fontWeight: 700, color: "var(--forest)", textTransform: "uppercase" }}>{selectedOrder.payment_method}</span></div>
-                    <div style={{ color: "var(--ink)", marginTop: "4px" }}>ডেলিভারি চার্জ: ৳{selectedOrder.delivery_charge}</div>
-                    <div style={{ color: "var(--ink)", marginTop: "2px" }}>ডিসকাউন্ট: ৳{selectedOrder.discount_amount}</div>
+                    <div style={{ color: "var(--coffee)", fontWeight: 700, marginBottom: "4px" }}>Payment & Fulfillment</div>
+                    <div style={{ color: "var(--ink)" }}>Method: <span style={{ fontWeight: 700, color: "var(--forest)", textTransform: "uppercase" }}>{selectedOrder.payment_method}</span></div>
+                    <div style={{ color: "var(--ink)", marginTop: "4px" }}>Delivery Charge: ৳{selectedOrder.delivery_charge}</div>
+                    <div style={{ color: "var(--ink)", marginTop: "2px" }}>Discount: ৳{selectedOrder.discount_amount}</div>
                   </div>
                 </div>
 
                 {/* Ordered Items */}
                 <div>
-                  <h4 style={{ fontSize: "13px", fontWeight: 700, color: "var(--coffee)", marginBottom: "12px", textTransform: "uppercase" }}>অর্ডারকৃত আইটেমসমূহ</h4>
+                  <h4 style={{ fontSize: "13px", fontWeight: 700, color: "var(--coffee)", marginBottom: "12px", textTransform: "uppercase" }}>Order Items</h4>
                   <div style={{ borderTop: "1px solid var(--line)", borderBottom: "1px solid var(--line)" }}>
                     {selectedOrder.items.map(item => (
                       <div key={item.id} style={{ padding: "12px 0", display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "13px", borderBottom: "1px solid var(--cream)" }}>
@@ -1008,7 +1008,7 @@ export default function AdminDashboardPage() {
                           )}
                           <div>
                             <div style={{ fontWeight: 700, color: "var(--forest)" }}>{item.product_name}</div>
-                            <div style={{ color: "var(--coffee)", fontSize: "12px" }}>পরিমাণ: {item.quantity} x ৳{item.unit_price}</div>
+                            <div style={{ color: "var(--coffee)", fontSize: "12px" }}>Qty: {item.quantity} × ৳{item.unit_price}</div>
                           </div>
                         </div>
                         <div style={{ fontWeight: 800, color: "var(--forest)" }}>
@@ -1021,8 +1021,8 @@ export default function AdminDashboardPage() {
 
                 {/* Total */}
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "16px", fontWeight: 800, color: "var(--forest)", paddingTop: "8px" }}>
-                  <span>সর্বমোট প্রদেয়:</span>
-                  <span style={{ fontSize: "22px", fontFamily: "'Tiro Bangla', serif" }}>৳{selectedOrder.total}</span>
+                  <span>Total Payable:</span>
+                  <span style={{ fontSize: "22px", fontWeight: 800 }}>৳{selectedOrder.total}</span>
                 </div>
               </div>
             )}
@@ -1039,7 +1039,7 @@ export default function AdminDashboardPage() {
                 setShowProductForm(false);
                 setEditingProduct(null);
                 fetchDashboardData();
-                toast.success("পণ্য সফলভাবে সংরক্ষিত হয়েছে!");
+                toast.success("Product saved successfully!");
               }}
               onCancel={() => {
                 setShowProductForm(false);
@@ -1051,9 +1051,9 @@ export default function AdminDashboardPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div>
-                <h3 style={{ fontFamily: "'Tiro Bangla', serif", fontSize: "22px", color: "var(--forest)", margin: 0 }}>পণ্য তালিকা & ইনভেন্টরি ক্যাটালগ</h3>
+                <h3 style={{ fontSize: "22px", fontWeight: 800, color: "var(--forest)", margin: 0 }}>Product Catalog & Inventory</h3>
                 <p style={{ margin: "4px 0 0", fontSize: "12px", color: "var(--coffee)" }}>
-                  সকল প্রোডাক্ট স্পেক্স, স্টক, ও ভ্যারিয়েন্ট এখান থেকে পরিচালনা করুন।
+                  Manage all product specifications, stock levels, and variants.
                 </p>
               </div>
               <button
@@ -1061,7 +1061,7 @@ export default function AdminDashboardPage() {
                 className="admin-submit-btn"
                 style={{ width: "auto", padding: "10px 20px", marginTop: 0 }}
               >
-                + নতুন পণ্য যোগ করুন
+                + Add New Product
               </button>
             </div>
 
@@ -1069,7 +1069,7 @@ export default function AdminDashboardPage() {
             <div className="admin-panel" style={{ padding: "16px", display: "flex", flexWrap: "wrap", alignItems: "center", gap: "12px" }}>
               <input
                 type="text"
-                placeholder="পণ্যের নাম বা স্ল্যাগ দিয়ে খুঁজুন..."
+                placeholder="Search by product name or slug..."
                 value={productSearch}
                 onChange={e => setProductSearch(e.target.value)}
                 className="admin-input-field"
@@ -1081,13 +1081,13 @@ export default function AdminDashboardPage() {
                 className="admin-input-field"
                 style={{ width: "auto" }}
               >
-                <option value="">সকল ক্যাটাগরি</option>
+                <option value="">All Categories</option>
                 {categories.map(c => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
               <span className="admin-badge pending" style={{ fontSize: "12px", marginLeft: "auto" }}>
-                মোট {filteredProducts.length} টি পণ্য
+                {filteredProducts.length} Products Found
               </span>
             </div>
 
@@ -1096,21 +1096,21 @@ export default function AdminDashboardPage() {
                 <table className="admin-table">
                   <thead>
                     <tr>
-                      <th>পণ্য</th>
+                      <th>Product</th>
                       <th>SKU</th>
-                      <th>ক্যাটাগরি</th>
-                      <th>মূল্য</th>
-                      <th>ডিসকাউন্ট</th>
-                      <th>স্টক (Stock)</th>
-                      <th>স্ট্যাটাস</th>
-                      <th style={{ textAlign: "right" }}>অ্যাকশন</th>
+                      <th>Category</th>
+                      <th>Price</th>
+                      <th>Discount</th>
+                      <th>Stock</th>
+                      <th>Status</th>
+                      <th style={{ textAlign: "right" }}>Action</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredProducts.length === 0 ? (
                       <tr>
                         <td colSpan={7} style={{ textAlign: "center", padding: "32px", color: "var(--coffee)" }}>
-                          কোনো পণ্য পাওয়া যায়নি।
+                          No products found.
                         </td>
                       </tr>
                     ) : (
@@ -1127,7 +1127,7 @@ export default function AdminDashboardPage() {
                                 <span>{product.name}</span>
                                 {Array.isArray(product.variants) && product.variants.length > 0 && (
                                   <span style={{ fontSize: "10px", background: "rgba(23,63,53,0.08)", color: "var(--forest)", padding: "1px 6px", borderRadius: "8px", fontWeight: 700 }}>
-                                    {product.variants.length} ভ্যারিয়েন্ট
+                                    {product.variants.length} variants
                                   </span>
                                 )}
                               </div>
@@ -1149,7 +1149,7 @@ export default function AdminDashboardPage() {
                                 -
                               </button>
                               <span className={`admin-badge ${product.stock === 0 ? "cancelled" : product.stock <= 5 ? "pending" : "delivered"}`}>
-                                {product.stock} টি
+                                {product.stock} in stock
                               </span>
                               <button
                                 onClick={() => handleQuickStockChange(product, 1)}
@@ -1174,14 +1174,14 @@ export default function AdminDashboardPage() {
                               className="admin-header-link"
                               style={{ padding: "4px 12px", fontSize: "12px", marginRight: "6px" }}
                             >
-                              এডিট
+                              Edit
                             </button>
                             <button
                               onClick={() => handleDeleteProduct(product.id)}
                               className="admin-header-link"
                               style={{ padding: "4px 12px", fontSize: "12px", background: "rgba(225,29,72,0.1)", color: "#e11d48", borderColor: "rgba(225,29,72,0.3)" }}
                             >
-                              ডিলিট
+                              Delete
                             </button>
                           </td>
                         </tr>
@@ -1199,8 +1199,8 @@ export default function AdminDashboardPage() {
         {activeTab === "customers" && (
           <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
             <div className="admin-panel" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <h3 style={{ fontFamily: "'Tiro Bangla', serif", fontSize: "22px", color: "var(--forest)", margin: 0 }}>👥 কাস্টমার ডিরেক্টরি & অর্ডার হিস্ট্রি</h3>
-              <span className="admin-badge pending" style={{ fontSize: "13px" }}>{customersList.length} জন কাস্টমার ডিরেক্টরি</span>
+              <h3 style={{ fontSize: "22px", fontWeight: 800, color: "var(--forest)", margin: 0 }}>👥 Customer Directory & History</h3>
+              <span className="admin-badge pending" style={{ fontSize: "13px" }}>{customersList.length} Customer Profiles</span>
             </div>
 
             <div className="admin-panel" style={{ padding: 0, overflow: "hidden" }}>
@@ -1208,18 +1208,18 @@ export default function AdminDashboardPage() {
                 <table className="admin-table">
                   <thead>
                     <tr>
-                      <th>কাস্টমারের নাম</th>
-                      <th>ঠিকানা / অবস্থান</th>
-                      <th>মোট অর্ডার সংখ্যা</th>
-                      <th>মোট ক্রয় মান (Total Spent)</th>
-                      <th>সর্বশেষ অর্ডারের তারিখ</th>
+                      <th>Customer Name</th>
+                      <th>Address / Location</th>
+                      <th>Total Orders</th>
+                      <th>Total Spent</th>
+                      <th>Last Order Date</th>
                     </tr>
                   </thead>
                   <tbody>
                     {customersList.length === 0 ? (
                       <tr>
                         <td colSpan={5} style={{ textAlign: "center", padding: "32px", color: "var(--coffee)" }}>
-                          কোনো কাস্টমার ডেটা পাওয়া যায়নি।
+                          No customer records found.
                         </td>
                       </tr>
                     ) : (
@@ -1229,7 +1229,7 @@ export default function AdminDashboardPage() {
                           <td style={{ color: "var(--ink)" }}>{c.address}</td>
                           <td style={{ fontWeight: 700 }}>
                             <span className="admin-badge delivered" style={{ background: "rgba(16,185,129,0.1)", color: "var(--forest)" }}>
-                              {c.total_orders} টি অর্ডার
+                              {c.total_orders} Orders
                             </span>
                           </td>
                           <td style={{ fontWeight: 800, color: "var(--emerald)" }}>৳{c.total_spent}</td>
@@ -1263,14 +1263,14 @@ export default function AdminDashboardPage() {
           <div className="admin-login-card" style={{ maxWidth: "560px", padding: "32px", maxHeight: "90vh", overflowY: "auto" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid var(--line)", paddingBottom: "12px", marginBottom: "20px" }}>
               <h3 style={{ fontFamily: "'Tiro Bangla', serif", fontSize: "22px", color: "var(--forest)", margin: 0 }}>
-                {editingProduct ? "পণ্য এডিট করুন" : "নতুন পণ্য যোগ করুন"}
+                {editingProduct ? "Edit Product" : "Add New Product"}
               </h3>
               <button onClick={() => setShowProductModal(false)} style={{ background: "none", border: "none", fontSize: "18px", color: "var(--coffee)", cursor: "pointer" }}>✕</button>
             </div>
 
             <form onSubmit={handleSaveProduct} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
               <div className="admin-form-group" style={{ margin: 0 }}>
-                <label>পণ্যের নাম</label>
+                <label>Product Name</label>
                 <input
                   type="text"
                   required
@@ -1282,41 +1282,36 @@ export default function AdminDashboardPage() {
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
                 <div className="admin-form-group" style={{ margin: 0 }}>
-                  <label>পণ্যের Slug</label>
+                  <label>Product Slug</label>
                   <input type="text" required value={productForm.slug} onChange={e => setProductForm({ ...productForm, slug: e.target.value })} className="admin-input-field" placeholder="product-slug" />
                 </div>
                 <div className="admin-form-group" style={{ margin: 0 }}>
-                  <label>ছবির Alt text</label>
-                  <input type="text" value={productForm.image_alt} onChange={e => setProductForm({ ...productForm, image_alt: e.target.value })} className="admin-input-field" placeholder="পণ্যের ছবির বর্ণনা" />
+                  <label>Image Alt Text</label>
+                  <input type="text" value={productForm.image_alt} onChange={e => setProductForm({ ...productForm, image_alt: e.target.value })} className="admin-input-field" placeholder="Image description for SEO" />
                 </div>
               </div>
 
               <div className="admin-form-group" style={{ margin: 0 }}>
-                <label>ডিভাইস থেকে ছবি নির্বাচন করুন</label>
+                <label>Select Image from Device</label>
                 <input type="file" accept="image/*" onChange={e => setImageFile(e.target.files?.[0] || null)} className="admin-input-field" />
-                {imageFile && <small style={{ color: "var(--emerald)" }}>নির্বাচিত: {imageFile.name}</small>}
-                <small style={{ color: "var(--coffee)", fontSize: "11px" }}>ছবি save করার পর product gallery-তে upload হবে</small>
+                {imageFile && <small style={{ color: "var(--emerald)" }}>Selected: {imageFile.name}</small>}
+                <small style={{ color: "var(--coffee)", fontSize: "11px" }}>Image will upload to product gallery after saving</small>
               </div>
               <div className="admin-form-group" style={{ margin: 0 }}>
-                <label>অথবা Image URL</label>
+                <label>Or Image URL</label>
                 <input type="url" placeholder="https://example.com/image.jpg" value={productForm.image_url} onChange={e => setProductForm({ ...productForm, image_url: e.target.value })} className="admin-input-field" />
               </div>
 
               <div className="admin-form-group markdown-editor" style={{ margin: 0 }}>
-                <label>পণ্যের বিস্তারিত বিবরণ (Markdown)</label>
+                <label>Product Description (Markdown)</label>
                 <div className="markdown-tabs"><button type="button" className={descriptionMode === "write" ? "active" : ""} onClick={() => setDescriptionMode("write")}>Write</button><button type="button" className={descriptionMode === "preview" ? "active" : ""} onClick={() => setDescriptionMode("preview")}>Preview</button></div>
-                {descriptionMode === "write" ? <><div className="markdown-toolbar"><button type="button" onClick={() => insertMarkdown("# ", "", "শিরোনাম")}>H1</button><button type="button" onClick={() => insertMarkdown("**", "**", "গুরুত্বপূর্ণ লেখা")}>B</button><button type="button" onClick={() => insertMarkdown("*", "*", "ইটালিক লেখা")}>I</button><button type="button" onClick={() => insertMarkdown("- ", "", "তালিকার বিষয়")}>• List</button><button type="button" onClick={() => insertMarkdown("> ", "", "উদ্ধৃতি")}>Quote</button></div><textarea ref={descriptionRef} rows={8} value={productForm.description} onChange={e => setProductForm({ ...productForm, description: e.target.value })} className="admin-input-field markdown-textarea" placeholder="# পণ্যের বৈশিষ্ট্য
-
-- কাঠের তৈরি
-- সহজে ব্যবহারযোগ্য
-
-**বিশেষ দ্রষ্টব্য:** যত্নসহকারে ব্যবহার করুন।" /></> : <MarkdownPreview value={productForm.description} className="markdown-editor-preview" />}
-                <small style={{ color: "var(--coffee)", fontSize: "11px" }}>Markdown ব্যবহার করুন: # heading, **bold**, *italic*, - list, &gt; quote</small>
+                {descriptionMode === "write" ? <><div className="markdown-toolbar"><button type="button" onClick={() => insertMarkdown("# ", "", "Heading")}>H1</button><button type="button" onClick={() => insertMarkdown("**", "**", "Bold Text")}>B</button><button type="button" onClick={() => insertMarkdown("*", "*", "Italic Text")}>I</button><button type="button" onClick={() => insertMarkdown("- ", "", "List Item")}>• List</button><button type="button" onClick={() => insertMarkdown("> ", "", "Quote")}>Quote</button></div><textarea ref={descriptionRef} rows={8} value={productForm.description} onChange={e => setProductForm({ ...productForm, description: e.target.value })} className="admin-input-field markdown-textarea" placeholder="# Product Specifications\n- High quality build\n- Authentic materials\n\n**Note:** Handle with care." /></> : <MarkdownPreview value={productForm.description} className="markdown-editor-preview" />}
+                <small style={{ color: "var(--coffee)", fontSize: "11px" }}>Use Markdown: # heading, **bold**, *italic*, - list, &gt; quote</small>
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
                 <div className="admin-form-group" style={{ margin: 0 }}>
-                  <label>মূল্য (৳)</label>
+                  <label>Price (৳)</label>
                   <input
                     type="number"
                     required
@@ -1326,7 +1321,7 @@ export default function AdminDashboardPage() {
                   />
                 </div>
                 <div className="admin-form-group" style={{ margin: 0 }}>
-                  <label>ডিসকাউন্ট মূল্য (ঐচ্ছিক)</label>
+                  <label>Discount Price (Optional)</label>
                   <input
                     type="number"
                     min="0"
@@ -1335,13 +1330,13 @@ export default function AdminDashboardPage() {
                     onChange={e => setProductForm({ ...productForm, discount_price: e.target.value })}
                     className="admin-input-field"
                   />
-                  <small style={{ color: "var(--coffee)", fontSize: "11px" }}>খালি রাখলে discount থাকবে না</small>
+                  <small style={{ color: "var(--coffee)", fontSize: "11px" }}>Leave empty if no discount applies</small>
                 </div>
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
                 <div className="admin-form-group" style={{ margin: 0 }}>
-                  <label>স্টক (পরিমাণ)</label>
+                  <label>Stock (Quantity)</label>
                   <input
                     type="number"
                     required
@@ -1351,7 +1346,7 @@ export default function AdminDashboardPage() {
                   />
                 </div>
                 <div className="admin-form-group" style={{ margin: 0 }}>
-                  <label>ক্যাটাগরি</label>
+                  <label>Category</label>
                   <select
                     value={productForm.category_id}
                     onChange={e => setProductForm({ ...productForm, category_id: parseInt(e.target.value) || 1 })}
@@ -1367,7 +1362,7 @@ export default function AdminDashboardPage() {
               <div style={{ display: "flex", alignItems: "center", gap: "24px", paddingTop: "8px", flexWrap: "wrap" }}>
                 <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "14px", color: "var(--forest)", fontWeight: 600 }}>
                   <input type="checkbox" checked={productForm.image_primary} onChange={e => setProductForm({ ...productForm, image_primary: e.target.checked })} />
-                  প্রধান ছবি হিসেবে ব্যবহার
+                  Use as Primary Image
                 </label>
                 <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "14px", color: "var(--forest)", fontWeight: 600 }}>
                   <input
@@ -1375,7 +1370,7 @@ export default function AdminDashboardPage() {
                     checked={productForm.is_featured}
                     onChange={e => setProductForm({ ...productForm, is_featured: e.target.checked })}
                   />
-                  ফিচার্ড প্রোডাক্ট
+                  Featured Product
                 </label>
                 <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "14px", color: "var(--forest)", fontWeight: 600 }}>
                   <input
@@ -1383,7 +1378,7 @@ export default function AdminDashboardPage() {
                     checked={productForm.is_active}
                     onChange={e => setProductForm({ ...productForm, is_active: e.target.checked })}
                   />
-                  পাবলিশড (Active)
+                  Published (Active)
                 </label>
               </div>
 
@@ -1394,14 +1389,14 @@ export default function AdminDashboardPage() {
                   className="admin-header-link"
                   style={{ padding: "10px 20px" }}
                 >
-                  বাতিল
+                  Cancel
                 </button>
                 <button
                   type="submit"
                   className="admin-submit-btn"
                   style={{ width: "auto", padding: "10px 24px", marginTop: 0 }}
                 >
-                  সংরক্ষণ করুন
+                  Save Product
                 </button>
               </div>
             </form>
