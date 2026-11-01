@@ -32,6 +32,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import "./dashboard.css";
 
 export type ImageAssetLink = {
   id: number;
@@ -97,74 +98,22 @@ interface StatCardProps {
 }
 
 function GalleryStatCard({ title, value, icon, color, subValue, active, onClick }: StatCardProps) {
-  const colorPalettes = {
-    blue: { color: "#3b82f6", bg: "rgba(59, 130, 246, 0.08)", border: "rgba(59, 130, 246, 0.2)", glow: "#3b82f6" },
-    purple: { color: "#a855f7", bg: "rgba(168, 85, 247, 0.08)", border: "rgba(168, 85, 247, 0.2)", glow: "#a855f7" },
-    orange: { color: "#f59e0b", bg: "rgba(245, 158, 11, 0.08)", border: "rgba(245, 158, 11, 0.2)", glow: "#f59e0b" },
-    red: { color: "#ef4444", bg: "rgba(239, 68, 68, 0.08)", border: "rgba(239, 68, 68, 0.2)", glow: "#ef4444" },
-    green: { color: "#10b981", bg: "rgba(16, 185, 129, 0.08)", border: "rgba(16, 185, 129, 0.2)", glow: "#10b981" },
-    indigo: { color: "#6366f1", bg: "rgba(99, 102, 241, 0.08)", border: "rgba(99, 102, 241, 0.2)", glow: "#6366f1" },
-  };
-
-  const palette = colorPalettes[color] || colorPalettes.indigo;
-
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`relative p-1.5 sm:p-2 rounded-2xl w-full text-left transition-all duration-300 hover:-translate-y-1 focus:outline-none ${
-        active ? "scale-[1.02]" : ""
-      }`}
-      style={{
-        background: `linear-gradient(145deg, ${palette.bg}, #ffffff)`,
-        boxShadow: active
-          ? `0 16px 32px -10px ${palette.glow}40, 0 0 0 2px ${palette.color}`
-          : `0 8px 20px -8px ${palette.glow}20, 0 0 0 1px ${palette.border}`,
-      }}
+      className={`stat-card-wrap ${color} ${active ? "active" : ""}`}
     >
-      <div className="relative bg-white/95 backdrop-blur-xl h-full rounded-xl p-3.5 flex flex-col justify-between gap-2 border border-white shadow-xs overflow-hidden">
-        <div className="absolute inset-0 rounded-xl overflow-hidden pointer-events-none">
-          <div
-            className="absolute -top-6 -right-6 w-16 h-16 rounded-full opacity-20 blur-lg transition-opacity duration-500 hover:opacity-40"
-            style={{ background: palette.color }}
-          />
+      <div className="stat-card-inner">
+        <div className="stat-card-top">
+          <div className="stat-card-icon-box">{icon}</div>
+          {active && <span className="stat-card-active-pill">Active</span>}
         </div>
 
-        <div className="flex items-center justify-between relative z-10">
-          <div
-            className="w-9 h-9 rounded-xl flex items-center justify-center text-base shrink-0"
-            style={{
-              background: `linear-gradient(135deg, ${palette.bg}, #ffffff)`,
-              border: `1px solid ${palette.border}`,
-              color: palette.color,
-            }}
-          >
-            {icon}
-          </div>
-          {active && (
-            <span
-              className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full"
-              style={{ background: palette.bg, color: palette.color }}
-            >
-              Active
-            </span>
-          )}
-        </div>
-
-        <div className="relative z-10 min-w-0">
-          <div className="text-[10px] font-bold uppercase tracking-wider mb-0.5 text-slate-500 truncate">
-            {title}
-          </div>
-          <p className="text-xl font-black text-slate-900 tracking-tight leading-tight">
-            {value}
-          </p>
-          {subValue && (
-            <div className="mt-1.5 pt-1 border-t border-slate-100 flex items-center">
-              <span className="text-[10px] font-semibold text-slate-400 truncate">
-                {subValue}
-              </span>
-            </div>
-          )}
+        <div className="stat-card-body">
+          <div className="stat-card-title">{title}</div>
+          <div className="stat-card-value">{value}</div>
+          {subValue && <div className="stat-card-sub" title={subValue}>{subValue}</div>}
         </div>
       </div>
     </button>
@@ -621,28 +570,24 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
   const failedItems = embedSummary?.failed_items || [];
 
   return (
-    <div className="flex flex-col gap-6 w-full">
-      {/* Header Row */}
-      <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-xl sm:text-2xl font-black text-slate-800 tracking-tight">
-              🖼️ প্রোডাক্ট ইমেজ গ্যালারি (Image Gallery)
-            </h1>
-            <span className="rounded-full bg-emerald-50 border border-emerald-200 px-3 py-0.5 text-xs font-bold text-emerald-700">
-              {assets.length} টি অ্যাসেট
-            </span>
-          </div>
-          <p className="text-xs text-slate-500 mt-1">
+    <div style={{ display: "flex", flexDirection: "column", width: "100%" }}>
+      {/* 1. Header Card */}
+      <div className="gallery-header-card">
+        <div className="gallery-header-info">
+          <h1>
+            🖼️ প্রোডাক্ট ইমেজ গ্যালারি (Image Gallery)
+            <span className="gallery-badge-emerald">{assets.length} টি অ্যাসেট</span>
+          </h1>
+          <p>
             আলোছায়ার সেন্ট্রাল রিইউজেবল ইমেজ লাইব্রেরি — আপলোড করুন, এআই মেটাডেটা প্রিপেয়ার করুন এবং যেকোনো প্রোডাক্টে লিংক করুন।
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <button
             type="button"
             onClick={() => loadAll()}
-            className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-all shadow-xs"
+            className="gallery-btn-white"
           >
             <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
             রিফ্রেশ
@@ -650,25 +595,21 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
         </div>
       </div>
 
-      {/* Embedding & Status Summary Card */}
-      <section className="rounded-2xl bg-white p-5 sm:p-6 shadow-sm border border-slate-200/80 relative overflow-hidden">
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
-          <div className="flex items-center gap-3.5">
-            <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
-              <Cpu size={20} />
+      {/* 2. Status & Embed Card */}
+      <section className="gallery-section-card">
+        <div className="gallery-section-top">
+          <div className="gallery-section-title-wrap">
+            <div className="gallery-icon-cube">
+              <Cpu size={22} />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-base font-bold text-slate-900">
-                  ইমেজ প্রিপারেশন ও ইনডেক্সিং স্ট্যাটাস
-                </h2>
-                <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700">
-                  Auto-Ready Pipeline
-                </span>
+              <div className="gallery-section-heading">
+                <h2>ইমেজ প্রিপারেশন ও ইনডেক্সিং স্ট্যাটাস</h2>
+                <span className="gallery-badge-emerald">Auto-Ready Pipeline</span>
               </div>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="gallery-section-sub">
                 সর্বশেষ প্রিপারেশন:{" "}
-                <b className="text-slate-700">
+                <b style={{ color: "#334155" }}>
                   {embedSummary?.last_embedded_at
                     ? new Date(embedSummary.last_embedded_at).toLocaleString("bn-BD")
                     : "সম্পূর্ণ হয়েছে"}
@@ -677,13 +618,13 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="gallery-section-actions">
             {stats.failed > 0 && (
               <button
                 type="button"
                 disabled={embeddingBusy}
                 onClick={() => triggerEmbeddingQueue({ onlyFailed: true })}
-                className="flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2 text-xs font-bold text-rose-700 hover:bg-rose-100 transition shadow-xs"
+                className="gallery-btn-danger"
               >
                 <RefreshCw size={14} />
                 রিট্রাই ফেইলড ({stats.failed})
@@ -694,7 +635,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
               <button
                 type="button"
                 onClick={() => setShowErrorLogs((v) => !v)}
-                className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 transition"
+                className="gallery-btn-white"
               >
                 {showErrorLogs ? "এরর লুকান" : "এরর ডিটেইলস"}
               </button>
@@ -704,7 +645,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
               type="button"
               disabled={embeddingBusy || stats.pending + stats.failed === 0}
               onClick={() => triggerEmbeddingQueue()}
-              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 px-4 py-2 text-xs font-bold text-white shadow-md hover:scale-[1.02] active:scale-[0.98] transition disabled:opacity-50"
+              className="gallery-btn-primary"
             >
               <Sparkles size={14} />
               {embeddingBusy ? "প্রসেসিং হচ্ছে..." : `পেন্ডিং প্রিপেয়ার (${stats.pending + stats.failed})`}
@@ -713,11 +654,11 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
         </div>
 
         {/* 6 Stat Cards Grid */}
-        <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
+        <div className="stat-cards-grid">
           <GalleryStatCard
             title="Preparing"
             value={stats.pending}
-            icon={<Clock size={16} />}
+            icon={<Clock size={18} />}
             color="orange"
             subValue="কিউতে অপেক্ষমান"
             active={statusFilter === "pending"}
@@ -726,7 +667,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
           <GalleryStatCard
             title="Processing"
             value={stats.processing}
-            icon={<Cpu size={16} />}
+            icon={<Cpu size={18} />}
             color="blue"
             subValue="অ্যাক্টিভ প্রসেসিং"
             active={statusFilter === "processing"}
@@ -735,7 +676,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
           <GalleryStatCard
             title="Ready"
             value={stats.ready}
-            icon={<CheckCircle2 size={16} />}
+            icon={<CheckCircle2 size={18} />}
             color="green"
             subValue={`${stats.progressPercent}% সম্পন্ন`}
             active={statusFilter === "ready"}
@@ -744,7 +685,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
           <GalleryStatCard
             title="Linked"
             value={stats.linked}
-            icon={<Link2 size={16} />}
+            icon={<Link2 size={18} />}
             color="purple"
             subValue="প্রোডাক্টে যুক্ত"
             active={statusFilter === "linked"}
@@ -753,7 +694,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
           <GalleryStatCard
             title="Unlinked"
             value={stats.unlinked}
-            icon={<Unlink size={16} />}
+            icon={<Unlink size={18} />}
             color="indigo"
             subValue="ব্যবহারের জন্য প্রস্তুত"
             active={statusFilter === "unlinked"}
@@ -762,7 +703,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
           <GalleryStatCard
             title="Failed"
             value={stats.failed}
-            icon={<AlertCircle size={16} />}
+            icon={<AlertCircle size={18} />}
             color="red"
             subValue={stats.failed > 0 ? "পুনরায় চেষ্টা প্রয়োজন" : "কোনো ত্রুটি নেই"}
             active={statusFilter === "failed"}
@@ -771,19 +712,19 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
         </div>
 
         {/* Progress bar */}
-        <div className="mt-4 rounded-xl bg-slate-50 border border-slate-100 p-3">
-          <div className="mb-1.5 flex justify-between items-center text-xs font-bold text-slate-600">
-            <span className="flex items-center gap-1.5">
-              <Sparkles size={13} className="text-emerald-600" />
+        <div className="gallery-progress-wrap">
+          <div className="gallery-progress-labels">
+            <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <Sparkles size={13} style={{ color: "#10b981" }} />
               রেডিনেস প্রগ্রেস
             </span>
-            <span className="rounded-full bg-emerald-100 text-emerald-800 px-2 py-0.5 text-[10px] font-black">
+            <span className="gallery-progress-pct">
               {stats.ready} / {stats.total} রেডি ({stats.progressPercent}%)
             </span>
           </div>
-          <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200/80">
+          <div className="gallery-progress-track">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 transition-all duration-500"
+              className="gallery-progress-bar"
               style={{ width: `${stats.progressPercent}%` }}
             />
           </div>
@@ -791,16 +732,16 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
 
         {/* Diagnostic error logs */}
         {showErrorLogs && failedItems.length > 0 && (
-          <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50/50 p-3 text-xs">
-            <b className="text-rose-800">ফেইলড ইমেজ লগ:</b>
-            <div className="mt-2 max-h-36 space-y-1.5 overflow-y-auto">
+          <div style={{ marginTop: "14px", borderRadius: "12px", border: "1px solid #fecdd3", background: "#fff1f2", padding: "14px" }}>
+            <b style={{ color: "#9f1239", fontSize: "12px" }}>ফেইলড ইমেজ লগ:</b>
+            <div style={{ marginTop: "8px", maxHeight: "150px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "6px" }}>
               {failedItems.map((item) => (
                 <div
                   key={item.id}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-white px-3 py-1.5 text-rose-700 shadow-xs border border-rose-100"
+                  style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#ffffff", padding: "8px 12px", borderRadius: "8px", border: "1px solid #ffe4e6", fontSize: "12px", color: "#be123c" }}
                 >
-                  <span className="font-semibold">#{item.id} — {item.filename}</span>
-                  <span className="font-mono text-[11px]">{item.processing_error || "ত্রুটি ঘটেছে"}</span>
+                  <span style={{ fontWeight: 700 }}>#{item.id} — {item.filename}</span>
+                  <span style={{ fontFamily: "monospace", fontSize: "11px" }}>{item.processing_error || "ত্রুটি ঘটেছে"}</span>
                 </div>
               ))}
             </div>
@@ -808,7 +749,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
         )}
       </section>
 
-      {/* Drag & Drop Upload Zone */}
+      {/* 3. Drag & Drop Upload Zone */}
       <form
         onSubmit={handleUpload}
         onDragOver={(e) => {
@@ -817,24 +758,20 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
         }}
         onDragLeave={() => setDragActive(false)}
         onDrop={handleDrop}
-        className={`rounded-2xl border-2 border-dashed p-6 transition-all duration-300 shadow-xs ${
-          dragActive
-            ? "border-emerald-500 bg-emerald-50/70 scale-[1.01]"
-            : "border-slate-300 bg-gradient-to-br from-slate-50 via-white to-emerald-50/20 hover:border-emerald-400"
-        }`}
+        className={`gallery-dropzone-box ${dragActive ? "drag-over" : ""}`}
       >
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <label className="flex flex-1 cursor-pointer items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center text-white shadow-md shrink-0">
-              <UploadCloud size={24} />
+        <div className="gallery-dropzone-content">
+          <label className="gallery-dropzone-label">
+            <div className="gallery-upload-circle">
+              <UploadCloud size={26} />
             </div>
             <div>
-              <p className="text-sm font-bold text-slate-800">
+              <div className="gallery-dropzone-title">
                 এখানে ছবি ড্রপ করুন, অথবা ক্লিক করে ব্রাউজ করুন
-              </p>
-              <p className="text-xs text-slate-500 mt-0.5">
+              </div>
+              <div className="gallery-dropzone-subtitle">
                 PNG, JPG, WEBP সাপোর্ট করে (সর্বোচ্চ ১৫ মেগাবাইট)। একাধিক ছবি একসাথে আপলোড করতে পারবেন।
-              </p>
+              </div>
             </div>
             <input
               ref={fileInputRef}
@@ -842,26 +779,26 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
               accept="image/jpeg,image/png,image/webp"
               multiple
               onChange={(e) => setPendingFiles(Array.from(e.target.files || []))}
-              className="hidden"
+              style={{ display: "none" }}
             />
           </label>
 
           {pendingFiles.length > 0 && (
-            <div className="flex items-center gap-2 shrink-0">
-              <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700 border border-emerald-200">
+            <div className="gallery-staged-actions">
+              <span className="gallery-badge-emerald">
                 {pendingFiles.length} টি সিলেক্টেড
               </span>
               <button
                 type="button"
                 onClick={() => setPendingFiles([])}
-                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50"
+                className="gallery-btn-white"
               >
                 বাতিল
               </button>
               <button
                 type="submit"
                 disabled={uploading}
-                className="rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 px-4 py-2 text-xs font-bold text-white shadow-md disabled:opacity-50"
+                className="gallery-btn-primary"
               >
                 {uploading ? `আপলোড হচ্ছে (${uploadProgress}%)` : "আপলোড শুরু করুন"}
               </button>
@@ -870,71 +807,61 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
         </div>
 
         {uploading && (
-          <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-slate-100">
-            <div
-              className="h-full bg-gradient-to-r from-emerald-500 to-teal-600 transition-all duration-300"
-              style={{ width: `${uploadProgress}%` }}
-            />
+          <div className="gallery-upload-progress">
+            <div style={{ width: `${uploadProgress}%` }} />
           </div>
         )}
 
         {pendingFiles.length > 0 && (
-          <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-6 lg:grid-cols-8">
+          <div className="gallery-staged-previews">
             {pendingFiles.map((file, idx) => (
-              <div
-                key={file.name + idx}
-                className="relative overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs group"
-              >
+              <div key={file.name + idx} className="gallery-staged-card">
                 <img
                   src={URL.createObjectURL(file)}
                   alt={file.name}
-                  className="h-16 w-full object-cover"
                 />
                 <button
                   type="button"
                   onClick={() => setPendingFiles((curr) => curr.filter((_, i) => i !== idx))}
-                  className="absolute right-1 top-1 rounded-full bg-black/70 p-1 text-white hover:bg-rose-600 transition"
+                  className="gallery-staged-remove"
                 >
-                  <X size={10} />
+                  <X size={12} />
                 </button>
-                <p className="truncate px-1.5 py-0.5 text-[9px] font-bold text-slate-700 bg-white">
+                <div className="gallery-staged-filename" title={file.name}>
                   {file.name}
-                </p>
+                </div>
               </div>
             ))}
           </div>
         )}
       </form>
 
-      {/* Filter Toolbar & View Switcher */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
-        <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-[280px]">
-          {/* Search Input */}
-          <div className="relative flex-1 min-w-[180px] max-w-sm">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+      {/* 4. Filter Toolbar & View Switcher */}
+      <div className="gallery-filter-toolbar">
+        <div className="gallery-toolbar-left">
+          <div className="gallery-search-box">
+            <Search size={14} className="search-icon" />
             <input
               type="text"
               placeholder="ফাইলের নাম, অল্টার টেক্সট বা প্রোডাক্ট সার্চ..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-xs border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
             />
             {search && (
               <button
                 type="button"
                 onClick={() => setSearch("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                className="search-clear"
               >
                 <X size={12} />
               </button>
             )}
           </div>
 
-          {/* Status filter */}
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="text-xs border border-slate-200 rounded-xl px-3 py-2 bg-slate-50 focus:bg-white focus:outline-none font-semibold text-slate-700"
+            className="gallery-select"
           >
             <option value="all">সব স্ট্যাটাস ({assets.length})</option>
             <option value="ready">Ready ({stats.ready})</option>
@@ -945,11 +872,11 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
             <option value="failed">Failed ({stats.failed})</option>
           </select>
 
-          {/* Product filter */}
           <select
             value={productFilter}
             onChange={(e) => setProductFilter(e.target.value)}
-            className="text-xs border border-slate-200 rounded-xl px-3 py-2 bg-slate-50 focus:bg-white focus:outline-none font-semibold text-slate-700 max-w-[200px]"
+            className="gallery-select"
+            style={{ maxWidth: "220px" }}
           >
             <option value="all">সব প্রোডাক্ট</option>
             {products.map((p) => (
@@ -960,15 +887,12 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
           </select>
         </div>
 
-        {/* View Switcher & Selection Count */}
-        <div className="flex items-center gap-2">
-          <div className="flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200">
+        <div className="gallery-toolbar-right">
+          <div className="gallery-view-switcher">
             <button
               type="button"
               onClick={() => setView("grid")}
-              className={`p-1.5 rounded-lg text-xs font-bold transition ${
-                view === "grid" ? "bg-white text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-900"
-              }`}
+              className={view === "grid" ? "active" : ""}
               title="গ্রিড ভিউ"
             >
               <Grid size={15} />
@@ -976,9 +900,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
             <button
               type="button"
               onClick={() => setView("masonry")}
-              className={`p-1.5 rounded-lg text-xs font-bold transition ${
-                view === "masonry" ? "bg-white text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-900"
-              }`}
+              className={view === "masonry" ? "active" : ""}
               title="ম্যাসনরি ভিউ"
             >
               <SlidersHorizontal size={15} />
@@ -986,9 +908,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
             <button
               type="button"
               onClick={() => setView("list")}
-              className={`p-1.5 rounded-lg text-xs font-bold transition ${
-                view === "list" ? "bg-white text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-900"
-              }`}
+              className={view === "list" ? "active" : ""}
               title="লিস্ট ভিউ"
             >
               <List size={15} />
@@ -1004,10 +924,10 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
                 setSelectedIds(filteredAssets.map((a) => a.id));
               }
             }}
-            className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50"
+            className="gallery-btn-white"
           >
             {selectedIds.length === filteredAssets.length && filteredAssets.length > 0 ? (
-              <CheckSquare size={14} className="text-emerald-600" />
+              <CheckSquare size={14} style={{ color: "#10b981" }} />
             ) : (
               <Square size={14} />
             )}
@@ -1016,22 +936,20 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
         </div>
       </div>
 
-      {/* Bulk Action Bar (Visible when images are selected) */}
+      {/* 5. Bulk Action Bar */}
       {selectedIds.length > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-3 bg-indigo-50 border border-indigo-200 p-3.5 rounded-2xl animate-fadeIn">
-          <div className="flex items-center gap-2">
-            <span className="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-black">
-              {selectedIds.length}
-            </span>
-            <span className="text-xs font-bold text-indigo-900">টি ছবি নির্বাচিত হয়েছে</span>
+        <div className="gallery-bulk-action-bar">
+          <div className="gallery-bulk-count">
+            <span className="bulk-count-pill">{selectedIds.length}</span>
+            <span>টি ছবি নির্বাচিত হয়েছে</span>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Quick bulk link to product */}
+          <div className="gallery-bulk-buttons">
             <select
               value={targetProductId}
               onChange={(e) => setTargetProductId(e.target.value)}
-              className="text-xs border border-indigo-200 rounded-xl px-2.5 py-1.5 bg-white text-slate-800"
+              className="gallery-select"
+              style={{ padding: "6px 10px", fontSize: "12px" }}
             >
               <option value="">প্রোডাক্ট সিলেক্ট করুন...</option>
               {products.map((p) => (
@@ -1045,7 +963,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
               type="button"
               disabled={!targetProductId || busy}
               onClick={handleBulkLink}
-              className="flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-50"
+              className="gallery-btn-indigo"
             >
               <Link2 size={13} />
               বাল্ক লিংক
@@ -1055,7 +973,8 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
               type="button"
               disabled={busy}
               onClick={handleBulkUnlink}
-              className="flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50"
+              className="gallery-btn-white"
+              style={{ padding: "7px 12px", fontSize: "12px" }}
             >
               <Unlink size={13} />
               সব লিংক কাটুন
@@ -1065,7 +984,8 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
               type="button"
               disabled={confirmBusy}
               onClick={() => setConfirmDialog({ type: "bulk" })}
-              className="flex items-center gap-1.5 rounded-xl border border-rose-300 bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-100"
+              className="gallery-btn-danger"
+              style={{ padding: "7px 12px", fontSize: "12px" }}
             >
               <Trash2 size={13} />
               মুছে ফেলুন ({selectedIds.length})
@@ -1074,25 +994,25 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
             <button
               type="button"
               onClick={() => setSelectedIds([])}
-              className="p-1.5 text-slate-500 hover:text-slate-800"
+              style={{ background: "transparent", border: "none", color: "#64748b", cursor: "pointer", padding: "4px" }}
             >
-              <X size={15} />
+              <X size={16} />
             </button>
           </div>
         </div>
       )}
 
-      {/* Main Gallery Area */}
+      {/* 6. Main Gallery Views */}
       {loading ? (
-        <div className="flex flex-col items-center justify-center p-16 bg-white rounded-2xl border border-slate-200">
-          <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-emerald-600 mb-3" />
-          <p className="text-xs font-bold text-slate-500">ইমেজ লাইব্রেরি লোড হচ্ছে...</p>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 20px", background: "#ffffff", borderRadius: "20px", border: "1px solid #e2e8f0" }}>
+          <div className="animate-spin" style={{ width: "36px", height: "36px", borderRadius: "50%", border: "3px solid #e2e8f0", borderTopColor: "#10b981", marginBottom: "14px" }} />
+          <p style={{ fontSize: "13px", fontWeight: 700, color: "#64748b" }}>ইমেজ লাইব্রেরি লোড হচ্ছে...</p>
         </div>
       ) : filteredAssets.length === 0 ? (
-        <div className="flex flex-col items-center justify-center p-16 bg-white rounded-2xl border border-slate-200 text-center">
-          <FileImage size={48} className="text-slate-300 mb-3" />
-          <h3 className="text-base font-bold text-slate-700">কোনো ছবি পাওয়া যায়নি</h3>
-          <p className="text-xs text-slate-500 max-w-sm mt-1">
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 20px", background: "#ffffff", borderRadius: "20px", border: "1px solid #e2e8f0", textAlign: "center" }}>
+          <FileImage size={48} style={{ color: "#cbd5e1", marginBottom: "12px" }} />
+          <h3 style={{ fontSize: "16px", fontWeight: 800, color: "#334155", margin: "0 0 6px" }}>কোনো ছবি পাওয়া যায়নি</h3>
+          <p style={{ fontSize: "13px", color: "#64748b", maxWidth: "360px", margin: 0 }}>
             উপরে ড্র্যাগ অ্যান্ড ড্রপ বক্সে ছবি ড্রপ করুন অথবা অন্য ফিল্টারে সার্চ করুন।
           </p>
         </div>
@@ -1115,13 +1035,9 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
                 <div
                   key={asset.id}
                   onClick={() => setActiveAssetId(asset.id)}
-                  className={`flex items-center justify-between p-3 rounded-xl border bg-white cursor-pointer transition ${
-                    isActive
-                      ? "border-emerald-500 shadow-sm ring-1 ring-emerald-500"
-                      : "border-slate-200 hover:border-slate-300"
-                  }`}
+                  className={`gallery-list-item ${isActive ? "active" : ""}`}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="gallery-list-left">
                     <input
                       type="checkbox"
                       checked={isSelected}
@@ -1130,86 +1046,72 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
                         if (e.target.checked) setSelectedIds((curr) => [...curr, asset.id]);
                         else setSelectedIds((curr) => curr.filter((id) => id !== asset.id));
                       }}
-                      className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                      style={{ width: "16px", height: "16px", accentColor: "#10b981", cursor: "pointer" }}
                     />
                     <img
                       src={asset.image}
                       alt={asset.alt_text || asset.filename}
-                      className="w-12 h-12 object-cover rounded-lg border border-slate-100"
+                      className="gallery-list-thumb"
                     />
-                    <div>
-                      <p className="text-xs font-bold text-slate-800 line-clamp-1">
+                    <div style={{ minWidth: 0 }}>
+                      <p style={{ margin: 0, fontSize: "13px", fontWeight: 800, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                         {asset.filename}
                       </p>
-                      <div className="flex items-center gap-2 mt-0.5 text-[10px] text-slate-500">
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "3px", fontSize: "11px", color: "#64748b" }}>
                         <span>{formatBytes(asset.file_size)}</span>
-                        {asset.dimensions && (
-                          <span>• {asset.dimensions.width}×{asset.dimensions.height}</span>
-                        )}
+                        {asset.dimensions && <span>• {asset.dimensions.width}×{asset.dimensions.height}</span>}
                         <span>• {new Date(asset.created_at).toLocaleDateString("bn-BD")}</span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    {/* Status Badge */}
-                    <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                        asset.processing_status === "ready"
-                          ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                          : asset.processing_status === "failed"
-                          ? "bg-rose-50 text-rose-700 border border-rose-200"
-                          : "bg-amber-50 text-amber-700 border border-amber-200"
-                      }`}
-                    >
+                  <div className="gallery-list-right">
+                    <span className={`status-pill ${asset.processing_status}`}>
                       {asset.processing_status}
                     </span>
 
-                    {/* Linked products pill */}
                     {asset.links && asset.links.length > 0 ? (
-                      <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full border border-indigo-200">
+                      <span className="gallery-card-link-badge">
                         {asset.links.length} লিংকড
                       </span>
                     ) : (
-                      <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">
-                        আনলিংকড
-                      </span>
+                      <span style={{ fontSize: "11px", color: "#94a3b8" }}>আনলিংকড</span>
                     )}
 
-                    <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "4px" }} onClick={(e) => e.stopPropagation()}>
                       <button
                         type="button"
                         onClick={() => reorderAsset(asset.id, -1)}
                         disabled={index === 0}
-                        className="p-1 text-slate-400 hover:text-slate-700 disabled:opacity-30"
+                        style={{ background: "transparent", border: "none", color: "#64748b", cursor: "pointer", padding: "4px", opacity: index === 0 ? 0.3 : 1 }}
                         title="উপরে নিন"
                       >
-                        <ArrowUp size={13} />
+                        <ArrowUp size={14} />
                       </button>
                       <button
                         type="button"
                         onClick={() => reorderAsset(asset.id, 1)}
                         disabled={index === filteredAssets.length - 1}
-                        className="p-1 text-slate-400 hover:text-slate-700 disabled:opacity-30"
+                        style={{ background: "transparent", border: "none", color: "#64748b", cursor: "pointer", padding: "4px", opacity: index === filteredAssets.length - 1 ? 0.3 : 1 }}
                         title="নিচে নিন"
                       >
-                        <ArrowDown size={13} />
+                        <ArrowDown size={14} />
                       </button>
                       <button
                         type="button"
                         onClick={() => setLinkModalAsset(asset)}
-                        className="p-1 text-indigo-600 hover:text-indigo-800"
+                        style={{ background: "transparent", border: "none", color: "#4f46e5", cursor: "pointer", padding: "4px" }}
                         title="প্রোডাক্টে লিংক করুন"
                       >
-                        <Link2 size={13} />
+                        <Link2 size={14} />
                       </button>
                       <button
                         type="button"
                         onClick={() => setConfirmDialog({ type: "single", id: asset.id })}
-                        className="p-1 text-rose-500 hover:text-rose-700"
+                        style={{ background: "transparent", border: "none", color: "#e11d48", cursor: "pointer", padding: "4px" }}
                         title="মুছে ফেলুন"
                       >
-                        <Trash2 size={13} />
+                        <Trash2 size={14} />
                       </button>
                     </div>
                   </div>
@@ -1222,11 +1124,8 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
               <div
                 key={asset.id}
                 onClick={() => setActiveAssetId(asset.id)}
-                className={`gallery-item-card cursor-pointer group ${
-                  view === "masonry" ? "gallery-masonry-item" : ""
-                } ${isSelected ? "selected" : ""} ${isActive ? "ring-2 ring-emerald-500" : ""}`}
+                className={`gallery-item-card ${view === "masonry" ? "gallery-masonry-item" : ""} ${isSelected ? "selected" : ""} ${isActive ? "active" : ""}`}
               >
-                {/* Thumb Container */}
                 <div className="gallery-thumb-wrap">
                   <img
                     src={asset.image}
@@ -1234,11 +1133,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
                     loading="lazy"
                   />
 
-                  {/* Top Left Checkbox */}
-                  <div
-                    className="absolute top-2 left-2 z-10"
-                    onClick={(e) => e.stopPropagation()}
-                  >
+                  <div className="gallery-card-checkbox" onClick={(e) => e.stopPropagation()}>
                     <input
                       type="checkbox"
                       checked={isSelected}
@@ -1246,53 +1141,40 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
                         if (e.target.checked) setSelectedIds((curr) => [...curr, asset.id]);
                         else setSelectedIds((curr) => curr.filter((id) => id !== asset.id));
                       }}
-                      className="w-4 h-4 rounded border-white/80 bg-black/40 text-emerald-600 focus:ring-0 shadow-sm cursor-pointer"
                     />
                   </div>
 
-                  {/* Top Right Status Badge */}
-                  <div className="absolute top-2 right-2 z-10">
-                    <span
-                      className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full backdrop-blur-md shadow-xs ${
-                        asset.processing_status === "ready"
-                          ? "bg-emerald-500/90 text-white"
-                          : asset.processing_status === "failed"
-                          ? "bg-rose-500/90 text-white"
-                          : "bg-amber-500/90 text-white"
-                      }`}
-                    >
+                  <div className="gallery-card-status">
+                    <span className={`status-pill ${asset.processing_status}`}>
                       {asset.processing_status}
                     </span>
                   </div>
 
-                  {/* Overlay Action Bar */}
-                  <div className="gallery-thumb-overlay" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex items-center gap-1">
+                  <div className="gallery-card-hover-overlay" onClick={(e) => e.stopPropagation()}>
+                    <div className="overlay-left">
                       <button
                         type="button"
                         onClick={() => reorderAsset(asset.id, -1)}
                         disabled={index === 0}
-                        className="w-7 h-7 rounded-lg bg-black/60 text-white flex items-center justify-center hover:bg-black disabled:opacity-30"
                         title="পূর্বে নিন"
                       >
-                        <ArrowUp size={13} className="-rotate-90" />
+                        <ArrowUp size={13} style={{ transform: "rotate(-90deg)" }} />
                       </button>
                       <button
                         type="button"
                         onClick={() => reorderAsset(asset.id, 1)}
                         disabled={index === filteredAssets.length - 1}
-                        className="w-7 h-7 rounded-lg bg-black/60 text-white flex items-center justify-center hover:bg-black disabled:opacity-30"
                         title="পরে নিন"
                       >
-                        <ArrowDown size={13} className="-rotate-90" />
+                        <ArrowDown size={13} style={{ transform: "rotate(-90deg)" }} />
                       </button>
                     </div>
 
-                    <div className="flex items-center gap-1">
+                    <div className="overlay-right">
                       <button
                         type="button"
                         onClick={() => setLinkModalAsset(asset)}
-                        className="w-7 h-7 rounded-lg bg-indigo-600/90 text-white flex items-center justify-center hover:bg-indigo-700"
+                        className="overlay-btn-indigo"
                         title="প্রোডাক্টে লিংক করুন"
                       >
                         <Link2 size={13} />
@@ -1300,7 +1182,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
                       <button
                         type="button"
                         onClick={() => setConfirmDialog({ type: "single", id: asset.id })}
-                        className="w-7 h-7 rounded-lg bg-rose-600/90 text-white flex items-center justify-center hover:bg-rose-700"
+                        className="overlay-btn-danger"
                         title="ডিলিট"
                       >
                         <Trash2 size={13} />
@@ -1309,23 +1191,22 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
                   </div>
                 </div>
 
-                {/* Details Footer */}
-                <div className="p-3 bg-white">
-                  <p className="text-xs font-bold text-slate-800 truncate" title={asset.filename}>
+                <div className="gallery-card-details">
+                  <div className="gallery-card-filename" title={asset.filename}>
                     {asset.filename}
-                  </p>
-                  <p className="text-[10px] text-slate-400 truncate mt-0.5" title={asset.alt_text}>
+                  </div>
+                  <div className="gallery-card-alt" title={asset.alt_text}>
                     {asset.alt_text || "কোনো অল্টার টেক্সট নেই"}
-                  </p>
+                  </div>
 
-                  <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-500 font-medium">
+                  <div className="gallery-card-meta">
                     <span>{formatBytes(asset.file_size)}</span>
                     {asset.links && asset.links.length > 0 ? (
-                      <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded">
+                      <span className="gallery-card-link-badge">
                         {asset.links.length} লিংকড
                       </span>
                     ) : (
-                      <span className="text-slate-400">ফ্রি</span>
+                      <span className="gallery-card-unlinked">ফ্রি</span>
                     )}
                   </div>
                 </div>
@@ -1335,116 +1216,107 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
         </div>
       )}
 
-      {/* Asset Inspector Drawer (When an image is clicked) */}
+      {/* 7. Asset Inspector Drawer */}
       {activeAsset && (
         <div
           className="gallery-drawer-backdrop"
           onClick={() => setActiveAssetId(null)}
         >
           <div
-            className="gallery-drawer-panel p-6 overflow-y-auto"
+            className="gallery-drawer-panel"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Drawer Header */}
-            <div className="flex items-center justify-between pb-4 border-b border-slate-200">
-              <div className="flex items-center gap-2">
-                <span className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center font-black text-sm">
+            <div className="gallery-drawer-header">
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <span style={{ width: "32px", height: "32px", borderRadius: "8px", background: "#ecfdf5", color: "#047857", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: "13px" }}>
                   #{activeAsset.id}
                 </span>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900 truncate max-w-[260px]">
+                <div style={{ minWidth: 0 }}>
+                  <h3 style={{ margin: 0, fontSize: "14px", fontWeight: 800, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "260px" }}>
                     {activeAsset.filename}
                   </h3>
-                  <p className="text-[11px] text-slate-500">ইমেজ ইন্সপেক্টর ও মেটাডেটা</p>
+                  <p style={{ margin: "2px 0 0", fontSize: "11px", color: "#64748b" }}>ইমেজ ইন্সপেক্টর ও মেটাডেটা</p>
                 </div>
               </div>
 
               <button
                 type="button"
                 onClick={() => setActiveAssetId(null)}
-                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600"
+                style={{ width: "32px", height: "32px", borderRadius: "50%", background: "#f1f5f9", border: "none", color: "#64748b", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
               >
                 <X size={16} />
               </button>
             </div>
 
-            {/* Image Preview Box */}
-            <div className="mt-4 rounded-xl overflow-hidden border border-slate-200 bg-slate-50 relative group">
+            <div className="gallery-drawer-preview">
               <img
                 src={activeAsset.image}
                 alt={activeAsset.alt_text || activeAsset.filename}
-                className="w-full h-56 object-contain bg-slate-900/5"
               />
               <a
                 href={activeAsset.image}
                 target="_blank"
                 rel="noreferrer"
-                className="absolute right-2 top-2 rounded-lg bg-black/70 hover:bg-black text-white px-2.5 py-1 text-xs font-bold flex items-center gap-1.5"
               >
                 ফুল প্রিভিউ <ExternalLink size={12} />
               </a>
             </div>
 
-            {/* Quick Stats Grid */}
-            <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
-              <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-                <span className="text-[10px] text-slate-400 block font-bold uppercase">ফাইল সাইজ</span>
-                <span className="font-bold text-slate-800">{formatBytes(activeAsset.file_size)}</span>
+            <div className="gallery-drawer-stats">
+              <div className="gallery-drawer-stat-box">
+                <span className="gallery-drawer-stat-label">ফাইল সাইজ</span>
+                <span className="gallery-drawer-stat-val">{formatBytes(activeAsset.file_size)}</span>
               </div>
-              <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-                <span className="text-[10px] text-slate-400 block font-bold uppercase">ডাইমেনশন</span>
-                <span className="font-bold text-slate-800">
+              <div className="gallery-drawer-stat-box">
+                <span className="gallery-drawer-stat-label">ডাইমেনশন</span>
+                <span className="gallery-drawer-stat-val">
                   {activeAsset.dimensions ? `${activeAsset.dimensions.width} × ${activeAsset.dimensions.height} px` : "N/A"}
                 </span>
               </div>
-              <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-                <span className="text-[10px] text-slate-400 block font-bold uppercase">আপলোড তারিখ</span>
-                <span className="font-bold text-slate-800">
+              <div className="gallery-drawer-stat-box">
+                <span className="gallery-drawer-stat-label">আপলোড তারিখ</span>
+                <span className="gallery-drawer-stat-val">
                   {new Date(activeAsset.created_at).toLocaleDateString("bn-BD")}
                 </span>
               </div>
-              <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-                <span className="text-[10px] text-slate-400 block font-bold uppercase">স্ট্যাটাস</span>
-                <span className="font-bold text-emerald-700">{activeAsset.processing_status}</span>
+              <div className="gallery-drawer-stat-box">
+                <span className="gallery-drawer-stat-label">স্ট্যাটাস</span>
+                <span className="gallery-drawer-stat-val" style={{ color: "#047857" }}>
+                  {activeAsset.processing_status}
+                </span>
               </div>
             </div>
 
-            {/* Editable Details Form */}
-            <form onSubmit={saveAssetDetails} className="mt-5 space-y-3.5">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  ফাইলের নাম (Filename)
-                </label>
+            {/* Form */}
+            <form onSubmit={saveAssetDetails} style={{ marginTop: "16px" }}>
+              <div className="gallery-form-group">
+                <label>ফাইলের নাম (Filename)</label>
                 <input
                   type="text"
                   value={editDraft.filename}
                   onChange={(e) => setEditDraft({ ...editDraft, filename: e.target.value })}
-                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  className="gallery-input"
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  অল্টার টেক্সট (Alt Text / SEO)
-                </label>
+              <div className="gallery-form-group">
+                <label>অল্টার টেক্সট (Alt Text / SEO)</label>
                 <input
                   type="text"
                   value={editDraft.alt_text}
                   onChange={(e) => setEditDraft({ ...editDraft, alt_text: e.target.value })}
-                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  className="gallery-input"
                   placeholder="যেমন: আলোছায়া বিশেষ ডায়েরি বাঁধাই..."
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  এআই ভিজ্যুয়াল ডেসক্রিপশন / ক্যাপশন
-                </label>
+              <div className="gallery-form-group">
+                <label>এআই ভিজ্যুয়াল ডেসক্রিপশন / ক্যাপশন</label>
                 <textarea
                   rows={2}
                   value={editDraft.image_caption}
                   onChange={(e) => setEditDraft({ ...editDraft, image_caption: e.target.value })}
-                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500 resize-none font-mono text-[11px]"
+                  className="gallery-textarea"
                   placeholder="এআই ভিজ্যুয়াল ক্যাপশন..."
                 />
               </div>
@@ -1452,35 +1324,36 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
               <button
                 type="submit"
                 disabled={savingDetails}
-                className="w-full rounded-xl bg-slate-900 hover:bg-black text-white py-2 text-xs font-bold transition disabled:opacity-50"
+                className="gallery-btn-primary"
+                style={{ width: "100%", justifyContent: "center", marginTop: "14px", padding: "10px" }}
               >
                 {savingDetails ? "সংরক্ষণ হচ্ছে..." : "মেটাডেটা আপডেট করুন"}
               </button>
             </form>
 
             {/* Linked Products Section */}
-            <div className="mt-6 pt-5 border-t border-slate-200">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
+            <div style={{ marginTop: "24px", paddingTop: "18px", borderTop: "1px solid #e2e8f0" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
+                <h4 style={{ margin: 0, fontSize: "12px", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.06em", color: "#334155" }}>
                   সংযুক্ত প্রোডাক্টসমূহ ({activeAsset.links?.length || 0})
                 </h4>
               </div>
 
               {activeAsset.links && activeAsset.links.length > 0 ? (
-                <div className="space-y-2 mb-4">
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "16px" }}>
                   {activeAsset.links.map((link) => (
                     <div
                       key={link.id}
-                      className="flex items-center justify-between p-2.5 rounded-xl border border-slate-100 bg-slate-50 text-xs"
+                      style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", borderRadius: "10px", border: "1px solid #f1f5f9", background: "#f8fafc", fontSize: "13px" }}
                     >
-                      <div className="flex items-center gap-2">
-                        <Package size={14} className="text-emerald-600" />
-                        <span className="font-bold text-slate-800">{link.product_name}</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <Package size={14} style={{ color: "#10b981" }} />
+                        <span style={{ fontWeight: 700, color: "#0f172a" }}>{link.product_name}</span>
                       </div>
                       <button
                         type="button"
                         onClick={() => handleUnlink(activeAsset.id, link.id)}
-                        className="text-rose-600 hover:text-rose-800 p-1 text-[11px] font-bold flex items-center gap-1"
+                        style={{ background: "transparent", border: "none", color: "#e11d48", fontWeight: 700, fontSize: "11px", display: "flex", alignItems: "center", gap: "4px", cursor: "pointer" }}
                         title="আনলিংক"
                       >
                         <Unlink size={12} />
@@ -1490,21 +1363,22 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
                   ))}
                 </div>
               ) : (
-                <p className="text-xs text-slate-400 mb-4 italic">
+                <p style={{ fontSize: "12px", color: "#94a3b8", fontStyle: "italic", marginBottom: "16px" }}>
                   এই ছবিটি এখনো কোনো প্রোডাক্টে যুক্ত করা হয়নি।
                 </p>
               )}
 
               {/* Quick Link to Product Form */}
-              <div className="p-3 rounded-xl border border-indigo-100 bg-indigo-50/50 space-y-2.5">
-                <label className="block text-xs font-bold text-indigo-950">
+              <div style={{ padding: "14px", borderRadius: "12px", border: "1px solid #e0e7ff", background: "#eef2ff" }}>
+                <label style={{ display: "block", fontSize: "12px", fontWeight: 800, color: "#1e1b4b", marginBottom: "8px" }}>
                   নতুন প্রোডাক্টের সাথে লিংক করুন
                 </label>
-                <div className="flex gap-2">
+                <div style={{ display: "flex", gap: "8px" }}>
                   <select
                     value={targetProductId}
                     onChange={(e) => setTargetProductId(e.target.value)}
-                    className="flex-1 text-xs border border-indigo-200 rounded-xl px-2.5 py-2 bg-white text-slate-800"
+                    className="gallery-select"
+                    style={{ flex: 1, padding: "8px 10px", fontSize: "12px" }}
                   >
                     <option value="">প্রোডাক্ট সিলেক্ট করুন...</option>
                     {products.map((p) => (
@@ -1517,7 +1391,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
                     type="button"
                     disabled={!targetProductId || busy}
                     onClick={() => handleLinkProduct(activeAsset.id, Number(targetProductId))}
-                    className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 text-xs font-bold disabled:opacity-50"
+                    className="gallery-btn-indigo"
                   >
                     লিংক
                   </button>
@@ -1526,11 +1400,12 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
             </div>
 
             {/* Delete Image Action */}
-            <div className="mt-6 pt-5 border-t border-slate-200">
+            <div style={{ marginTop: "24px", paddingTop: "18px", borderTop: "1px solid #e2e8f0" }}>
               <button
                 type="button"
                 onClick={() => setConfirmDialog({ type: "single", id: activeAsset.id })}
-                className="w-full flex items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 py-2.5 text-xs font-bold transition"
+                className="gallery-btn-danger"
+                style={{ width: "100%", justifyContent: "center", padding: "10px" }}
               >
                 <Trash2 size={14} />
                 এই ছবিটি সম্পূর্ণ মুছে ফেলুন
@@ -1540,54 +1415,55 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
         </div>
       )}
 
-      {/* Quick Link Modal (when clicking Link icon on a card) */}
+      {/* 8. Quick Link Modal */}
       {linkModalAsset && (
         <div
-          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn"
+          className="gallery-modal-backdrop"
           onClick={() => setLinkModalAsset(null)}
         >
           <div
-            className="w-full max-w-md bg-white rounded-2xl p-6 shadow-2xl border border-slate-200"
+            className="gallery-modal-card"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                <Link2 size={16} className="text-indigo-600" />
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: "12px", borderBottom: "1px solid #f1f5f9" }}>
+              <h3 style={{ margin: 0, fontSize: "15px", fontWeight: 800, color: "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
+                <Link2 size={16} style={{ color: "#4f46e5" }} />
                 প্রোডাক্টের সাথে লিংক করুন
               </h3>
               <button
                 type="button"
                 onClick={() => setLinkModalAsset(null)}
-                className="text-slate-400 hover:text-slate-600"
+                style={{ background: "transparent", border: "none", color: "#94a3b8", cursor: "pointer" }}
               >
                 <X size={16} />
               </button>
             </div>
 
-            <div className="flex items-center gap-3 my-4 p-3 bg-slate-50 rounded-xl border border-slate-100">
+            <div style={{ display: "flex", alignItems: "center", gap: "12px", margin: "16px 0", padding: "12px", background: "#f8fafc", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
               <img
                 src={linkModalAsset.image}
                 alt={linkModalAsset.filename}
-                className="w-14 h-14 object-cover rounded-lg border border-slate-200"
+                style={{ width: "50px", height: "50px", objectFit: "cover", borderRadius: "8px", border: "1px solid #cbd5e1" }}
               />
-              <div className="min-w-0">
-                <p className="text-xs font-bold text-slate-800 truncate">
+              <div style={{ minWidth: 0 }}>
+                <p style={{ margin: 0, fontSize: "13px", fontWeight: 800, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                   {linkModalAsset.filename}
                 </p>
-                <p className="text-[10px] text-slate-400 truncate mt-0.5">
+                <p style={{ margin: "2px 0 0", fontSize: "11px", color: "#64748b", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                   {linkModalAsset.alt_text || "কোনো অল্টার টেক্সট নেই"}
                 </p>
               </div>
             </div>
 
-            <div className="space-y-3">
-              <label className="block text-xs font-bold text-slate-700">
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155" }}>
                 প্রোডাক্ট নির্বাচন করুন:
               </label>
               <select
                 value={targetProductId}
                 onChange={(e) => setTargetProductId(e.target.value)}
-                className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2.5 bg-slate-50 text-slate-800 focus:bg-white focus:outline-none"
+                className="gallery-select"
+                style={{ width: "100%" }}
               >
                 <option value="">তালিকায় থাকা প্রোডাক্ট বেছে নিন...</option>
                 {products.map((p) => (
@@ -1597,11 +1473,11 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
                 ))}
               </select>
 
-              <div className="flex items-center justify-end gap-2 pt-3">
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "8px", marginTop: "12px" }}>
                 <button
                   type="button"
                   onClick={() => setLinkModalAsset(null)}
-                  className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50"
+                  className="gallery-btn-white"
                 >
                   বাতিল
                 </button>
@@ -1609,7 +1485,8 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
                   type="button"
                   disabled={!targetProductId || busy}
                   onClick={() => handleLinkProduct(linkModalAsset.id, Number(targetProductId))}
-                  className="rounded-xl bg-indigo-600 hover:bg-indigo-700 px-5 py-2 text-xs font-bold text-white disabled:opacity-50"
+                  className="gallery-btn-indigo"
+                  style={{ padding: "9px 18px", fontSize: "13px" }}
                 >
                   {busy ? "লিংক হচ্ছে..." : "লিংক কনফার্ম করুন"}
                 </button>
@@ -1619,33 +1496,35 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
+      {/* 9. Delete Confirmation Modal */}
       {confirmDialog && (
         <div
-          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn"
+          className="gallery-modal-backdrop"
           onClick={() => setConfirmDialog(null)}
         >
           <div
-            className="w-full max-w-sm bg-white rounded-2xl p-6 shadow-2xl border border-slate-200 text-center"
+            className="gallery-modal-card"
+            style={{ textAlign: "center" }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-3">
+            <div style={{ width: "48px", height: "48px", borderRadius: "50%", background: "#fee2e2", color: "#ef4444", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}>
               <Trash2 size={24} />
             </div>
-            <h3 className="text-base font-bold text-slate-900">
+            <h3 style={{ margin: "0 0 6px", fontSize: "16px", fontWeight: 800, color: "#0f172a" }}>
               {confirmDialog.type === "bulk"
                 ? `${selectedIds.length} টি ছবি মুছে ফেলতে চান?`
                 : "এই ছবিটি মুছে ফেলতে চান?"}
             </h3>
-            <p className="text-xs text-slate-500 mt-1.5 mb-5">
+            <p style={{ margin: "0 0 20px", fontSize: "13px", color: "#64748b", lineHeight: 1.5 }}>
               এই ছবি মুছে ফেললে তা স্টোরেজ থেকে চিরতরে মুছে যাবে এবং সংযুক্ত সব প্রোডাক্ট থেকেও অপসারিত হবে।
             </p>
 
-            <div className="flex items-center justify-center gap-2">
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px" }}>
               <button
                 type="button"
                 onClick={() => setConfirmDialog(null)}
-                className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 flex-1"
+                className="gallery-btn-white"
+                style={{ flex: 1, justifyContent: "center" }}
               >
                 না, রাখুন
               </button>
@@ -1659,7 +1538,8 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
                     deleteAssetNow(confirmDialog.id);
                   }
                 }}
-                className="rounded-xl bg-rose-600 hover:bg-rose-700 px-4 py-2 text-xs font-bold text-white flex-1 disabled:opacity-50"
+                className="gallery-btn-danger"
+                style={{ flex: 1, justifyContent: "center", background: "#e11d48", color: "#ffffff", border: "none" }}
               >
                 {confirmBusy ? "মুছে ফেলা হচ্ছে..." : "হ্যাঁ, মুছে ফেলুন"}
               </button>
@@ -1670,4 +1550,3 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
     </div>
   );
 }
-
