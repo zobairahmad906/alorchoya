@@ -2,21 +2,27 @@ import os
 from django.utils import timezone
 from django.db import transaction
 from rest_framework import serializers
-from .models import Category, Product, ProductImage, Order, OrderItem, Cart, CartItem, DeliveryZone, Coupon, Review, CustomerProfile, CustomerAddress
+from .models import Category, Product, ProductVariant, ProductImage, Order, OrderItem, Cart, CartItem, DeliveryZone, Coupon, Review, CustomerProfile, CustomerAddress, ProductImageAsset, ProductImageAssetLink
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = ("id", "name", "slug")
 
+class ProductVariantSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductVariant
+        fields = ("id", "attributes", "sku", "price", "stock")
+
 class ProductImageSerializer(serializers.ModelSerializer):
     image = serializers.SerializerMethodField()
     hero_desktop = serializers.SerializerMethodField()
     hero_mobile = serializers.SerializerMethodField()
     card_image = serializers.SerializerMethodField()
+    variant_id = serializers.PrimaryKeyRelatedField(source="variant", read_only=True)
     class Meta:
         model = ProductImage
-        fields = ("id", "image", "hero_desktop", "hero_mobile", "card_image", "alt_text", "is_primary")
+        fields = ("id", "image", "hero_desktop", "hero_mobile", "card_image", "alt_text", "is_primary", "variant_id")
 
     def _get_file_url(self, file):
         if not file:
@@ -70,9 +76,18 @@ class ReviewSerializer(serializers.ModelSerializer):
 class ProductSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
     images = ProductImageSerializer(many=True, read_only=True)
+    variants = ProductVariantSerializer(many=True, read_only=True)
+    voice_audio_file = serializers.SerializerMethodField()
     reviews = serializers.SerializerMethodField()
     average_rating = serializers.SerializerMethodField()
     total_reviews = serializers.SerializerMethodField()
+
+    def get_voice_audio_file(self, obj):
+        if not obj.voice_audio_file:
+            return None
+        url = obj.voice_audio_file.url
+        request = self.context.get("request")
+        return request.build_absolute_uri(url) if request else url
 
     def get_reviews(self, obj):
         approved = obj.reviews.filter(is_approved=True)
@@ -90,7 +105,15 @@ class ProductSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Product
-        fields = ("id", "name", "slug", "description", "price", "discount_price", "stock", "is_featured", "category", "images", "reviews", "average_rating", "total_reviews")
+        fields = (
+            "id", "name", "slug", "base_sku", "description",
+            "price", "discount_price", "cost_price", "stock",
+            "weight_kg", "dimension_length_cm", "dimension_width_cm", "dimension_height_cm",
+            "stock_alert_threshold", "attributes", "warranty_information",
+            "voice_audio_file", "is_featured", "is_active",
+            "category", "images", "variants", "reviews", "average_rating", "total_reviews",
+            "created_at", "updated_at"
+        )
 
 class DeliveryZoneSerializer(serializers.ModelSerializer):
     class Meta:
@@ -254,3 +277,86 @@ class CustomerOrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = ("id", "status", "status_display", "payment_method", "customer_name", "address", "delivery_charge", "discount_amount", "created_at", "total", "items")
+
+
+class ProductImageAssetLinkSerializer(serializers.ModelSerializer):
+    product_name = serializers.ReadOnlyField(source="product.name")
+    product_slug = serializers.ReadOnlyField(source="product.slug")
+    variant_label = serializers.SerializerMethodField()
+
+    def get_variant_label(self, obj):
+        return None
+
+    class Meta:
+        model = ProductImageAssetLink
+        fields = ("id", "asset_id", "product_id", "product_name", "product_slug", "variant_label", "position", "created_at")
+        read_only_fields = ("id", "created_at")
+
+
+class ProductImageAssetSerializer(serializers.ModelSerializer):
+    image = serializers.SerializerMethodField()
+    links = serializers.SerializerMethodField()
+    file_size = serializers.SerializerMethodField()
+    dimensions = serializers.SerializerMethodField()
+
+    def _get_file_url(self, file_field):
+        if not file_field:
+            return None
+        try:
+            url = file_field.url
+        except Exception:
+            return None
+        if url.startswith("/"):
+            request = self.context.get("request")
+            return request.build_absolute_uri(url) if request else url
+        internal = os.getenv("MINIO_ENDPOINT", "minio:9000")
+        public = os.getenv("MINIO_PUBLIC_ENDPOINT", "localhost:9000")
+        scheme = "https" if public not in ("localhost:9000", "127.0.0.1:9000") else "http"
+        return url.replace(f"http://{internal}", f"{scheme}://{public}")
+
+    def get_image(self, obj):
+        return self._get_file_url(obj.image)
+
+    def get_links(self, obj):
+        result = []
+        for link in obj.links.select_related("product"):
+            result.append({
+                "id": link.id,
+                "asset_id": link.asset_id,
+                "product_id": link.product_id,
+                "variant_id": None,
+                "product_name": link.product.name,
+                "product_slug": link.product.slug,
+                "variant_sku": None,
+                "variant_label": None,
+                "position": link.position,
+                "created_at": link.created_at,
+            })
+        return result
+
+    def get_file_size(self, obj):
+        try:
+            return obj.image.size if obj.image else None
+        except Exception:
+            return None
+
+    def get_dimensions(self, obj):
+        try:
+            if obj.image:
+                return {"width": obj.image.width, "height": obj.image.height}
+        except Exception:
+            pass
+        return None
+
+    class Meta:
+        model = ProductImageAsset
+        fields = [
+            "id", "image", "filename", "alt_text", "image_caption", "links",
+            "processing_status", "processing_error", "embedding_version",
+            "position", "file_size", "dimensions", "created_at", "updated_at",
+        ]
+        read_only_fields = [
+            "id", "image", "processing_status", "processing_error",
+            "embedding_version", "file_size", "dimensions", "created_at", "updated_at",
+        ]
+

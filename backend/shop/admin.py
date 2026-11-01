@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Category, Product, ProductImage, Order, OrderItem, DeliveryZone, Coupon, Review, AuditEvent, CustomerProfile, CustomerAddress
+from .models import Category, Product, ProductImage, Order, OrderItem, DeliveryZone, Coupon, Review, AuditEvent, CustomerProfile, CustomerAddress, ProductImageAsset, ProductImageAssetLink
 
 class ProductImageInline(admin.TabularInline):
     model = ProductImage
@@ -70,3 +70,17 @@ class CustomerAddressAdmin(admin.ModelAdmin):
     list_display = ("recipient_name", "phone", "district", "is_default", "profile")
     list_filter = ("is_default", "district")
     search_fields = ("recipient_name", "phone", "address", "profile__user__email")
+
+
+@admin.register(ProductImageAsset)
+class ProductImageAssetAdmin(admin.ModelAdmin):
+    list_display = ("id", "filename", "alt_text", "processing_status", "position", "created_at")
+    list_filter = ("processing_status",)
+    search_fields = ("filename", "alt_text", "image_caption")
+
+
+@admin.register(ProductImageAssetLink)
+class ProductImageAssetLinkAdmin(admin.ModelAdmin):
+    list_display = ("id", "asset", "product", "position", "created_at")
+    list_filter = ("product",)
+

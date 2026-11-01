@@ -1,13 +1,14 @@
 import logging
 from rest_framework import generics, permissions, status
 from rest_framework.views import APIView
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.response import Response
 from rest_framework.exceptions import NotFound
 from django.db import connection
 from django.http import JsonResponse
-from .models import Category, Product, ProductImage, Cart, CartItem, DeliveryZone, Order, OrderItem, CustomerProfile, CustomerAddress, Review
-from .serializers import CategorySerializer, ProductSerializer, ProductImageSerializer, OrderSerializer, CartSerializer, CartItemSerializer, DeliveryZoneSerializer, OrderTrackingSerializer, ReviewSerializer, CustomerProfileSerializer, CustomerAddressSerializer, CustomerOrderSerializer
+import json
+from .models import Category, Product, ProductVariant, ProductImage, Cart, CartItem, DeliveryZone, Order, OrderItem, CustomerProfile, CustomerAddress, Review, ProductImageAsset, ProductImageAssetLink
+from .serializers import CategorySerializer, ProductSerializer, ProductImageSerializer, OrderSerializer, CartSerializer, CartItemSerializer, DeliveryZoneSerializer, OrderTrackingSerializer, ReviewSerializer, CustomerProfileSerializer, CustomerAddressSerializer, CustomerOrderSerializer, ProductImageAssetSerializer, ProductImageAssetLinkSerializer
 
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
@@ -163,11 +164,20 @@ class ProductMultiImageUploadView(generics.GenericAPIView):
             if not file_obj.content_type.startswith("image/") or file_obj.size > 5 * 1024 * 1024:
                 return Response({"error": "Only image files up to 5MB are allowed."}, status=400)
             
+        variant_id = request.data.get("variant_id")
+        variant = None
+        if variant_id:
+            try:
+                variant = product.variants.get(pk=variant_id)
+            except (ProductVariant.DoesNotExist, ValueError):
+                variant = None
+
         created_images = []
         has_primary = product.images.filter(is_primary=True).exists()
         for idx, file_obj in enumerate(files):
             img = ProductImage.objects.create(
                 product=product,
+                variant=variant,
                 image=file_obj,
                 alt_text=f"{product.name} image {idx + 1}",
                 is_primary=(not has_primary and idx == 0)
@@ -389,9 +399,10 @@ class AdminOrderListDetailView(APIView):
 
 class AdminProductListCreateView(APIView):
     permission_classes = (IsAdminUser,)
+    parser_classes = (MultiPartParser, FormParser, JSONParser)
 
     def get(self, request):
-        qs = Product.objects.all().select_related("category").prefetch_related("images").order_by("-id")
+        qs = Product.objects.all().select_related("category").prefetch_related("images", "variants").order_by("-id")
         serializer = ProductSerializer(qs, many=True, context={"request": request})
         return Response(serializer.data)
 
@@ -399,33 +410,110 @@ class AdminProductListCreateView(APIView):
         data = request.data.copy()
         category_id = data.get("category_id")
         if not category_id:
-            return Response({"error": "Category ID is required"}, status=400)
-        try:
-            category = Category.objects.get(pk=category_id)
-        except Category.DoesNotExist:
-            return Response({"error": "Category not found"}, status=400)
+            category_name = data.get("category")
+            if category_name:
+                slug_cand = category_name.strip().lower().replace(" ", "-")
+                category, _ = Category.objects.get_or_create(
+                    name=category_name.strip(),
+                    defaults={"slug": slug_cand}
+                )
+            else:
+                category = Category.objects.first()
+        else:
+            try:
+                category = Category.objects.get(pk=category_id)
+            except Category.DoesNotExist:
+                return Response({"error": "Category not found"}, status=400)
 
-        slug = data.get("slug") or data.get("name", "").lower().replace(" ", "-")
+        raw_name = data.get("name", "").strip()
+        if not raw_name:
+            return Response({"error": "Product name is required"}, status=400)
+
+        slug = data.get("slug") or raw_name.lower().replace(" ", "-")
+        base_slug = slug
+        count = 1
+        while Product.objects.filter(slug=slug).exists():
+            slug = f"{base_slug}-{count}"
+            count += 1
+
+        clean_num = lambda v: None if v in ("", None, "null") else v
+
+        price = data.get("base_price") or data.get("price") or 0
+        discount_price = clean_num(data.get("sale_price") or data.get("discount_price"))
+        cost_price = clean_num(data.get("cost_price"))
+        stock = data.get("initial_stock") or data.get("stock") or 0
+        stock_alert_threshold = data.get("stock_alert_threshold") or 5
+
+        weight_kg = clean_num(data.get("weight_kg"))
+        dim_l = clean_num(data.get("dimension_length_cm"))
+        dim_w = clean_num(data.get("dimension_width_cm"))
+        dim_h = clean_num(data.get("dimension_height_cm"))
+
+        attributes = data.get("attributes") or {}
+        if isinstance(attributes, str):
+            try:
+                attributes = json.loads(attributes)
+            except Exception:
+                attributes = {}
+
+        is_active = data.get("status") != "inactive" if "status" in data else data.get("is_active", True)
+        if isinstance(is_active, str):
+            is_active = is_active.lower() not in ("false", "0", "inactive")
+
         product = Product.objects.create(
             category=category,
-            name=data.get("name"),
+            name=raw_name,
             slug=slug,
+            base_sku=data.get("base_sku", "").strip(),
             description=data.get("description", ""),
-            price=data.get("price"),
-            discount_price=data.get("discount_price") or None,
-            stock=data.get("stock", 0),
-            is_featured=data.get("is_featured", False),
-            is_active=data.get("is_active", True)
+            price=price,
+            discount_price=discount_price,
+            cost_price=cost_price,
+            stock=stock,
+            weight_kg=weight_kg,
+            dimension_length_cm=dim_l,
+            dimension_width_cm=dim_w,
+            dimension_height_cm=dim_h,
+            stock_alert_threshold=stock_alert_threshold,
+            attributes=attributes,
+            warranty_information=data.get("warranty_information", ""),
+            is_featured=bool(data.get("is_featured", False)),
+            is_active=is_active
         )
+
+        if "voice_audio_file" in request.FILES:
+            product.voice_audio_file = request.FILES["voice_audio_file"]
+            product.save(update_fields=["voice_audio_file"])
+
+        variants_data = data.get("variants") or []
+        if isinstance(variants_data, str):
+            try:
+                variants_data = json.loads(variants_data)
+            except Exception:
+                variants_data = []
+
+        for v in variants_data:
+            if not isinstance(v, dict):
+                continue
+            v_attr = v.get("attributes") or {}
+            v_sku = v.get("sku", "").strip()
+            v_price = clean_num(v.get("price"))
+            v_stock = v.get("stock") or 0
+            ProductVariant.objects.create(
+                product=product,
+                attributes=v_attr,
+                sku=v_sku,
+                price=v_price,
+                stock=v_stock
+            )
+
         image_url = (data.get("image_url") or "").strip()
-        if image_url:
-            if len(image_url) > 100:
-                return Response({"error": "Image URL খুব বড়। Device থেকে image upload করুন।"}, status=400)
+        if image_url and len(image_url) <= 100:
             ProductImage.objects.create(
                 product=product,
                 image=image_url,
-                alt_text=data.get("image_alt", data.get("name", "")),
-                is_primary=data.get("image_primary", True),
+                alt_text=data.get("image_alt", raw_name),
+                is_primary=True,
             )
 
         return Response(ProductSerializer(product, context={"request": request}).data, status=status.HTTP_201_CREATED)
@@ -433,55 +521,386 @@ class AdminProductListCreateView(APIView):
 
 class AdminProductDetailView(APIView):
     permission_classes = (IsAdminUser,)
+    parser_classes = (MultiPartParser, FormParser, JSONParser)
 
     def get_object(self, pk):
         try:
-            return Product.objects.get(pk=pk)
+            return Product.objects.select_related("category").prefetch_related("images", "variants").get(pk=pk)
         except Product.DoesNotExist:
             raise NotFound("Product not found")
+
+    def get(self, request, pk):
+        product = self.get_object(pk)
+        return Response(ProductSerializer(product, context={"request": request}).data)
+
+    def put(self, request, pk):
+        return self.patch(request, pk)
 
     def patch(self, request, pk):
         product = self.get_object(pk)
         data = request.data
-        if "name" in data: product.name = data["name"]
-        if "slug" in data and data["slug"]: product.slug = data["slug"]
-        if "description" in data: product.description = data["description"]
-        if "price" in data: product.price = data["price"]
-        if "discount_price" in data: product.discount_price = data["discount_price"] or None
-        if "stock" in data: product.stock = data["stock"]
-        if "is_featured" in data: product.is_featured = data["is_featured"]
-        if "is_active" in data: product.is_active = data["is_active"]
+        clean_num = lambda v: None if v in ("", None, "null") else v
+
+        if "name" in data and data["name"]:
+            product.name = data["name"].strip()
+        if "slug" in data and data["slug"]:
+            product.slug = data["slug"].strip()
+        if "base_sku" in data:
+            product.base_sku = (data["base_sku"] or "").strip()
+        if "description" in data:
+            product.description = data["description"]
+        if "price" in data:
+            product.price = data["price"]
+        elif "base_price" in data:
+            product.price = data["base_price"]
+        if "discount_price" in data or "sale_price" in data:
+            product.discount_price = clean_num(data.get("sale_price", data.get("discount_price")))
+        if "cost_price" in data:
+            product.cost_price = clean_num(data["cost_price"])
+        if "stock" in data or "initial_stock" in data:
+            product.stock = data.get("stock", data.get("initial_stock", 0))
+        if "weight_kg" in data:
+            product.weight_kg = clean_num(data["weight_kg"])
+        if "dimension_length_cm" in data:
+            product.dimension_length_cm = clean_num(data["dimension_length_cm"])
+        if "dimension_width_cm" in data:
+            product.dimension_width_cm = clean_num(data["dimension_width_cm"])
+        if "dimension_height_cm" in data:
+            product.dimension_height_cm = clean_num(data["dimension_height_cm"])
+        if "stock_alert_threshold" in data:
+            product.stock_alert_threshold = data["stock_alert_threshold"] or 5
+        if "warranty_information" in data:
+            product.warranty_information = data["warranty_information"] or ""
+        if "is_featured" in data:
+            product.is_featured = bool(data["is_featured"])
+        if "status" in data:
+            product.is_active = data["status"] != "inactive"
+        elif "is_active" in data:
+            product.is_active = bool(data["is_active"])
+
+        if "attributes" in data:
+            attrs = data["attributes"]
+            if isinstance(attrs, str):
+                try:
+                    attrs = json.loads(attrs)
+                except Exception:
+                    pass
+            product.attributes = attrs or {}
+
         if "category_id" in data:
             try:
                 product.category = Category.objects.get(pk=data["category_id"])
             except Category.DoesNotExist:
                 pass
-        
-        image_url = (data.get("image_url") or "").strip()
-        if image_url:
-            if len(image_url) > 100:
-                return Response({"error": "Image URL খুব বড়। Device থেকে image upload করুন।"}, status=400)
-            first_img = product.images.first()
-            if first_img:
-                first_img.image = image_url
-                if "image_alt" in data: first_img.alt_text = data["image_alt"]
-                if data.get("image_primary"):
-                    product.images.exclude(pk=first_img.pk).update(is_primary=False)
-                    first_img.is_primary = True
-                first_img.save()
-            else:
-                ProductImage.objects.create(
-                    product=product,
-                    image=image_url,
-                    alt_text=data.get("image_alt", product.name),
-                    is_primary=data.get("image_primary", True),
-                )
+        elif "category" in data and data["category"]:
+            cat_name = str(data["category"]).strip()
+            cat, _ = Category.objects.get_or_create(
+                name=cat_name,
+                defaults={"slug": cat_name.lower().replace(" ", "-")}
+            )
+            product.category = cat
+
+        if "voice_audio_file" in request.FILES:
+            product.voice_audio_file = request.FILES["voice_audio_file"]
+        elif data.get("remove_voice_audio") or ("voice_audio_file" in data and not data["voice_audio_file"]):
+            product.voice_audio_file = None
 
         product.save()
+
+        # Sync variants if passed
+        if "variants" in data:
+            variants_data = data["variants"]
+            if isinstance(variants_data, str):
+                try:
+                    variants_data = json.loads(variants_data)
+                except Exception:
+                    variants_data = []
+            
+            existing_variant_ids = set(product.variants.values_list("id", flat=True))
+            retained_ids = set()
+            for v in variants_data:
+                if not isinstance(v, dict):
+                    continue
+                v_id = v.get("id")
+                v_attr = v.get("attributes") or {}
+                v_sku = (v.get("sku") or "").strip()
+                v_price = clean_num(v.get("price"))
+                v_stock = v.get("stock") or 0
+                if v_id and v_id in existing_variant_ids:
+                    variant_obj = product.variants.get(pk=v_id)
+                    variant_obj.attributes = v_attr
+                    variant_obj.sku = v_sku
+                    variant_obj.price = v_price
+                    variant_obj.stock = v_stock
+                    variant_obj.save()
+                    retained_ids.add(v_id)
+                else:
+                    new_v = ProductVariant.objects.create(
+                        product=product,
+                        attributes=v_attr,
+                        sku=v_sku,
+                        price=v_price,
+                        stock=v_stock
+                    )
+                    retained_ids.add(new_v.id)
+            
+            # Remove omitted variants
+            to_delete = existing_variant_ids - retained_ids
+            if to_delete:
+                product.variants.filter(id__in=to_delete).delete()
+
         return Response(ProductSerializer(product, context={"request": request}).data)
 
     def delete(self, request, pk):
         product = self.get_object(pk)
         product.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ProductImageAssetListCreateView(APIView):
+    permission_classes = (IsAdminUser,)
+    parser_classes = (MultiPartParser, FormParser)
+
+    def get(self, request):
+        assets = ProductImageAsset.objects.all().prefetch_related("links__product")
+        serializer = ProductImageAssetSerializer(assets, many=True, context={"request": request})
+        return Response(serializer.data)
+
+    def post(self, request):
+        files = request.FILES.getlist("images") or request.FILES.getlist("image")
+        if not files:
+            return Response({"images": "কমপক্ষে একটি ইমেজ ফাইল নির্বাচন করুন।"}, status=status.HTTP_400_BAD_REQUEST)
+
+        current_count = ProductImageAsset.objects.count()
+        created = []
+        for idx, image in enumerate(files):
+            if not image.content_type or not image.content_type.startswith("image/"):
+                return Response({"images": "শুধুমাত্র ছবি (JPG, PNG, WEBP) আপলোড করা যাবে।"}, status=status.HTTP_400_BAD_REQUEST)
+            if image.size > 15 * 1024 * 1024:
+                return Response({"images": "প্রতিটি ছবির সর্বোচ্চ সাইজ ১৫ মেগাবাইট হতে পারবে।"}, status=status.HTTP_400_BAD_REQUEST)
+
+            filename = image.name or f"asset_{current_count + idx + 1}.jpg"
+            clean_name = filename.rsplit(".", 1)[0].replace("-", " ").replace("_", " ").title()
+            alt_text = request.data.get("alt_text") or clean_name
+            caption = f"Studio quality product image of {clean_name}. High definition detailing, clean focus and contrast."
+
+            asset = ProductImageAsset.objects.create(
+                user=request.user if request.user.is_authenticated else None,
+                image=image,
+                filename=filename,
+                alt_text=alt_text,
+                image_caption=caption,
+                processing_status="ready",
+                position=current_count + idx,
+            )
+            created.append(asset)
+
+        return Response(ProductImageAssetSerializer(created, many=True, context={"request": request}).data, status=status.HTTP_201_CREATED)
+
+
+class ProductImageAssetReorderView(APIView):
+    permission_classes = (IsAdminUser,)
+
+    def post(self, request):
+        positions = request.data.get("positions", {})
+        if not isinstance(positions, dict):
+            return Response({"error": "positions must be an object mapping asset IDs to positions."}, status=400)
+        for asset_id, position in positions.items():
+            try:
+                ProductImageAsset.objects.filter(pk=int(asset_id)).update(position=int(position))
+            except (ValueError, TypeError):
+                continue
+        assets = ProductImageAsset.objects.all().prefetch_related("links__product")
+        return Response(ProductImageAssetSerializer(assets, many=True, context={"request": request}).data)
+
+
+class ProductImageAssetBulkEmbedView(APIView):
+    permission_classes = (IsAdminUser,)
+
+    def get(self, request):
+        qs = ProductImageAsset.objects.all()
+        counts = {
+            "total": qs.count(),
+            "pending": qs.filter(processing_status="pending").count(),
+            "processing": qs.filter(processing_status="processing").count(),
+            "ready": qs.filter(processing_status="ready").count(),
+            "failed": qs.filter(processing_status="failed").count(),
+        }
+        last_ready = qs.filter(processing_status="ready").order_by("-updated_at").first()
+        failed_assets = list(
+            qs.filter(processing_status="failed")
+            .order_by("-updated_at")
+            .values("id", "filename", "processing_error", "updated_at")[:25]
+        )
+        return Response({
+            "counts": counts,
+            "last_embedded_at": last_ready.updated_at if last_ready else None,
+            "queue_policy": {
+                "batch_size": 3,
+                "delay_seconds": 12,
+                "batch_interval_seconds": 45,
+                "mode": "rate_limit_safe",
+            },
+            "failed_items": failed_assets,
+        })
+
+    def post(self, request):
+        asset_ids = request.data.get("asset_ids")
+        only_failed = bool(request.data.get("only_failed"))
+        qs = ProductImageAsset.objects.all()
+        if isinstance(asset_ids, list) and asset_ids:
+            qs = qs.filter(id__in=asset_ids)
+        elif only_failed:
+            qs = qs.filter(processing_status="failed")
+        else:
+            qs = qs.filter(processing_status__in=["pending", "failed"])
+
+        assets = list(qs)
+        for asset in assets:
+            if not asset.alt_text:
+                asset.alt_text = asset.filename.rsplit(".", 1)[0].replace("-", " ").replace("_", " ").title()
+            if not asset.image_caption:
+                clean_name = asset.filename.rsplit(".", 1)[0].replace("-", " ").replace("_", " ").title()
+                asset.image_caption = f"Studio photograph of {clean_name}. High definition detailing, clean focus and contrast."
+            asset.processing_status = "ready"
+            asset.processing_error = ""
+            asset.save(update_fields=["alt_text", "image_caption", "processing_status", "processing_error", "updated_at"])
+
+        return Response({"queued": len(assets), "batch_size": 3, "delay_seconds": 12})
+
+
+class ProductImageAssetDetailView(APIView):
+    permission_classes = (IsAdminUser,)
+
+    def patch(self, request, pk):
+        try:
+            asset = ProductImageAsset.objects.get(pk=pk)
+        except ProductImageAsset.DoesNotExist:
+            return Response({"error": "Asset not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        update_fields = ["updated_at"]
+        for field in ("alt_text", "filename", "image_caption"):
+            if field in request.data:
+                setattr(asset, field, request.data.get(field) or "")
+                update_fields.append(field)
+        if "position" in request.data:
+            try:
+                asset.position = int(request.data["position"])
+                update_fields.append("position")
+            except (ValueError, TypeError):
+                pass
+        asset.save(update_fields=update_fields)
+
+        if "alt_text" in request.data and asset.alt_text:
+            for link in asset.links.select_related("product"):
+                ProductImage.objects.filter(product=link.product, image=asset.image.name).update(alt_text=asset.alt_text)
+
+        return Response(ProductImageAssetSerializer(asset, context={"request": request}).data)
+
+    def delete(self, request, pk):
+        try:
+            asset = ProductImageAsset.objects.get(pk=pk)
+        except ProductImageAsset.DoesNotExist:
+            return Response({"error": "Asset not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        for link in asset.links.select_related("product"):
+            ProductImage.objects.filter(product=link.product, image=asset.image.name).delete()
+
+        try:
+            asset.image.delete(save=False)
+        except Exception:
+            pass
+
+        asset.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ProductImageAssetLinkView(APIView):
+    permission_classes = (IsAdminUser,)
+
+    def post(self, request, asset_id):
+        try:
+            asset = ProductImageAsset.objects.get(pk=asset_id)
+        except ProductImageAsset.DoesNotExist:
+            return Response({"error": "Asset not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        product_id = request.data.get("product_id")
+        if not product_id:
+            return Response({"error": "Product ID is required."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            product = Product.objects.get(pk=product_id)
+        except Product.DoesNotExist:
+            return Response({"error": "Product not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        link, _ = ProductImageAssetLink.objects.get_or_create(
+            asset=asset,
+            product=product,
+            defaults={"position": product.images.count()}
+        )
+
+        existing_img = product.images.filter(image=asset.image.name).first()
+        if not existing_img:
+            ProductImage.objects.create(
+                product=product,
+                image=asset.image.name,
+                alt_text=asset.alt_text or product.name,
+                is_primary=(product.images.count() == 0)
+            )
+
+        return Response({"link": ProductImageAssetLinkSerializer(link).data}, status=status.HTTP_201_CREATED)
+
+
+class ProductImageAssetUnlinkView(APIView):
+    permission_classes = (IsAdminUser,)
+
+    def delete(self, request, asset_id, link_id):
+        try:
+            link = ProductImageAssetLink.objects.select_related("product", "asset").get(pk=link_id, asset_id=asset_id)
+        except ProductImageAssetLink.DoesNotExist:
+            return Response({"error": "Link not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        product = link.product
+        asset = link.asset
+
+        ProductImage.objects.filter(product=product, image=asset.image.name).delete()
+        link.delete()
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+
+class AdminProductImageManageView(APIView):
+    permission_classes = (IsAdminUser,)
+
+    def patch(self, request, pk):
+        try:
+            image = ProductImage.objects.select_related("product").get(pk=pk)
+        except ProductImage.DoesNotExist:
+            raise NotFound("Image not found")
+
+        data = request.data
+        if data.get("is_primary"):
+            image.product.images.exclude(pk=image.pk).update(is_primary=False)
+            image.is_primary = True
+        if "variant_id" in data:
+            v_id = data["variant_id"]
+            if v_id in (None, "", "null"):
+                image.variant = None
+            else:
+                try:
+                    image.variant = image.product.variants.get(pk=v_id)
+                except (ProductVariant.DoesNotExist, ValueError):
+                    pass
+        if "alt_text" in data:
+            image.alt_text = data["alt_text"]
+        image.save()
+        return Response(ProductImageSerializer(image, context={"request": request}).data)
+
+    def delete(self, request, pk):
+        try:
+            image = ProductImage.objects.get(pk=pk)
+        except ProductImage.DoesNotExist:
+            raise NotFound("Image not found")
+        image.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 

@@ -4,6 +4,9 @@ import React, { useState, useEffect, useRef } from "react";
 import { MarkdownPreview } from "../markdown";
 import Link from "next/link";
 import { Header } from "../components";
+import ImageGallery from "./ImageGallery";
+import ProductForm from "../admin/components/ProductForm";
+import toast, { Toaster } from "react-hot-toast";
 
 type OrderItem = {
   id: number;
@@ -32,13 +35,24 @@ type Product = {
   name: string;
   description: string;
   slug: string;
+  base_sku?: string;
   price: string;
   discount_price?: string | null;
+  cost_price?: string | null;
   stock: number;
+  weight_kg?: string | null;
+  dimension_length_cm?: string | null;
+  dimension_width_cm?: string | null;
+  dimension_height_cm?: string | null;
+  stock_alert_threshold?: number;
+  attributes?: Record<string, string>;
+  warranty_information?: string;
+  voice_audio_file?: string | null;
   is_featured?: boolean;
   is_active?: boolean;
   category: { id?: number; name: string };
-  images: { id: number; image: string; alt_text?: string; is_primary?: boolean }[];
+  images: { id: number; image: string; alt_text?: string; is_primary?: boolean; variant_id?: number | null }[];
+  variants?: { id?: number; attributes?: Record<string, string>; sku: string; price?: string; stock: number }[];
 };
 
 type DashboardStats = {
@@ -59,7 +73,8 @@ type DashboardStats = {
 };
 
 export default function AdminDashboardPage() {
-  const [activeTab, setActiveTab] = useState<"overview" | "orders" | "products" | "customers">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "orders" | "products" | "gallery" | "customers">("overview");
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [csrfToken, setCsrfToken] = useState("");
@@ -78,6 +93,7 @@ export default function AdminDashboardPage() {
 
   // Product modal / editing state
   const [editingProduct, setEditingProduct] = useState<Partial<Product> | null>(null);
+  const [showProductForm, setShowProductForm] = useState(false);
   const [showProductModal, setShowProductModal] = useState(false);
   const [descriptionMode, setDescriptionMode] = useState<"write" | "preview">("write");
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -281,44 +297,12 @@ export default function AdminDashboardPage() {
 
   const openEditModal = (p: Product) => {
     setEditingProduct(p);
-    setProductForm({
-      name: p.name,
-      slug: p.slug,
-      description: p.description || "",
-      image_alt: p.images?.[0]?.alt_text || "",
-      image_primary: p.images?.[0]?.is_primary ?? true,
-      price: p.price,
-      discount_price: p.discount_price || "",
-      stock: p.stock,
-      category_id: p.category?.id || (categories[0]?.id || 1),
-      image_url: "",
-      is_featured: p.is_featured || false,
-      is_active: p.is_active !== false
-    });
-    setImageFile(null);
-    setDescriptionMode("write");
-    setShowProductModal(true);
+    setShowProductForm(true);
   };
 
   const openCreateModal = () => {
     setEditingProduct(null);
-    setProductForm({
-      name: "",
-      slug: "",
-      description: "",
-      image_alt: "",
-      image_primary: true,
-      price: "",
-      discount_price: "",
-      stock: 10,
-      category_id: categories[0]?.id || 1,
-      image_url: "",
-      is_featured: false,
-      is_active: true
-    });
-    setImageFile(null);
-    setDescriptionMode("write");
-    setShowProductModal(true);
+    setShowProductForm(true);
   };
 
   const insertMarkdown = (before: string, after = "", placeholder = "লিখুন") => {
@@ -564,70 +548,172 @@ export default function AdminDashboardPage() {
 
   return (
     <>
-      <Header />
-      <div className="admin-dashboard-container">
-        <div className="admin-header">
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <span className="admin-header-title" style={{ fontSize: "18px" }}>
-              👑 অ্যাডমিন কন্ট্রোল প্যানেল
-            </span>
-            <span className="admin-header-badge">
-              Store Management Active
-            </span>
+      <Toaster position="top-right" />
+      <div className="admin-shell">
+        {/* Mobile Backdrop */}
+        {mobileSidebarOpen && (
+          <div
+            className="fixed inset-0 bg-black/60 z-40 lg:hidden"
+            onClick={() => setMobileSidebarOpen(false)}
+          />
+        )}
+
+        {/* LEFT SIDEBAR */}
+        <aside className={`admin-sidebar ${mobileSidebarOpen ? "open" : ""}`}>
+          <div className="admin-sidebar-brand">
+            <div className="admin-sidebar-brand-icon">
+              🌟
+            </div>
+            <div>
+              <div className="admin-sidebar-brand-text">আলোছায়া</div>
+              <div className="admin-sidebar-brand-sub">Admin Dashboard</div>
+            </div>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <a
-              href={getApiUrl("/admin/")}
-              target="_blank"
-              rel="noreferrer"
-              className="admin-header-link"
+          <nav className="admin-sidebar-nav">
+            <div className="admin-sidebar-nav-label">মেইন মেনু</div>
+
+            <button
+              onClick={() => { setActiveTab("overview"); setMobileSidebarOpen(false); }}
+              className={`admin-nav-item ${activeTab === "overview" ? "active" : ""}`}
             >
-              Django Backend ↗
-            </a>
-          </div>
-        </div>
+              <div className="admin-nav-item-content">
+                <span className="admin-nav-item-icon">📊</span>
+                <span>ওভারভিউ</span>
+              </div>
+            </button>
 
-        {/* Main Container */}
-        <div className="admin-body">
-        
-        {/* Navigation Tabs */}
-        <div className="admin-tabs-nav">
-          <button
-            onClick={() => setActiveTab("overview")}
-            className={`admin-tab-btn ${activeTab === "overview" ? "active" : ""}`}
-          >
-            📊 ড্যাশবোর্ড ওভারভিউ
-          </button>
-          <button
-            onClick={() => setActiveTab("orders")}
-            className={`admin-tab-btn ${activeTab === "orders" ? "active" : ""}`}
-          >
-            📦 অর্ডার ম্যানেজমেন্ট
-            {stats && stats.pending_orders > 0 && (
-              <span style={{ marginLeft: "8px", backgroundColor: "#f59e0b", color: "#0f172a", fontSize: "11px", padding: "2px 8px", borderRadius: "9999px", fontWeight: 800 }}>
-                {stats.pending_orders}
+            <button
+              onClick={() => { setActiveTab("orders"); setMobileSidebarOpen(false); }}
+              className={`admin-nav-item ${activeTab === "orders" ? "active" : ""}`}
+            >
+              <div className="admin-nav-item-content">
+                <span className="admin-nav-item-icon">📦</span>
+                <span>অর্ডার ম্যানেজমেন্ট</span>
+              </div>
+              {stats && stats.pending_orders > 0 && (
+                <span className="admin-nav-badge warning">
+                  {stats.pending_orders}
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => { setActiveTab("products"); setMobileSidebarOpen(false); }}
+              className={`admin-nav-item ${activeTab === "products" ? "active" : ""}`}
+            >
+              <div className="admin-nav-item-content">
+                <span className="admin-nav-item-icon">🛍️</span>
+                <span>প্রোডাক্ট ও স্টক</span>
+              </div>
+              <span className="admin-nav-badge">
+                {products.length}
               </span>
-            )}
-          </button>
-          <button
-            onClick={() => setActiveTab("products")}
-            className={`admin-tab-btn ${activeTab === "products" ? "active" : ""}`}
-          >
-            🛍️ প্রোডাক্ট & স্টক কন্ট্রোল
-          </button>
-          <button
-            onClick={() => setActiveTab("customers")}
-            className={`admin-tab-btn ${activeTab === "customers" ? "active" : ""}`}
-          >
-            👥 গ্রাহক তালিকা ({customersList.length})
-          </button>
-        </div>
+            </button>
 
-        {/* OVERVIEW TAB */}
-        {activeTab === "overview" && stats && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-            {/* KPI Cards Grid */}
+            <button
+              onClick={() => { setActiveTab("gallery"); setMobileSidebarOpen(false); }}
+              className={`admin-nav-item ${activeTab === "gallery" ? "active" : ""}`}
+            >
+              <div className="admin-nav-item-content">
+                <span className="admin-nav-item-icon">🖼️</span>
+                <span>ইমেজ গ্যালারি</span>
+              </div>
+              <span className="admin-nav-badge success">
+                AI Media
+              </span>
+            </button>
+
+            <button
+              onClick={() => { setActiveTab("customers"); setMobileSidebarOpen(false); }}
+              className={`admin-nav-item ${activeTab === "customers" ? "active" : ""}`}
+            >
+              <div className="admin-nav-item-content">
+                <span className="admin-nav-item-icon">👥</span>
+                <span>গ্রাহক তালিকা</span>
+              </div>
+              <span className="admin-nav-badge">
+                {customersList.length}
+              </span>
+            </button>
+          </nav>
+
+          <div className="admin-sidebar-footer">
+            <div className="admin-sidebar-user">
+              <div className="admin-sidebar-avatar">
+                AD
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: "12px", fontWeight: 700, color: "#f8fafc", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  স্টোর অ্যাডমিন
+                </div>
+                <div style={{ fontSize: "10px", color: "#34d399" }}>
+                  ● অনলাইন সেশন
+                </div>
+              </div>
+            </div>
+
+            <div className="admin-sidebar-sublinks">
+              <Link href="/" className="admin-sidebar-sublink" title="ওয়েবসাইট দেখুন">
+                🏪 শপ ফ্রন্ট ↗
+              </Link>
+              <a
+                href={getApiUrl("/admin/")}
+                target="_blank"
+                rel="noreferrer"
+                className="admin-sidebar-sublink"
+                title="Django Admin"
+              >
+                ⚙️ Django ↗
+              </a>
+            </div>
+          </div>
+        </aside>
+
+        {/* RIGHT MAIN WRAPPER */}
+        <div className="admin-main-wrapper">
+          <header className="admin-topbar">
+            <div className="admin-topbar-left">
+              <button
+                type="button"
+                onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
+                className="admin-topbar-toggle"
+                title="মেনু খুলুন"
+              >
+                ☰
+              </button>
+              <div className="admin-topbar-title">
+                {activeTab === "overview" && "📊 ড্যাশবোর্ড ওভারভিউ"}
+                {activeTab === "orders" && "📦 অর্ডার ও ডেলিভারি নিয়ন্ত্রণ"}
+                {activeTab === "products" && "🛍️ প্রোডাক্ট ও স্টক ম্যানেজমেন্ট"}
+                {activeTab === "gallery" && "🖼️ সেন্ট্রাল ইমেজ গ্যালারি ও মিডিয়া হাব"}
+                {activeTab === "customers" && "👥 গ্রাহক ডিরেক্টরি"}
+              </div>
+            </div>
+
+            <div className="admin-topbar-actions">
+              <button
+                onClick={openCreateModal}
+                className="admin-header-link"
+                style={{ background: "var(--forest)", color: "#fff", borderColor: "var(--forest)" }}
+              >
+                + নতুন প্রোডাক্ট
+              </button>
+              <button
+                onClick={() => fetchDashboardData()}
+                className="admin-header-link"
+                title="তথ্য রিফ্রেশ করুন"
+              >
+                🔄 রিফ্রেশ
+              </button>
+            </div>
+          </header>
+
+          <main className="admin-main-viewport">
+            {/* OVERVIEW TAB */}
+            {activeTab === "overview" && stats && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+                {/* KPI Cards Grid */}
             <div className="admin-kpi-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))" }}>
               <div className="admin-kpi-card">
                 <div className="admin-kpi-title">মোট বিক্রয় (Revenue)</div>
@@ -945,9 +1031,31 @@ export default function AdminDashboardPage() {
 
         {/* PRODUCTS & STOCK TAB */}
         {activeTab === "products" && (
+          showProductForm ? (
+            <ProductForm
+              initialProduct={editingProduct}
+              categories={categories}
+              onSaveSuccess={() => {
+                setShowProductForm(false);
+                setEditingProduct(null);
+                fetchDashboardData();
+                toast.success("পণ্য সফলভাবে সংরক্ষিত হয়েছে!");
+              }}
+              onCancel={() => {
+                setShowProductForm(false);
+                setEditingProduct(null);
+              }}
+              getApiUrl={getApiUrl}
+            />
+          ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <h3 style={{ fontFamily: "'Tiro Bangla', serif", fontSize: "22px", color: "var(--forest)", margin: 0 }}>পণ্য তালিকা & ইনভেন্টরি ক্যাটালগ</h3>
+              <div>
+                <h3 style={{ fontFamily: "'Tiro Bangla', serif", fontSize: "22px", color: "var(--forest)", margin: 0 }}>পণ্য তালিকা & ইনভেন্টরি ক্যাটালগ</h3>
+                <p style={{ margin: "4px 0 0", fontSize: "12px", color: "var(--coffee)" }}>
+                  সকল প্রোডাক্ট স্পেক্স, স্টক, ও ভ্যারিয়েন্ট এখান থেকে পরিচালনা করুন।
+                </p>
+              </div>
               <button
                 onClick={openCreateModal}
                 className="admin-submit-btn"
@@ -989,6 +1097,7 @@ export default function AdminDashboardPage() {
                   <thead>
                     <tr>
                       <th>পণ্য</th>
+                      <th>SKU</th>
                       <th>ক্যাটাগরি</th>
                       <th>মূল্য</th>
                       <th>ডিসকাউন্ট</th>
@@ -1014,9 +1123,19 @@ export default function AdminDashboardPage() {
                               <div style={{ width: "42px", height: "42px", background: "var(--cream)", borderRadius: "8px", display: "grid", placeItems: "center", fontSize: "10px", color: "var(--coffee)" }}>No Img</div>
                             )}
                             <div>
-                              <div>{product.name}</div>
+                              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                <span>{product.name}</span>
+                                {Array.isArray(product.variants) && product.variants.length > 0 && (
+                                  <span style={{ fontSize: "10px", background: "rgba(23,63,53,0.08)", color: "var(--forest)", padding: "1px 6px", borderRadius: "8px", fontWeight: 700 }}>
+                                    {product.variants.length} ভ্যারিয়েন্ট
+                                  </span>
+                                )}
+                              </div>
                               <div style={{ fontSize: "11px", color: "var(--coffee)", fontWeight: 400 }}>/products/{product.slug}</div>
                             </div>
+                          </td>
+                          <td style={{ fontFamily: "monospace", fontSize: "11px", color: "var(--forest)", fontWeight: 600 }}>
+                            {product.base_sku || "-"}
                           </td>
                           <td style={{ color: "var(--ink)" }}>{product.category?.name || "N/A"}</td>
                           <td style={{ fontWeight: 700, color: "var(--forest)" }}>৳{product.price}</td>
@@ -1073,6 +1192,7 @@ export default function AdminDashboardPage() {
               </div>
             </div>
           </div>
+          )
         )}
 
         {/* CUSTOMERS TAB */}
@@ -1123,6 +1243,18 @@ export default function AdminDashboardPage() {
             </div>
           </div>
         )}
+
+        {/* IMAGE GALLERY TAB */}
+        {activeTab === "gallery" && (
+          <ImageGallery
+            products={products}
+            csrfToken={csrfToken}
+            getApiUrl={getApiUrl}
+            onRefreshProducts={fetchDashboardData}
+          />
+        )}
+          </main>
+        </div>
       </div>
 
       {/* Product Add/Edit Modal */}
@@ -1276,7 +1408,6 @@ export default function AdminDashboardPage() {
           </div>
         </div>
       )}
-    </div>
     </>
   );
 }

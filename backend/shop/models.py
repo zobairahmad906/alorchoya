@@ -10,17 +10,45 @@ class Product(models.Model):
     category = models.ForeignKey(Category, related_name="products", on_delete=models.PROTECT)
     name = models.CharField(max_length=180)
     slug = models.SlugField(unique=True)
+    base_sku = models.CharField(max_length=100, blank=True, default="", db_index=True)
     description = models.TextField(blank=True)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     discount_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    cost_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     stock = models.PositiveIntegerField(default=0)
+    weight_kg = models.DecimalField(max_digits=10, decimal_places=3, null=True, blank=True)
+    dimension_length_cm = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    dimension_width_cm = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    dimension_height_cm = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    stock_alert_threshold = models.PositiveIntegerField(default=5)
+    attributes = models.JSONField(default=dict, blank=True)
+    warranty_information = models.TextField(blank=True, default="")
+    voice_audio_file = models.FileField(upload_to="product_voices/", null=True, blank=True)
     is_active = models.BooleanField(default=True)
     is_featured = models.BooleanField(default=False, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
     def __str__(self): return self.name
+
+
+class ProductVariant(models.Model):
+    product = models.ForeignKey(Product, related_name="variants", on_delete=models.CASCADE)
+    attributes = models.JSONField(default=dict, blank=True)
+    sku = models.CharField(max_length=100, blank=True, default="", db_index=True)
+    price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    stock = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["id"]
+
+    def __str__(self):
+        return f"{self.product.name} - {self.sku or self.id}"
+
 
 class ProductImage(models.Model):
     product = models.ForeignKey(Product, related_name="images", on_delete=models.CASCADE)
+    variant = models.ForeignKey(ProductVariant, related_name="images", null=True, blank=True, on_delete=models.SET_NULL)
     image = models.ImageField(upload_to="products/%Y/%m/")
     hero_desktop = models.ImageField(upload_to="products/hero/%Y/%m/", blank=True)
     hero_mobile = models.ImageField(upload_to="products/hero/%Y/%m/", blank=True)
@@ -129,3 +157,44 @@ class CustomerAddress(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     class Meta: ordering = ("-is_default", "-created_at")
     def __str__(self): return f"{self.label} - {self.recipient_name}"
+
+
+class ProductImageAsset(models.Model):
+    PROCESSING_CHOICES = (
+        ("pending", "Pending"),
+        ("processing", "Processing"),
+        ("ready", "Ready"),
+        ("failed", "Failed"),
+    )
+    user = models.ForeignKey("auth.User", on_delete=models.SET_NULL, null=True, blank=True, related_name="product_image_assets")
+    image = models.ImageField(upload_to="products/library/%Y/%m/")
+    filename = models.CharField(max_length=255, blank=True, default="")
+    alt_text = models.CharField(max_length=255, blank=True, default="")
+    image_caption = models.TextField(blank=True, default="")
+    processing_status = models.CharField(max_length=20, choices=PROCESSING_CHOICES, default="ready")
+    processing_error = models.TextField(blank=True, default="")
+    embedding_version = models.CharField(max_length=64, blank=True, default="gemini-embedding-001")
+    position = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["position", "-created_at"]
+
+    def __str__(self):
+        return self.filename or f"Asset #{self.id}"
+
+
+class ProductImageAssetLink(models.Model):
+    asset = models.ForeignKey(ProductImageAsset, on_delete=models.CASCADE, related_name="links")
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="image_asset_links")
+    position = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = [("asset", "product")]
+        ordering = ["position", "-created_at"]
+
+    def __str__(self):
+        return f"{self.asset_id} -> {self.product.name}"
+

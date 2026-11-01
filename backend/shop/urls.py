@@ -32,5 +32,23 @@ urlpatterns = [
     path("admin/orders/<int:pk>/", views.AdminOrderListDetailView.as_view()),
     path("admin/products/", views.AdminProductListCreateView.as_view()),
     path("admin/products/<int:pk>/", views.AdminProductDetailView.as_view()),
+    path("admin/products/images/<int:pk>/", views.AdminProductImageManageView.as_view()),
+
+    # Image Gallery & Asset Library Endpoints
+    path("admin/product-image-library/", views.ProductImageAssetListCreateView.as_view()),
+    path("admin/product-image-library/reorder/", views.ProductImageAssetReorderView.as_view()),
+    path("admin/product-image-library/embed/", views.ProductImageAssetBulkEmbedView.as_view()),
+    path("admin/product-image-library/<int:pk>/", views.ProductImageAssetDetailView.as_view()),
+    path("admin/product-image-library/<int:asset_id>/link/", views.ProductImageAssetLinkView.as_view()),
+    path("admin/product-image-library/<int:asset_id>/links/<int:link_id>/", views.ProductImageAssetUnlinkView.as_view()),
+
+    # Direct newsmartagent compatibility aliases
+    path("datasheet/product-image-library/", views.ProductImageAssetListCreateView.as_view()),
+    path("datasheet/product-image-library/reorder/", views.ProductImageAssetReorderView.as_view()),
+    path("datasheet/product-image-library/embed/", views.ProductImageAssetBulkEmbedView.as_view()),
+    path("datasheet/product-image-library/<int:pk>/", views.ProductImageAssetDetailView.as_view()),
+    path("datasheet/product-image-library/<int:asset_id>/link/", views.ProductImageAssetLinkView.as_view()),
+    path("datasheet/product-image-library/<int:asset_id>/links/<int:link_id>/", views.ProductImageAssetUnlinkView.as_view()),
+    path("datasheet/products/", views.AdminProductListCreateView.as_view()),
 ]
 
