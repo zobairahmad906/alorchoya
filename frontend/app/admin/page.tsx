@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Header } from "../components";
+import ProductForm from "./components/ProductForm";
 
 type OrderItem = {
   id: number;
@@ -30,13 +31,24 @@ type Product = {
   id: number;
   name: string;
   slug: string;
+  base_sku?: string;
   price: string;
   discount_price?: string | null;
+  cost_price?: string | null;
   stock: number;
+  weight_kg?: string | null;
+  dimension_length_cm?: string | null;
+  dimension_width_cm?: string | null;
+  dimension_height_cm?: string | null;
+  stock_alert_threshold?: number;
+  attributes?: Record<string, string>;
+  warranty_information?: string;
+  voice_audio_file?: string | null;
   is_featured?: boolean;
   is_active?: boolean;
   category: { id?: number; name: string };
-  images: { id: number; image: string }[];
+  images: { id: number; image: string; alt_text?: string; is_primary?: boolean; variant_id?: number | null }[];
+  variants?: { id?: number; attributes?: Record<string, string>; sku: string; price?: string; stock: number }[];
 };
 
 type DashboardStats = {
@@ -75,6 +87,7 @@ export default function AdminDashboardPage() {
 
   // Product modal / editing state
   const [editingProduct, setEditingProduct] = useState<Partial<Product> | null>(null);
+  const [showProductForm, setShowProductForm] = useState(false);
   const [showProductModal, setShowProductModal] = useState(false);
   const [productForm, setProductForm] = useState({
     name: "",
@@ -280,34 +293,12 @@ export default function AdminDashboardPage() {
 
   const openEditModal = (p: Product) => {
     setEditingProduct(p);
-    setProductForm({
-      name: p.name,
-      price: p.price,
-      discount_price: p.discount_price || "",
-      stock: p.stock,
-      category_id: p.category?.id || (categories[0]?.id || 1),
-      description: "",
-      image_url: p.images?.[0]?.image || "",
-      is_featured: p.is_featured || false,
-      is_active: p.is_active !== false
-    });
-    setShowProductModal(true);
+    setShowProductForm(true);
   };
 
   const openCreateModal = () => {
     setEditingProduct(null);
-    setProductForm({
-      name: "",
-      price: "",
-      discount_price: "",
-      stock: 10,
-      category_id: categories[0]?.id || 1,
-      description: "",
-      image_url: "",
-      is_featured: false,
-      is_active: true
-    });
-    setShowProductModal(true);
+    setShowProductForm(true);
   };
 
   if (loading) {
@@ -920,6 +911,22 @@ export default function AdminDashboardPage() {
 
         {/* PRODUCTS & STOCK TAB */}
         {activeTab === "products" && (
+          showProductForm ? (
+            <ProductForm
+              initialProduct={editingProduct}
+              categories={categories}
+              onSaveSuccess={() => {
+                setShowProductForm(false);
+                setEditingProduct(null);
+                fetchDashboardData();
+              }}
+              onCancel={() => {
+                setShowProductForm(false);
+                setEditingProduct(null);
+              }}
+              getApiUrl={getApiUrl}
+            />
+          ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <h3 style={{ fontFamily: "'Tiro Bangla', serif", fontSize: "22px", color: "var(--forest)", margin: 0 }}>পণ্য তালিকা & ইনভেন্টরি ক্যাটালগ</h3>
@@ -1048,6 +1055,7 @@ export default function AdminDashboardPage() {
               </div>
             </div>
           </div>
+          )
         )}
 
         {/* CUSTOMERS TAB */}
