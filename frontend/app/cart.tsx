@@ -163,7 +163,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             >
               <div style={{ width: "50px", height: "50px", borderRadius: "8px", overflow: "hidden", backgroundColor: "#e2e8f0", flexShrink: 0 }}>
                 {popupItem.product.images?.[0]?.image ? (
-                  <img src={popupItem.product.images[0].hero_desktop || popupItem.product.images[0].image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  <img src={popupItem.product.images[0].card_image || popupItem.product.images[0].hero_desktop || popupItem.product.images[0].image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                 ) : (
                   <span style={{ fontSize: "1.2rem", padding: "8px" }}>📦</span>
                 )}

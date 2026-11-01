@@ -13,9 +13,10 @@ class ProductImageSerializer(serializers.ModelSerializer):
     image = serializers.SerializerMethodField()
     hero_desktop = serializers.SerializerMethodField()
     hero_mobile = serializers.SerializerMethodField()
+    card_image = serializers.SerializerMethodField()
     class Meta:
         model = ProductImage
-        fields = ("id", "image", "hero_desktop", "hero_mobile", "alt_text", "is_primary")
+        fields = ("id", "image", "hero_desktop", "hero_mobile", "card_image", "alt_text", "is_primary")
 
     def _get_file_url(self, file):
         if not file:
@@ -37,6 +38,9 @@ class ProductImageSerializer(serializers.ModelSerializer):
 
     def get_hero_mobile(self, obj):
         return self._get_file_url(obj.hero_mobile)
+
+    def get_card_image(self, obj):
+        return self._get_file_url(obj.card_image)
 
 class ReviewSerializer(serializers.ModelSerializer):
     customer_name = serializers.CharField(required=False, allow_blank=True, default="সন্তুষ্ট কাস্টমার")

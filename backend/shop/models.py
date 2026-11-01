@@ -24,6 +24,7 @@ class ProductImage(models.Model):
     image = models.ImageField(upload_to="products/%Y/%m/")
     hero_desktop = models.ImageField(upload_to="products/hero/%Y/%m/", blank=True)
     hero_mobile = models.ImageField(upload_to="products/hero/%Y/%m/", blank=True)
+    card_image = models.ImageField(upload_to="products/card/%Y/%m/", blank=True)
     alt_text = models.CharField(max_length=180, blank=True)
     is_primary = models.BooleanField(default=False)
     def __str__(self): return self.alt_text or self.product.name

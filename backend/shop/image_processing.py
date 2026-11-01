@@ -12,20 +12,25 @@ from PIL import Image, ImageFilter, ImageOps
 from .models import ProductImage
 
 HERO_SIZES = {"desktop": (1600, 900), "mobile": (900, 1100)}
+CARD_SIZE = (800, 1000)  # 4:5 portrait
+CREAM = (253, 251, 247)  # matches the site's card background (#fdfbf7)
 
 
-def _make_variant(source_name: str, size: tuple[int, int]) -> tuple[BytesIO, str]:
+def _make_variant(source_name: str, size: tuple[int, int], margin_ratio: float = 0.02) -> tuple[BytesIO, str]:
     with default_storage.open(source_name, "rb") as source:
         image = ImageOps.exif_transpose(Image.open(source)).convert("RGBA")
 
     width, height = size
-    background = ImageOps.fit(image.convert("RGB"), size, method=Image.Resampling.LANCZOS)
-    background = background.filter(ImageFilter.GaussianBlur(24))
-    canvas = background.convert("RGBA")
+    canvas = Image.new("RGBA", size, CREAM + (255,))
 
-    margin = max(24, round(min(width, height) * 0.04))
+    margin = round(min(width, height) * margin_ratio)
     foreground = image.copy()
-    foreground.thumbnail((width - margin * 2, height - margin * 2), Image.Resampling.LANCZOS)
+    # Scale up or down so the product fills the frame, preserving aspect ratio.
+    scale = min((width - margin * 2) / foreground.width, (height - margin * 2) / foreground.height)
+    foreground = foreground.resize(
+        (max(1, round(foreground.width * scale)), max(1, round(foreground.height * scale))),
+        Image.Resampling.LANCZOS,
+    )
     left = (width - foreground.width) // 2
     top = (height - foreground.height) // 2
     canvas.alpha_composite(foreground, (left, top))
@@ -48,9 +53,14 @@ def generate_hero_variants(instance: ProductImage) -> bool:
         field.save(f"{stem}-{variant}.{extension}", ContentFile(output.read()), save=False)
         changed.append(f"hero_{variant}")
 
+    output, extension = _make_variant(instance.image.name, CARD_SIZE)
+    instance.card_image.save(f"{stem}-card.{extension}", ContentFile(output.read()), save=False)
+    changed.append("card_image")
+
     ProductImage.objects.filter(pk=instance.pk).update(
         hero_desktop=instance.hero_desktop.name,
         hero_mobile=instance.hero_mobile.name,
+        card_image=instance.card_image.name,
     )
     return bool(changed)
 

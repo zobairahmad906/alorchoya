@@ -44,7 +44,7 @@ export default function CartPage() {
                   {items.map((item) => {
                     const unitPrice = Number(item.discount_price || item.price);
                     const lineTotal = unitPrice * item.quantity;
-                    const imageSrc = item.images[0]?.hero_desktop || item.images[0]?.image;
+                    const imageSrc = item.images[0]?.card_image || item.images[0]?.hero_desktop || item.images[0]?.image;
 
                     return (
                       <article key={item.id} className="cart-item-card">

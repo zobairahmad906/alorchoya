@@ -167,7 +167,7 @@ export function Header() {
                           তাৎক্ষণিক অনুসন্ধানের ফলাফল ({searchResults.length})
                         </div>
                         {searchResults.map((prod) => {
-                          const img = prod.images.find(x => x.is_primary)?.hero_desktop || prod.images[0]?.image;
+                          const img = prod.images.find(x => x.is_primary)?.card_image || prod.images.find(x => x.is_primary)?.hero_desktop || prod.images[0]?.image;
                           const price = prod.discount_price || prod.price;
                           return (
                             <Link
@@ -255,7 +255,7 @@ export function ProductCard({ product }: { product: Product }) {
   const t = useTranslations("shop");
   const primaryImage = product.images.find(x => x.is_primary) || product.images[0];
   // Use the generated consistent canvas when it exists.
-  const image = primaryImage?.hero_desktop || primaryImage?.image;
+  const image = primaryImage?.card_image || primaryImage?.hero_desktop || primaryImage?.image;
   const currentPrice = product.discount_price || product.price;
   const imageCount = product.images ? product.images.length : 0;
 
@@ -366,7 +366,7 @@ export function CategoryFilterCards({ categories }: { categories: { name: string
 function CartDrawer({ open, close }: { open: boolean; close: () => void }) {
   const { items, total, change, remove } = useCart();
   const t = useTranslations("shop");
-  return <div className={`drawer-wrap ${open ? "is-open" : ""}`} aria-hidden={!open}><button className="drawer-backdrop" aria-label={t("close")} onClick={close} /><aside className="drawer"><div className="drawer-head"><div><p>{t("cartTitle")}</p><h2>{items.length ? t("cartItems") : t("cartEmpty")}</h2></div><button onClick={close} aria-label={t("close")}>×</button></div><div className="drawer-items">{items.map(item => <div className="drawer-item" key={item.id}><div className="drawer-thumb">{item.images[0]?.image ? <img src={item.images[0].hero_desktop || item.images[0].image} alt="" /> : "আ"}</div><div><h3>{item.name}</h3><p>{formatPrice(item.discount_price || item.price)}</p><div className="drawer-quantity"><button onClick={() => change(item.id, item.quantity - 1)}>−</button><span>{item.quantity}</span><button onClick={() => change(item.id, item.quantity + 1)}>+</button><button className="remove" onClick={() => remove(item.id)}>{t("remove")}</button></div></div></div>)}</div>{items.length > 0 ? <div className="drawer-foot"><div><span>{t("subtotal")}</span><strong>{formatPrice(total)}</strong></div><Link className="wide" onClick={close} href="/checkout">{t("checkout")} →</Link></div> : <Link className="wide" onClick={close} href="/shop">{t("shopNow")}</Link>}</aside></div>;
+  return <div className={`drawer-wrap ${open ? "is-open" : ""}`} aria-hidden={!open}><button className="drawer-backdrop" aria-label={t("close")} onClick={close} /><aside className="drawer"><div className="drawer-head"><div><p>{t("cartTitle")}</p><h2>{items.length ? t("cartItems") : t("cartEmpty")}</h2></div><button onClick={close} aria-label={t("close")}>×</button></div><div className="drawer-items">{items.map(item => <div className="drawer-item" key={item.id}><div className="drawer-thumb">{item.images[0]?.image ? <img src={item.images[0].card_image || item.images[0].hero_desktop || item.images[0].image} alt="" /> : "আ"}</div><div><h3>{item.name}</h3><p>{formatPrice(item.discount_price || item.price)}</p><div className="drawer-quantity"><button onClick={() => change(item.id, item.quantity - 1)}>−</button><span>{item.quantity}</span><button onClick={() => change(item.id, item.quantity + 1)}>+</button><button className="remove" onClick={() => remove(item.id)}>{t("remove")}</button></div></div></div>)}</div>{items.length > 0 ? <div className="drawer-foot"><div><span>{t("subtotal")}</span><strong>{formatPrice(total)}</strong></div><Link className="wide" onClick={close} href="/checkout">{t("checkout")} →</Link></div> : <Link className="wide" onClick={close} href="/shop">{t("shopNow")}</Link>}</aside></div>;
 }
 
 export function MobileBottomNav() {

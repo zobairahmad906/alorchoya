@@ -685,7 +685,7 @@ export default function CheckoutPage() {
                 <div className="summary-items-list">
                   {items.map((item) => {
                     const price = Number(item.discount_price || item.price);
-                    const imageSrc = item.images[0]?.hero_desktop || item.images[0]?.image;
+                    const imageSrc = item.images[0]?.card_image || item.images[0]?.hero_desktop || item.images[0]?.image;
 
                     return (
                       <div key={item.id} className="summary-item-row">

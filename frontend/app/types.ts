@@ -19,7 +19,7 @@ export type Product = {
   stock: number;
   is_featured?: boolean;
   category: { name: string; slug: string };
-  images: { id: number; image: string; hero_desktop?: string | null; hero_mobile?: string | null; alt_text: string; is_primary: boolean }[];
+  images: { id: number; image: string; hero_desktop?: string | null; hero_mobile?: string | null; card_image?: string | null; alt_text: string; is_primary: boolean }[];
   reviews?: Review[];
   average_rating?: number;
   total_reviews?: number;

@@ -83,7 +83,8 @@ export function HeroSlider({
   const imageFor = (product: Product | null) => {
     if (!product) return undefined;
     const source = product.images?.find((img) => img.is_primary) || product.images?.[0];
-    return (isMobile ? source?.hero_mobile || source?.hero_desktop : source?.hero_desktop || source?.hero_mobile) || source?.image;
+    // card_image is a normalised 4:5 frame (cream background), so every upload looks identical.
+    return source?.card_image || (isMobile ? source?.hero_mobile || source?.hero_desktop : source?.hero_desktop || source?.hero_mobile) || source?.image;
   };
   const primaryImg = imageFor(activeProduct);
   const outgoingImg = imageFor(outgoingProduct);
@@ -91,8 +92,8 @@ export function HeroSlider({
   return (
     <section className="hero-slider-section" onMouseEnter={() => setIsPaused(true)} onMouseLeave={() => setIsPaused(false)}>
       <div className="wrap hero-slider-container">
-        <div className="hero-slide-card hero-slide-transition">
-          <div className="hero-slide-content">
+        <div className="hero-split hero-split-anim">
+          <div className="hero-split-copy">
             <div className="hero-badge-row">
               <span className="hero-badge">★ বিশেষ অফার</span>
               <span className="hero-cat-tag">{activeProduct.category?.name || "হোম ডেকর"}</span>
@@ -128,11 +129,10 @@ export function HeroSlider({
             </div>
           </div>
 
-          <div className="hero-slide-image-wrapper">
-            {primaryImg && <div className="hero-image-backdrop" style={{ backgroundImage: "url(" + primaryImg + ")" }} />}
-            {outgoingImg && <Image src={outgoingImg} alt="" width={500} height={400} key={outgoingProduct?.id} className="hero-slider-img hero-image-outgoing" />}
+          <div className="hero-split-media">
+            {outgoingImg && <Image src={outgoingImg} alt="" width={800} height={1000} key={outgoingProduct?.id} className="hero-split-img hero-split-out" />}
             {primaryImg ? (
-              <Image src={primaryImg} alt={activeProduct.name} width={500} height={400} key={activeProduct.id} className="hero-slider-img hero-image-incoming" priority />
+              <Image src={primaryImg} alt={activeProduct.name} width={800} height={1000} key={activeProduct.id} className="hero-split-img hero-split-in" priority />
             ) : (
               <div className="hero-img-placeholder">
                 <div className="hero-shelf"><i/><i/><i/><i/><i/><i/></div>
