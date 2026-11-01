@@ -1016,482 +1016,400 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
           </p>
         </div>
       ) : (
-        <div
-          className={
-            view === "grid"
-              ? "gallery-grid"
-              : view === "masonry"
-              ? "gallery-masonry"
-              : "gallery-list"
-          }
-        >
-          {filteredAssets.map((asset, index) => {
-            const isSelected = selectedIds.includes(asset.id);
-            const isActive = activeAssetId === asset.id;
+        <div className="gallery-main-layout">
+          {/* Left: Gallery Items */}
+          <section className="gallery-items-section">
+            <div
+              className={
+                view === "grid"
+                  ? "gallery-grid"
+                  : view === "masonry"
+                  ? "gallery-masonry"
+                  : "gallery-list"
+              }
+            >
+              {filteredAssets.map((asset, index) => {
+                const isSelected = selectedIds.includes(asset.id);
+                const isActive = activeAssetId === asset.id;
+                const links = asset.links || [];
 
-            if (view === "list") {
-              return (
-                <div
-                  key={asset.id}
-                  onClick={() => setActiveAssetId(asset.id)}
-                  className={`gallery-list-item ${isActive ? "active" : ""}`}
-                >
-                  <div className="gallery-list-left">
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onClick={(e) => e.stopPropagation()}
-                      onChange={(e) => {
-                        if (e.target.checked) setSelectedIds((curr) => [...curr, asset.id]);
-                        else setSelectedIds((curr) => curr.filter((id) => id !== asset.id));
-                      }}
-                      style={{ width: "16px", height: "16px", accentColor: "#10b981", cursor: "pointer" }}
-                    />
-                    <img
-                      src={asset.image}
-                      alt={asset.alt_text || asset.filename}
-                      className="gallery-list-thumb"
-                    />
-                    <div style={{ minWidth: 0 }}>
-                      <p style={{ margin: 0, fontSize: "13px", fontWeight: 800, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                        {asset.filename}
-                      </p>
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "3px", fontSize: "11px", color: "#64748b" }}>
-                        <span>{formatBytes(asset.file_size)}</span>
-                        {asset.dimensions && <span>• {asset.dimensions.width}×{asset.dimensions.height}</span>}
-                        <span>• {new Date(asset.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="gallery-list-right">
-                    <span className={`status-pill ${asset.processing_status}`}>
-                      {asset.processing_status}
-                    </span>
-
-                    {asset.links && asset.links.length > 0 ? (
-                      <span className="gallery-card-link-badge">
-                        {asset.links.length} linked
-                      </span>
-                    ) : (
-                      <span style={{ fontSize: "11px", color: "#94a3b8" }}>Unlinked</span>
-                    )}
-
-                    <div style={{ display: "flex", alignItems: "center", gap: "4px" }} onClick={(e) => e.stopPropagation()}>
-                      <button
-                        type="button"
-                        onClick={() => reorderAsset(asset.id, -1)}
-                        disabled={index === 0}
-                        style={{ background: "transparent", border: "none", color: "#64748b", cursor: "pointer", padding: "4px", opacity: index === 0 ? 0.3 : 1 }}
-                        title="Move Up"
-                      >
-                        <ArrowUp size={14} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => reorderAsset(asset.id, 1)}
-                        disabled={index === filteredAssets.length - 1}
-                        style={{ background: "transparent", border: "none", color: "#64748b", cursor: "pointer", padding: "4px", opacity: index === filteredAssets.length - 1 ? 0.3 : 1 }}
-                        title="Move Down"
-                      >
-                        <ArrowDown size={14} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setLinkModalAsset(asset)}
-                        style={{ background: "transparent", border: "none", color: "#4f46e5", cursor: "pointer", padding: "4px" }}
-                        title="Link to Product"
-                      >
-                        <Link2 size={14} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setConfirmDialog({ type: "single", id: asset.id })}
-                        style={{ background: "transparent", border: "none", color: "#e11d48", cursor: "pointer", padding: "4px" }}
-                        title="Delete Image"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            }
-
-            // Grid or Masonry Item Card
-            return (
-              <div
-                key={asset.id}
-                onClick={() => setActiveAssetId(asset.id)}
-                className={`gallery-item-card ${view === "masonry" ? "gallery-masonry-item" : ""} ${isSelected ? "selected" : ""} ${isActive ? "active" : ""}`}
-              >
-                <div className="gallery-thumb-wrap">
-                  <img
-                    src={asset.image}
-                    alt={asset.alt_text || asset.filename}
-                    loading="lazy"
-                  />
-
-                  <div className="gallery-card-checkbox" onClick={(e) => e.stopPropagation()}>
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={(e) => {
-                        if (e.target.checked) setSelectedIds((curr) => [...curr, asset.id]);
-                        else setSelectedIds((curr) => curr.filter((id) => id !== asset.id));
-                      }}
-                    />
-                  </div>
-
-                  <div className="gallery-card-status">
-                    <span className={`status-pill ${asset.processing_status}`}>
-                      {asset.processing_status}
-                    </span>
-                  </div>
-
-                  <div className="gallery-card-hover-overlay" onClick={(e) => e.stopPropagation()}>
-                    <div className="overlay-left">
-                      <button
-                        type="button"
-                        onClick={() => reorderAsset(asset.id, -1)}
-                        disabled={index === 0}
-                        title="Move Left"
-                      >
-                        <ArrowUp size={13} style={{ transform: "rotate(-90deg)" }} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => reorderAsset(asset.id, 1)}
-                        disabled={index === filteredAssets.length - 1}
-                        title="Move Right"
-                      >
-                        <ArrowDown size={13} style={{ transform: "rotate(-90deg)" }} />
-                      </button>
-                    </div>
-
-                    <div className="overlay-right">
-                      <button
-                        type="button"
-                        onClick={() => setLinkModalAsset(asset)}
-                        className="overlay-btn-indigo"
-                        title="Link to Product"
-                      >
-                        <Link2 size={13} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setConfirmDialog({ type: "single", id: asset.id })}
-                        className="overlay-btn-danger"
-                        title="Delete"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="gallery-card-details">
-                  <div className="gallery-card-filename" title={asset.filename}>
-                    {asset.filename}
-                  </div>
-                  <div className="gallery-card-alt" title={asset.alt_text}>
-                    {asset.alt_text || "No alt text"}
-                  </div>
-
-                  <div className="gallery-card-meta">
-                    <span>{formatBytes(asset.file_size)}</span>
-                    {asset.links && asset.links.length > 0 ? (
-                      <span className="gallery-card-link-badge">
-                        {asset.links.length} linked
-                      </span>
-                    ) : (
-                      <span className="gallery-card-unlinked">Unlinked</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* 7. Asset Inspector Drawer */}
-      {activeAsset && (
-        <div
-          className="gallery-drawer-backdrop"
-          onClick={() => setActiveAssetId(null)}
-        >
-          <div
-            className="gallery-drawer-panel"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="gallery-drawer-header">
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <span style={{ width: "32px", height: "32px", borderRadius: "8px", background: "#ecfdf5", color: "#047857", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: "13px" }}>
-                  #{activeAsset.id}
-                </span>
-                <div style={{ minWidth: 0 }}>
-                  <h3 style={{ margin: 0, fontSize: "14px", fontWeight: 800, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "260px" }}>
-                    {activeAsset.filename}
-                  </h3>
-                  <p style={{ margin: "2px 0 0", fontSize: "11px", color: "#64748b" }}>Image Inspector & Metadata</p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setActiveAssetId(null)}
-                style={{ width: "32px", height: "32px", borderRadius: "50%", background: "#f1f5f9", border: "none", color: "#64748b", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            <div className="gallery-drawer-preview">
-              <img
-                src={activeAsset.image}
-                alt={activeAsset.alt_text || activeAsset.filename}
-              />
-              <a
-                href={activeAsset.image}
-                target="_blank"
-                rel="noreferrer"
-              >
-                Full Image <ExternalLink size={12} />
-              </a>
-            </div>
-
-            <div className="gallery-drawer-stats">
-              <div className="gallery-drawer-stat-box">
-                <span className="gallery-drawer-stat-label">File Size</span>
-                <span className="gallery-drawer-stat-val">{formatBytes(activeAsset.file_size)}</span>
-              </div>
-              <div className="gallery-drawer-stat-box">
-                <span className="gallery-drawer-stat-label">Dimensions</span>
-                <span className="gallery-drawer-stat-val">
-                  {activeAsset.dimensions ? `${activeAsset.dimensions.width} × ${activeAsset.dimensions.height} px` : "N/A"}
-                </span>
-              </div>
-              <div className="gallery-drawer-stat-box">
-                <span className="gallery-drawer-stat-label">Upload Date</span>
-                <span className="gallery-drawer-stat-val">
-                  {new Date(activeAsset.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
-                </span>
-              </div>
-              <div className="gallery-drawer-stat-box">
-                <span className="gallery-drawer-stat-label">Status</span>
-                <span className="gallery-drawer-stat-val" style={{ color: "#047857" }}>
-                  {activeAsset.processing_status}
-                </span>
-              </div>
-            </div>
-
-            {/* Form */}
-            <form onSubmit={saveAssetDetails} style={{ marginTop: "16px" }}>
-              <div className="gallery-form-group">
-                <label>Filename</label>
-                <input
-                  type="text"
-                  value={editDraft.filename}
-                  onChange={(e) => setEditDraft({ ...editDraft, filename: e.target.value })}
-                  className="gallery-input"
-                />
-              </div>
-
-              <div className="gallery-form-group">
-                <label>Alt Text (SEO)</label>
-                <input
-                  type="text"
-                  value={editDraft.alt_text}
-                  onChange={(e) => setEditDraft({ ...editDraft, alt_text: e.target.value })}
-                  className="gallery-input"
-                  placeholder="e.g. Alorchoya Premium Diary Notebook..."
-                />
-              </div>
-
-              <div className="gallery-form-group">
-                <label>AI Visual Description / Caption</label>
-                <textarea
-                  rows={2}
-                  value={editDraft.image_caption}
-                  onChange={(e) => setEditDraft({ ...editDraft, image_caption: e.target.value })}
-                  className="gallery-textarea"
-                  placeholder="AI visual description / details..."
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={savingDetails}
-                className="gallery-btn-primary"
-                style={{ width: "100%", justifyContent: "center", marginTop: "14px", padding: "10px" }}
-              >
-                {savingDetails ? "Saving..." : "Save Metadata"}
-              </button>
-            </form>
-
-            {/* Linked Products Section */}
-            <div style={{ marginTop: "24px", paddingTop: "18px", borderTop: "1px solid #e2e8f0" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
-                <h4 style={{ margin: 0, fontSize: "12px", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.06em", color: "#334155" }}>
-                  Linked Products ({activeAsset.links?.length || 0})
-                </h4>
-              </div>
-
-              {activeAsset.links && activeAsset.links.length > 0 ? (
-                <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "16px" }}>
-                  {activeAsset.links.map((link) => (
+                if (view === "list") {
+                  return (
                     <div
-                      key={link.id}
-                      style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", borderRadius: "10px", border: "1px solid #f1f5f9", background: "#f8fafc", fontSize: "13px" }}
+                      key={asset.id}
+                      onClick={() => setActiveAssetId(asset.id)}
+                      className={`gallery-list-item ${isActive ? "active" : ""}`}
                     >
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        <Package size={14} style={{ color: "#10b981" }} />
-                        <span style={{ fontWeight: 700, color: "#0f172a" }}>{link.product_name}</span>
+                      <div className="gallery-list-left">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={(e) => {
+                            if (e.target.checked) setSelectedIds((curr) => [...curr, asset.id]);
+                            else setSelectedIds((curr) => curr.filter((id) => id !== asset.id));
+                          }}
+                          style={{ width: "16px", height: "16px", accentColor: "#10b981", cursor: "pointer" }}
+                        />
+                        <img
+                          src={asset.image}
+                          alt={asset.alt_text || asset.filename}
+                          className="gallery-list-thumb"
+                        />
+                        <div style={{ minWidth: 0 }}>
+                          <p style={{ margin: 0, fontSize: "13px", fontWeight: 800, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                            {asset.filename}
+                          </p>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "3px", fontSize: "11px", color: "#64748b" }}>
+                            <span>{formatBytes(asset.file_size)}</span>
+                            {asset.dimensions && <span>• {asset.dimensions.width}×{asset.dimensions.height}</span>}
+                            <span>• {new Date(asset.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}</span>
+                          </div>
+                        </div>
                       </div>
+
+                      <div className="gallery-list-right">
+                        <span className={`status-pill ${asset.processing_status}`}>
+                          {asset.processing_status}
+                        </span>
+
+                        {links.length > 0 ? (
+                          <span className="gallery-card-link-badge linked">
+                            {links.length} linked
+                          </span>
+                        ) : (
+                          <span className="gallery-card-link-badge unlinked">Unlinked</span>
+                        )}
+
+                        <div style={{ display: "flex", alignItems: "center", gap: "4px" }} onClick={(e) => e.stopPropagation()}>
+                          <button
+                            type="button"
+                            onClick={() => reorderAsset(asset.id, -1)}
+                            disabled={index === 0}
+                            style={{ background: "transparent", border: "none", color: "#64748b", cursor: "pointer", padding: "4px", opacity: index === 0 ? 0.3 : 1 }}
+                            title="Move Up"
+                          >
+                            <ArrowUp size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => reorderAsset(asset.id, 1)}
+                            disabled={index === filteredAssets.length - 1}
+                            style={{ background: "transparent", border: "none", color: "#64748b", cursor: "pointer", padding: "4px", opacity: index === filteredAssets.length - 1 ? 0.3 : 1 }}
+                            title="Move Down"
+                          >
+                            <ArrowDown size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveAssetId(asset.id);
+                              setTargetProductId("");
+                            }}
+                            style={{ background: "transparent", border: "none", color: "#4f46e5", cursor: "pointer", padding: "4px" }}
+                            title="Link to Product"
+                          >
+                            <Link2 size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setConfirmDialog({ type: "single", id: asset.id })}
+                            style={{ background: "transparent", border: "none", color: "#e11d48", cursor: "pointer", padding: "4px" }}
+                            title="Delete Image"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+
+                // Grid or Masonry Item Card
+                return (
+                  <div
+                    key={asset.id}
+                    onClick={() => setActiveAssetId(asset.id)}
+                    className={`gallery-card-item ${view === "masonry" ? "gallery-masonry-item" : ""} ${isSelected ? "selected" : ""} ${isActive ? "active" : ""}`}
+                  >
+                    <div className="gallery-card-thumb-wrap">
+                      <img
+                        src={asset.image}
+                        alt={asset.alt_text || asset.filename}
+                        loading="lazy"
+                      />
+
+                      {/* Top-left Select button */}
                       <button
                         type="button"
-                        onClick={() => handleUnlink(activeAsset.id, link.id)}
-                        style={{ background: "transparent", border: "none", color: "#e11d48", fontWeight: 700, fontSize: "11px", display: "flex", alignItems: "center", gap: "4px", cursor: "pointer" }}
-                        title="Unlink"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (isSelected) setSelectedIds((curr) => curr.filter((id) => id !== asset.id));
+                          else setSelectedIds((curr) => [...curr, asset.id]);
+                        }}
+                        className={`gallery-card-select-btn ${isSelected ? "selected" : ""}`}
                       >
-                        <Unlink size={12} />
-                        Unlink
+                        {isSelected ? <CheckSquare size={13} /> : <Square size={13} />}
                       </button>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p style={{ fontSize: "12px", color: "#94a3b8", fontStyle: "italic", marginBottom: "16px" }}>
-                  This image is not linked to any product yet.
-                </p>
-              )}
 
-              {/* Quick Link to Product Form */}
-              <div style={{ padding: "14px", borderRadius: "12px", border: "1px solid #e0e7ff", background: "#eef2ff" }}>
-                <label style={{ display: "block", fontSize: "12px", fontWeight: 800, color: "#1e1b4b", marginBottom: "8px" }}>
-                  Link to a New Product
-                </label>
-                <div style={{ display: "flex", gap: "8px" }}>
-                  <select
-                    value={targetProductId}
-                    onChange={(e) => setTargetProductId(e.target.value)}
-                    className="gallery-select"
-                    style={{ flex: 1, padding: "8px 10px", fontSize: "12px" }}
-                  >
-                    <option value="">Select target product...</option>
-                    {products.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
+                      {/* Top-right Actions */}
+                      <div className="gallery-card-top-actions" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          onClick={() => reorderAsset(asset.id, -1)}
+                          disabled={index === 0}
+                          className="gallery-card-action-btn"
+                          title="Move Earlier"
+                        >
+                          <ArrowUp size={13} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => reorderAsset(asset.id, 1)}
+                          disabled={index === filteredAssets.length - 1}
+                          className="gallery-card-action-btn"
+                          title="Move Later"
+                        >
+                          <ArrowDown size={13} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setConfirmDialog({ type: "single", id: asset.id })}
+                          className="gallery-card-action-btn btn-danger"
+                          title="Delete"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+
+                      {/* Bottom-left Status Badge */}
+                      <span className={`gallery-card-status-badge ${asset.processing_status}`}>
+                        {asset.processing_status === "pending" ? "Preparing" : asset.processing_status}
+                      </span>
+                    </div>
+
+                    <div className="gallery-card-content">
+                      <div className="gallery-card-title-row">
+                        <span className="gallery-card-filename" title={asset.filename}>
+                          {asset.filename || `Asset #${asset.id}`}
+                        </span>
+                        <span className={`gallery-card-link-badge ${links.length > 0 ? "linked" : "unlinked"}`}>
+                          {links.length > 0 ? `${links.length} linked` : "Unlinked"}
+                        </span>
+                      </div>
+
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "6px" }}>
+                        <span className="gallery-card-file-size">{formatBytes(asset.file_size)}</span>
+                        {asset.dimensions && (
+                          <span style={{ fontSize: "10px", color: "#94a3b8", fontWeight: 700 }}>
+                            {asset.dimensions.width}×{asset.dimensions.height}
+                          </span>
+                        )}
+                      </div>
+
+                      {asset.alt_text && asset.alt_text.trim() !== asset.filename.trim() && (
+                        <p className="gallery-card-alt-text" title={asset.alt_text}>
+                          Alt: {asset.alt_text}
+                        </p>
+                      )}
+
+                      {/* If linked, show mini product tags */}
+                      {links.length > 0 && (
+                        <div className="gallery-card-links-list" onClick={(e) => e.stopPropagation()}>
+                          {links.slice(0, 2).map((link) => (
+                            <div key={link.id} className="gallery-card-link-chip">
+                              <span className="chip-product-name">{link.product_name}</span>
+                              <button
+                                type="button"
+                                onClick={() => handleUnlink(asset.id, link.id)}
+                                className="chip-unlink-btn"
+                                title="Unlink"
+                              >
+                                Unlink
+                              </button>
+                            </div>
+                          ))}
+                          {links.length > 2 && (
+                            <span style={{ fontSize: "10px", color: "#94a3b8", fontWeight: 700 }}>
+                              +{links.length - 2} more links
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Visible Link to Product button */}
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveAssetId(asset.id);
+                            setTargetProductId("");
+                            const el = document.getElementById("gallery-studio-sidebar");
+                            if (el) el.scrollIntoView({ behavior: "smooth" });
+                          }}
+                          className="gallery-card-link-btn"
+                        >
+                          <Link2 size={13} /> Link to Product
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* Right: Selected Image Details & Product Linking Studio (390px Sticky) */}
+          <aside id="gallery-studio-sidebar" className="gallery-sidebar-panel">
+            {activeAsset ? (
+              <div className="gallery-panel-content">
+                <div className="gallery-panel-header">
+                  <h2 className="gallery-panel-title">Image Details & Preview</h2>
                   <button
                     type="button"
-                    disabled={!targetProductId || busy}
-                    onClick={() => handleLinkProduct(activeAsset.id, Number(targetProductId))}
-                    className="gallery-btn-indigo"
+                    onClick={() => setConfirmDialog({ type: "single", id: activeAsset.id })}
+                    className="gallery-panel-delete-btn"
+                    title="Delete image"
                   >
-                    Link
+                    <Trash2 size={15} />
                   </button>
                 </div>
+
+                {/* Large Preview */}
+                <div className="gallery-panel-preview">
+                  <img
+                    src={activeAsset.image}
+                    alt={activeAsset.alt_text || activeAsset.filename}
+                  />
+                </div>
+
+                {/* 4 Metadata Cards */}
+                <div className="gallery-panel-meta-grid">
+                  <div className="meta-box">
+                    <span className="meta-label">File Size</span>
+                    <p className="meta-val">{formatBytes(activeAsset.file_size)}</p>
+                  </div>
+                  <div className="meta-box">
+                    <span className="meta-label">Dimensions</span>
+                    <p className="meta-val">
+                      {activeAsset.dimensions ? `${activeAsset.dimensions.width} × ${activeAsset.dimensions.height} px` : "—"}
+                    </p>
+                  </div>
+                  <div className="meta-box">
+                    <span className="meta-label">Upload Date</span>
+                    <p className="meta-val">
+                      {activeAsset.created_at ? new Date(activeAsset.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : "—"}
+                    </p>
+                  </div>
+                  <div className="meta-box">
+                    <span className="meta-label">Status</span>
+                    <p className={`meta-val status-${activeAsset.processing_status}`}>
+                      {activeAsset.processing_status}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Edit Filename & Alt Text */}
+                <form onSubmit={saveAssetDetails} className="gallery-panel-edit-form">
+                  <label>
+                    Filename
+                    <input
+                      value={editDraft.filename}
+                      onChange={(e) => setEditDraft((curr) => ({ ...curr, filename: e.target.value }))}
+                      className="panel-input"
+                    />
+                  </label>
+                  <label>
+                    Alt Text (SEO Description)
+                    <input
+                      value={editDraft.alt_text}
+                      onChange={(e) => setEditDraft((curr) => ({ ...curr, alt_text: e.target.value }))}
+                      placeholder="Short visual description..."
+                      className="panel-input"
+                    />
+                  </label>
+                  <button
+                    type="submit"
+                    disabled={savingDetails}
+                    className="panel-save-btn"
+                  >
+                    {savingDetails ? "Saving..." : "Save Filename & Alt Text"}
+                  </button>
+                </form>
+
+                {/* Section: Linked Products & Quick Linking Form */}
+                <div className="gallery-panel-links-section">
+                  <h3 className="panel-links-title">
+                    Linked Products ({(activeAsset.links || []).length})
+                  </h3>
+                  <div className="panel-links-list">
+                    {(activeAsset.links || []).map((link) => (
+                      <div key={link.id} className="panel-link-item">
+                        <div className="link-info">
+                          <span className="link-product-name">{link.product_name}</span>
+                          <p className="link-variant-name">
+                            {link.variant_label ? `Variant: ${link.variant_label}` : "General Product Image"}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleUnlink(activeAsset.id, link.id)}
+                          className="link-unlink-btn"
+                          title="Unlink from product"
+                        >
+                          Unlink
+                        </button>
+                      </div>
+                    ))}
+                    {!(activeAsset.links || []).length && (
+                      <p className="panel-no-links">Not linked to any product yet.</p>
+                    )}
+                  </div>
+
+                  {/* Direct Link Form */}
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      if (targetProductId) handleLinkProduct(activeAsset.id, Number(targetProductId));
+                    }}
+                    className="panel-add-link-box"
+                  >
+                    <b className="add-link-heading">Link to Catalog Product</b>
+                    <select
+                      value={targetProductId}
+                      onChange={(e) => setTargetProductId(e.target.value)}
+                      className="panel-select"
+                      required
+                    >
+                      <option value="">Select target product...</option>
+                      {products.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="submit"
+                      disabled={busy || !targetProductId}
+                      className="panel-link-submit-btn"
+                    >
+                      {busy ? "Linking..." : "Link Image to Product"}
+                    </button>
+                  </form>
+                </div>
               </div>
-            </div>
-
-            {/* Delete Image Action */}
-            <div style={{ marginTop: "24px", paddingTop: "18px", borderTop: "1px solid #e2e8f0" }}>
-              <button
-                type="button"
-                onClick={() => setConfirmDialog({ type: "single", id: activeAsset.id })}
-                className="gallery-btn-danger"
-                style={{ width: "100%", justifyContent: "center", padding: "10px" }}
-              >
-                <Trash2 size={14} />
-                Delete this image permanently
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 8. Quick Link Modal */}
-      {linkModalAsset && (
-        <div
-          className="gallery-modal-backdrop"
-          onClick={() => setLinkModalAsset(null)}
-        >
-          <div
-            className="gallery-modal-card"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: "12px", borderBottom: "1px solid #f1f5f9" }}>
-              <h3 style={{ margin: 0, fontSize: "15px", fontWeight: 800, color: "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
-                <Link2 size={16} style={{ color: "#4f46e5" }} />
-                Link Image to Product
-              </h3>
-              <button
-                type="button"
-                onClick={() => setLinkModalAsset(null)}
-                style={{ background: "transparent", border: "none", color: "#94a3b8", cursor: "pointer" }}
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            <div style={{ display: "flex", alignItems: "center", gap: "12px", margin: "16px 0", padding: "12px", background: "#f8fafc", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
-              <img
-                src={linkModalAsset.image}
-                alt={linkModalAsset.filename}
-                style={{ width: "50px", height: "50px", objectFit: "cover", borderRadius: "8px", border: "1px solid #cbd5e1" }}
-              />
-              <div style={{ minWidth: 0 }}>
-                <p style={{ margin: 0, fontSize: "13px", fontWeight: 800, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                  {linkModalAsset.filename}
+            ) : (
+              <div className="gallery-panel-empty">
+                <Info size={36} style={{ color: "#94a3b8", marginBottom: "12px" }} />
+                <p style={{ margin: 0, fontWeight: 800, color: "#334155", fontSize: "14px" }}>
+                  No Image Selected
                 </p>
-                <p style={{ margin: "2px 0 0", fontSize: "11px", color: "#64748b", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                  {linkModalAsset.alt_text || "No alt text"}
+                <p style={{ margin: "6px 0 0", fontSize: "12px", color: "#64748b", lineHeight: 1.5 }}>
+                  Click any image in the gallery to inspect its resolution, edit SEO alt-text, and link it to products.
                 </p>
               </div>
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-              <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155" }}>
-                Select Target Product:
-              </label>
-              <select
-                value={targetProductId}
-                onChange={(e) => setTargetProductId(e.target.value)}
-                className="gallery-select"
-                style={{ width: "100%" }}
-              >
-                <option value="">Choose a product from catalog...</option>
-                {products.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "8px", marginTop: "12px" }}>
-                <button
-                  type="button"
-                  onClick={() => setLinkModalAsset(null)}
-                  className="gallery-btn-white"
-                >
-                  Clear
-                </button>
-                <button
-                  type="button"
-                  disabled={!targetProductId || busy}
-                  onClick={() => handleLinkProduct(linkModalAsset.id, Number(targetProductId))}
-                  className="gallery-btn-indigo"
-                  style={{ padding: "9px 18px", fontSize: "13px" }}
-                >
-                  {busy ? "Linking..." : "Confirm Link"}
-                </button>
-              </div>
-            </div>
-          </div>
+            )}
+          </aside>
         </div>
       )}
 
