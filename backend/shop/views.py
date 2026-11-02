@@ -383,18 +383,27 @@ class AdminOrderListDetailView(APIView):
         serializer = CustomerOrderSerializer(qs[:100], many=True, context={"request": request})
         return Response(serializer.data)
 
-    def patch(self, request, pk):
-        try:
-            order = Order.objects.get(pk=pk)
-        except Order.DoesNotExist:
-            raise NotFound("Order not found")
-        
+    def patch(self, request, pk=None):
+        if pk:
+            try:
+                order = Order.objects.get(pk=pk)
+            except Order.DoesNotExist:
+                raise NotFound("Order not found")
+            
+            new_status = request.data.get("status")
+            if new_status and new_status in dict(Order.STATUS_CHOICES):
+                order.status = new_status
+                order.save(update_fields=["status"])
+                return Response(CustomerOrderSerializer(order, context={"request": request}).data)
+            return Response({"error": "Invalid status value"}, status=400)
+
+        # Bulk patch
+        order_ids = request.data.get("order_ids", [])
         new_status = request.data.get("status")
-        if new_status and new_status in dict(Order.STATUS_CHOICES):
-            order.status = new_status
-            order.save(update_fields=["status"])
-            return Response(CustomerOrderSerializer(order, context={"request": request}).data)
-        return Response({"error": "Invalid status value"}, status=400)
+        if order_ids and new_status and new_status in dict(Order.STATUS_CHOICES):
+            updated_count = Order.objects.filter(id__in=order_ids).update(status=new_status)
+            return Response({"updated": updated_count, "status": new_status})
+        return Response({"error": "Invalid request for bulk update"}, status=400)
 
 
 class AdminProductListCreateView(APIView):

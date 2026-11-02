@@ -276,7 +276,7 @@ class CustomerOrderSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Order
-        fields = ("id", "status", "status_display", "payment_method", "customer_name", "address", "delivery_charge", "discount_amount", "created_at", "total", "items")
+        fields = ("id", "status", "status_display", "payment_method", "customer_name", "phone", "email", "address", "delivery_charge", "discount_amount", "created_at", "total", "items")
 
 
 class ProductImageAssetLinkSerializer(serializers.ModelSerializer):

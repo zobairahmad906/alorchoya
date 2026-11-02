@@ -26,7 +26,24 @@ import {
   Filter,
   ArrowUpRight,
   Package,
+  Phone,
+  Printer,
+  CheckSquare,
+  Square,
+  Truck,
+  CheckCircle2,
+  Receipt,
+  RotateCcw,
 } from "lucide-react";
+
+// Platform WhatsApp SVG icon
+function WhatsAppIcon({ className = "w-3.5 h-3.5" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
+      <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.598 2.668-.699c.974.53 1.954.82 2.79.821 3.183 0 5.767-2.586 5.768-5.766.001-3.181-2.584-5.767-5.766-5.767zm3.393 8.163c-.144.405-.837.774-1.17.822-.312.043-.683.08-2.029-.475-1.611-.666-2.651-2.316-2.732-2.423-.081-.107-.655-.87-.655-1.662 0-.791.415-1.182.562-1.341.147-.159.324-.199.432-.199.108 0 .216.001.31.006.101.005.236-.039.369.28.136.326.467 1.137.509 1.22.042.083.07.18.014.292-.056.113-.085.183-.169.282-.085.099-.178.221-.254.298-.085.086-.174.179-.075.349.099.17.44 1.053 1.205 1.733.722.64 1.332.839 1.52.924.188.085.297.071.407-.056.11-.127.469-.548.595-.736.126-.188.252-.157.424-.093.172.064 1.091.514 1.278.608.187.094.312.14.358.219.046.079.046.458-.098.863z" />
+    </svg>
+  );
+}
 
 type OrderItem = {
   id: number;
@@ -42,6 +59,8 @@ type Order = {
   status_display: string;
   payment_method: string;
   customer_name: string;
+  phone?: string;
+  email?: string;
   address: string;
   delivery_charge: string;
   discount_amount: string;
@@ -102,8 +121,10 @@ export default function AdminDashboardPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [orderStatusFilter, setOrderStatusFilter] = useState<string>("");
+  const [orderStatusFilter, setOrderStatusFilter] = useState<string>("all");
   const [orderSearch, setOrderSearch] = useState<string>("");
+  const [selectedOrderIds, setSelectedOrderIds] = useState<number[]>([]);
+  const [bulkUpdating, setBulkUpdating] = useState<boolean>(false);
 
   type CategoryItem = { id: number; name: string; slug: string };
 
@@ -452,12 +473,127 @@ export default function AdminDashboardPage() {
   }
 
   const filteredOrders = orders.filter((o) => {
-    return (
+    const matchesSearch =
+      !orderSearch ||
       (o.id ? o.id.toString().includes(orderSearch) : false) ||
       (o.customer_name ? o.customer_name.toLowerCase().includes(orderSearch.toLowerCase()) : false) ||
-      (o.address ? o.address.toLowerCase().includes(orderSearch.toLowerCase()) : false)
-    );
+      (o.phone ? o.phone.toLowerCase().includes(orderSearch.toLowerCase()) : false) ||
+      (o.address ? o.address.toLowerCase().includes(orderSearch.toLowerCase()) : false);
+
+    const matchesStatus =
+      !orderStatusFilter || orderStatusFilter === "all" || o.status === orderStatusFilter;
+
+    return matchesSearch && matchesStatus;
   });
+
+  const getWhatsAppLink = (order: Order) => {
+    if (!order.phone) return null;
+    let cleanPhone = order.phone.replace(/[^0-9]/g, "");
+    if (cleanPhone.startsWith("0")) {
+      cleanPhone = "88" + cleanPhone;
+    } else if (!cleanPhone.startsWith("880") && cleanPhone.length === 10) {
+      cleanPhone = "880" + cleanPhone;
+    }
+    const msg = `Assalamu Alaikum ${order.customer_name}, thank you for your order #${order.id} from Alorchoya. Total: ৳${order.total}. Status: ${(order.status_display || order.status).toUpperCase()}. If you need any assistance, please let us know!`;
+    return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`;
+  };
+
+  const handleBulkUpdateStatus = async (status: string) => {
+    if (selectedOrderIds.length === 0) {
+      toast.error("Please select at least one order.");
+      return;
+    }
+    setBulkUpdating(true);
+    try {
+      const res = await fetch(getApiUrl("/api/admin/orders/"), {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": csrfToken,
+        },
+        credentials: "include",
+        body: JSON.stringify({ order_ids: selectedOrderIds, status }),
+      });
+      if (res.ok) {
+        toast.success(`Updated ${selectedOrderIds.length} orders to ${status}!`);
+        setSelectedOrderIds([]);
+        fetchDashboardData();
+      } else {
+        toast.error("Failed to update orders.");
+      }
+    } catch (e) {
+      toast.error("Server error during bulk update.");
+    } finally {
+      setBulkUpdating(false);
+    }
+  };
+
+  const handlePrintThermalSlip = (order: Order) => {
+    const printWindow = window.open("", "_blank", "width=380,height=600");
+    if (!printWindow) return;
+
+    const itemsRows = order.items
+      .map(
+        (item) => `
+      <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px;">
+        <span style="flex: 1; padding-right: 6px;">${item.quantity}x ${item.product_name}</span>
+        <span style="font-weight: 700;">৳${parseFloat(item.unit_price) * item.quantity}</span>
+      </div>
+    `
+      )
+      .join("");
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>POS Slip #${order.id}</title>
+          <style>
+            @page { margin: 0; size: 80mm auto; }
+            body { font-family: monospace; width: 280px; margin: 0 auto; padding: 12px 8px; font-size: 12px; color: #000; line-height: 1.35; }
+            .center { text-align: center; }
+            .dashed { border-top: 1px dashed #000; margin: 8px 0; }
+            .row { display: flex; justify-content: space-between; }
+            .bold { font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <div class="center bold" style="font-size: 16px;">ALORCHOYA</div>
+          <div class="center" style="font-size: 10px;">Books & Craft Shop</div>
+          <div class="center" style="font-size: 10px;">Living With Light</div>
+          <div class="dashed"></div>
+          <div class="row"><span>Order ID:</span><span class="bold">#${order.id}</span></div>
+          <div class="row"><span>Date:</span><span>${new Date(order.created_at).toLocaleDateString("en-US")}</span></div>
+          <div class="row"><span>Status:</span><span class="bold">${(order.status_display || order.status).toUpperCase()}</span></div>
+          <div class="dashed"></div>
+          <div><span class="bold">Customer:</span> ${order.customer_name}</div>
+          ${order.phone ? `<div><span class="bold">Phone:</span> ${order.phone}</div>` : ""}
+          <div style="margin-top: 2px;"><span class="bold">Address:</span> ${order.address}</div>
+          <div class="dashed"></div>
+          <div class="bold" style="margin-bottom: 4px;">ORDER ITEMS:</div>
+          ${itemsRows}
+          <div class="dashed"></div>
+          <div class="row"><span>Delivery:</span><span>৳${order.delivery_charge}</span></div>
+          ${parseFloat(order.discount_amount) > 0 ? `<div class="row"><span>Discount:</span><span>-৳${order.discount_amount}</span></div>` : ""}
+          <div class="row bold" style="font-size: 14px; margin-top: 4px;">
+            <span>TOTAL:</span>
+            <span>৳${order.total}</span>
+          </div>
+          <div class="row" style="margin-top: 2px; font-size: 11px;">
+            <span>Payment:</span>
+            <span class="bold">${order.payment_method.toUpperCase()}</span>
+          </div>
+          <div class="dashed"></div>
+          <div class="center" style="font-size: 10px; margin-top: 8px;">Thank you for shopping with Alorchoya!</div>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+    }, 300);
+  };
 
   const filteredProducts = products.filter((p) => {
     const matchesSearch =
@@ -1033,173 +1169,458 @@ export default function AdminDashboardPage() {
               </div>
           )}
 
-        {/* ORDERS TAB */}
+        {/* ORDERS TAB (Fulfillment Powerhouse with Status Tabs, Bulk Actions & WhatsApp) */}
         {activeTab === "orders" && (
-          <div style={{ display: "grid", gridTemplateColumns: selectedOrder ? "1fr 1.5fr" : "1fr", gap: "24px" }}>
-            {/* Orders List Column */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              {/* Filters */}
-              <div className="admin-panel" style={{ padding: "16px", display: "flex", flexWrap: "wrap", alignItems: "center", gap: "12px" }}>
-                <input
-                  type="text"
-                  placeholder="Search by Order ID, name, or phone..."
-                  value={orderSearch}
-                  onChange={e => setOrderSearch(e.target.value)}
-                  className="admin-input-field"
-                  style={{ flex: 1, minWidth: "200px" }}
-                />
-                <select
-                  value={orderStatusFilter}
-                  onChange={e => setOrderStatusFilter(e.target.value)}
-                  className="admin-input-field"
-                  style={{ width: "auto" }}
+          <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+            {/* 1. Status Filter Tabs Bar with Live Counters */}
+            <div className="order-tabs-bar">
+              {[
+                { id: "all", label: "All Orders", count: orders.length },
+                { id: "pending", label: "Pending", count: orders.filter(o => o.status === "pending").length },
+                { id: "confirmed", label: "Confirmed", count: orders.filter(o => o.status === "confirmed").length },
+                { id: "processing", label: "Processing", count: orders.filter(o => o.status === "processing").length },
+                { id: "shipped", label: "Shipped", count: orders.filter(o => o.status === "shipped").length },
+                { id: "delivered", label: "Delivered", count: orders.filter(o => o.status === "delivered").length },
+                { id: "cancelled", label: "Cancelled", count: orders.filter(o => o.status === "cancelled").length },
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setOrderStatusFilter(tab.id)}
+                  className={`order-tab-pill ${orderStatusFilter === tab.id ? "active" : ""}`}
                 >
-                  <option value="">All Statuses</option>
-                  <option value="pending">Pending</option>
-                  <option value="confirmed">Confirmed</option>
-                  <option value="processing">Processing</option>
-                  <option value="shipped">Shipped</option>
-                  <option value="delivered">Delivered</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
-              </div>
-
-              {/* List */}
-              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                {filteredOrders.length === 0 ? (
-                  <div className="admin-panel" style={{ textAlign: "center", color: "var(--coffee)", padding: "32px" }}>
-                    No orders found.
-                  </div>
-                ) : (
-                  filteredOrders.map(order => (
-                    <div
-                      key={order.id}
-                      onClick={() => setSelectedOrder(order)}
-                      className="admin-panel"
-                      style={{
-                        padding: "16px 20px",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        borderColor: selectedOrder?.id === order.id ? "var(--forest)" : "var(--line)",
-                        background: selectedOrder?.id === order.id ? "var(--cream)" : "#ffffff"
-                      }}
-                    >
-                      <div>
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                          <span style={{ fontWeight: 800, color: "var(--forest)" }}>#{order.id}</span>
-                          <span style={{ fontWeight: 600, color: "var(--ink)" }}>{order.customer_name}</span>
-                        </div>
-                        <div style={{ fontSize: "12px", color: "var(--coffee)", marginTop: "4px" }}>
-                          {new Date(order.created_at).toLocaleString("bn-BD")}
-                        </div>
-                      </div>
-
-                      <div style={{ textAlign: "right" }}>
-                        <div style={{ fontWeight: 800, color: "var(--forest)", fontSize: "16px" }}>৳{order.total}</div>
-                        <span className={`admin-badge ${order.status}`} style={{ marginTop: "4px" }}>
-                          {order.status_display || order.status}
-                        </span>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
+                  <span>{tab.label}</span>
+                  <span className="order-tab-counter">{tab.count}</span>
+                </button>
+              ))}
             </div>
 
-            {/* Selected Order Detailed Drawer View */}
-            {selectedOrder && (
-              <div className="admin-panel" style={{ position: "sticky", top: "80px", alignSelf: "flex-start", display: "flex", flexDirection: "column", gap: "20px" }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid var(--line)", paddingBottom: "12px" }}>
-                  <div>
-                    <h3 style={{ fontSize: "18px", fontWeight: 800, color: "#0f172a", margin: 0 }}>
-                      Order Details <span style={{ color: "var(--emerald)" }}>#{selectedOrder.id}</span>
-                    </h3>
-                    <p style={{ fontSize: "12px", color: "var(--coffee)", margin: "4px 0 0" }}>
-                      Date: {new Date(selectedOrder.created_at).toLocaleString("en-US", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
-                    </p>
-                  </div>
-                  <div style={{ display: "flex", gap: "8px" }}>
-                    <button
-                      onClick={() => handlePrintInvoice(selectedOrder)}
-                      className="admin-tab-btn active"
-                      style={{ padding: "4px 12px", fontSize: "12px", marginTop: 0 }}
-                    >
-                      📄 Print Invoice / Memo
-                    </button>
-                    <button
-                      onClick={() => setSelectedOrder(null)}
-                      className="admin-header-link"
-                      style={{ padding: "4px 12px" }}
-                    >
-                      Close ✕
-                    </button>
-                  </div>
+            {/* 2. Bulk Action Bar (Visible when orders are selected) */}
+            {selectedOrderIds.length > 0 && (
+              <div className="order-bulk-bar">
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <span style={{
+                    width: "26px",
+                    height: "26px",
+                    borderRadius: "50%",
+                    background: "#2563eb",
+                    color: "#ffffff",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontWeight: 900,
+                    fontSize: "12px"
+                  }}>
+                    {selectedOrderIds.length}
+                  </span>
+                  <span style={{ fontSize: "13px", fontWeight: 700 }}>
+                    Orders Selected
+                  </span>
                 </div>
 
-                {/* Status Updater */}
-                <div style={{ background: "var(--cream)", padding: "14px", borderRadius: "12px", border: "1px solid var(--line)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--forest)" }}>Update Order Status:</span>
-                  <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-                    {["pending", "confirmed", "shipped", "delivered", "cancelled"].map(st => (
-                      <button
-                        key={st}
-                        onClick={() => handleUpdateOrderStatus(selectedOrder.id, st)}
-                        className={`admin-tab-btn ${selectedOrder.status === st ? "active" : ""}`}
-                        style={{ padding: "5px 12px", fontSize: "12px", textTransform: "capitalize" }}
-                      >
-                        {st}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Customer Details */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", background: "var(--ivory)", padding: "16px", borderRadius: "12px", border: "1px solid var(--line)", fontSize: "13px" }}>
-                  <div>
-                    <div style={{ color: "var(--coffee)", fontWeight: 700, marginBottom: "4px" }}>Customer & Delivery Address</div>
-                    <div style={{ fontWeight: 700, color: "var(--forest)" }}>{selectedOrder.customer_name}</div>
-                    <div style={{ color: "var(--ink)", marginTop: "4px" }}>{selectedOrder.address}</div>
-                  </div>
-                  <div>
-                    <div style={{ color: "var(--coffee)", fontWeight: 700, marginBottom: "4px" }}>Payment & Fulfillment</div>
-                    <div style={{ color: "var(--ink)" }}>Method: <span style={{ fontWeight: 700, color: "var(--forest)", textTransform: "uppercase" }}>{selectedOrder.payment_method}</span></div>
-                    <div style={{ color: "var(--ink)", marginTop: "4px" }}>Delivery Charge: ৳{selectedOrder.delivery_charge}</div>
-                    <div style={{ color: "var(--ink)", marginTop: "2px" }}>Discount: ৳{selectedOrder.discount_amount}</div>
-                  </div>
-                </div>
-
-                {/* Ordered Items */}
-                <div>
-                  <h4 style={{ fontSize: "13px", fontWeight: 700, color: "var(--coffee)", marginBottom: "12px", textTransform: "uppercase" }}>Order Items</h4>
-                  <div style={{ borderTop: "1px solid var(--line)", borderBottom: "1px solid var(--line)" }}>
-                    {selectedOrder.items.map(item => (
-                      <div key={item.id} style={{ padding: "12px 0", display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "13px", borderBottom: "1px solid var(--cream)" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                          {item.product_image && (
-                            <img src={item.product_image} alt={item.product_name} style={{ width: "42px", height: "42px", objectFit: "cover", borderRadius: "8px", border: "1px solid var(--line)" }} />
-                          )}
-                          <div>
-                            <div style={{ fontWeight: 700, color: "var(--forest)" }}>{item.product_name}</div>
-                            <div style={{ color: "var(--coffee)", fontSize: "12px" }}>Qty: {item.quantity} × ৳{item.unit_price}</div>
-                          </div>
-                        </div>
-                        <div style={{ fontWeight: 800, color: "var(--forest)" }}>
-                          ৳{parseFloat(item.unit_price) * item.quantity}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Total */}
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "16px", fontWeight: 800, color: "var(--forest)", paddingTop: "8px" }}>
-                  <span>Total Payable:</span>
-                  <span style={{ fontSize: "22px", fontWeight: 800 }}>৳{selectedOrder.total}</span>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    disabled={bulkUpdating}
+                    onClick={() => handleBulkUpdateStatus("confirmed")}
+                    className="admin-btn-secondary"
+                    style={{ padding: "6px 12px", fontSize: "12px", background: "#1e293b", color: "#f8fafc", borderColor: "#334155" }}
+                  >
+                    Mark Confirmed
+                  </button>
+                  <button
+                    type="button"
+                    disabled={bulkUpdating}
+                    onClick={() => handleBulkUpdateStatus("shipped")}
+                    className="admin-btn-secondary"
+                    style={{ padding: "6px 12px", fontSize: "12px", background: "#1e293b", color: "#60a5fa", borderColor: "#334155" }}
+                  >
+                    Mark Shipped
+                  </button>
+                  <button
+                    type="button"
+                    disabled={bulkUpdating}
+                    onClick={() => handleBulkUpdateStatus("delivered")}
+                    className="admin-btn-secondary"
+                    style={{ padding: "6px 12px", fontSize: "12px", background: "#1e293b", color: "#34d399", borderColor: "#334155" }}
+                  >
+                    Mark Delivered
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedOrderIds([])}
+                    className="admin-btn-secondary"
+                    style={{ padding: "6px 12px", fontSize: "12px", background: "transparent", color: "#94a3b8", borderColor: "#334155" }}
+                  >
+                    Deselect All
+                  </button>
                 </div>
               </div>
             )}
+
+            {/* 3. Search & Quick Controls */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "14px", flexWrap: "wrap" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", flex: 1, minWidth: "260px" }}>
+                <input
+                  type="text"
+                  placeholder="Search by Order ID, customer name, phone, or address..."
+                  value={orderSearch}
+                  onChange={e => setOrderSearch(e.target.value)}
+                  className="admin-input-field"
+                  style={{ flex: 1, margin: 0 }}
+                />
+                {orderSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setOrderSearch("")}
+                    className="admin-btn-secondary"
+                    style={{ padding: "8px 12px", fontSize: "12px" }}
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (selectedOrderIds.length === filteredOrders.length) {
+                      setSelectedOrderIds([]);
+                    } else {
+                      setSelectedOrderIds(filteredOrders.map(o => o.id));
+                    }
+                  }}
+                  className="admin-btn-secondary"
+                  style={{ fontSize: "12px" }}
+                >
+                  {selectedOrderIds.length === filteredOrders.length && filteredOrders.length > 0 ? (
+                    <CheckSquare size={14} style={{ color: "#2563eb" }} />
+                  ) : (
+                    <Square size={14} />
+                  )}
+                  Select All ({filteredOrders.length})
+                </button>
+              </div>
+            </div>
+
+            {/* 4. Main Orders Layout: List Column & Sticky Detail Drawer */}
+            <div style={{ display: "grid", gridTemplateColumns: selectedOrder ? "1.1fr 1.3fr" : "1fr", gap: "24px", alignItems: "start" }}>
+              {/* Orders List */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                {filteredOrders.length === 0 ? (
+                  <div className="profit-panel-card" style={{ textAlign: "center", padding: "48px 20px" }}>
+                    <Package size={38} style={{ color: "#cbd5e1", margin: "0 auto 12px" }} />
+                    <h4 style={{ margin: "0 0 6px", fontSize: "16px", fontWeight: 800, color: "#334155" }}>
+                      No orders found
+                    </h4>
+                    <p style={{ margin: 0, fontSize: "13px", color: "#64748b" }}>
+                      Try adjusting your search query or status filter.
+                    </p>
+                  </div>
+                ) : (
+                  filteredOrders.map(order => {
+                    const isSelected = selectedOrderIds.includes(order.id);
+                    const isActive = selectedOrder?.id === order.id;
+                    const waLink = getWhatsAppLink(order);
+
+                    return (
+                      <div
+                        key={order.id}
+                        onClick={() => setSelectedOrder(order)}
+                        className={`order-card-row ${isActive ? "selected" : ""}`}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: "14px", minWidth: 0 }}>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onClick={e => e.stopPropagation()}
+                            onChange={e => {
+                              if (e.target.checked) setSelectedOrderIds(curr => [...curr, order.id]);
+                              else setSelectedOrderIds(curr => curr.filter(id => id !== order.id));
+                            }}
+                            style={{ width: "16px", height: "16px", accentColor: "#2563eb", cursor: "pointer", flexShrink: 0 }}
+                          />
+
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                              <span style={{ fontWeight: 900, color: "#2563eb", fontSize: "14px" }}>
+                                #{order.id}
+                              </span>
+                              <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "14px" }}>
+                                {order.customer_name}
+                              </span>
+                              <span style={{ fontSize: "11px", fontWeight: 700, color: "#64748b", background: "#f1f5f9", padding: "1px 6px", borderRadius: "6px" }}>
+                                {order.items.length} items
+                              </span>
+                            </div>
+
+                            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "4px", fontSize: "12px", color: "#64748b", flexWrap: "wrap" }}>
+                              <span>{new Date(order.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}</span>
+                              {order.phone && <span>• {order.phone}</span>}
+                              <span>• {order.payment_method.toUpperCase()}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div style={{ display: "flex", alignItems: "center", gap: "12px", flexShrink: 0 }}>
+                          {/* Quick WhatsApp & Call Action Icons */}
+                          {waLink && (
+                            <a
+                              href={waLink}
+                              target="_blank"
+                              rel="noreferrer"
+                              onClick={e => e.stopPropagation()}
+                              className="btn-whatsapp"
+                              title="Chat with customer on WhatsApp"
+                            >
+                              <WhatsAppIcon />
+                              <span className="hidden sm:inline">WhatsApp</span>
+                            </a>
+                          )}
+
+                          {order.phone && (
+                            <a
+                              href={`tel:${order.phone}`}
+                              onClick={e => e.stopPropagation()}
+                              className="btn-call"
+                              title="Call customer directly"
+                            >
+                              <Phone size={12} />
+                              <span className="hidden sm:inline">Call</span>
+                            </a>
+                          )}
+
+                          <div style={{ textAlign: "right" }}>
+                            <div style={{ fontWeight: 900, color: "#0f172a", fontSize: "15px" }}>
+                              ৳{order.total}
+                            </div>
+                            <span className={`admin-badge ${order.status}`} style={{ marginTop: "4px" }}>
+                              {order.status_display || order.status}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Selected Order Detail Drawer */}
+              {selectedOrder && (
+                <div
+                  className="profit-panel-card"
+                  style={{
+                    position: "sticky",
+                    top: "80px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "18px",
+                    padding: "24px"
+                  }}
+                >
+                  {/* Top Bar with Print and Close */}
+                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px", borderBottom: "1px solid #f1f5f9", paddingBottom: "16px" }}>
+                    <div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <span style={{
+                          padding: "3px 8px",
+                          borderRadius: "8px",
+                          background: "#eff6ff",
+                          color: "#2563eb",
+                          fontWeight: 900,
+                          fontSize: "13px"
+                        }}>
+                          #{selectedOrder.id}
+                        </span>
+                        <h3 style={{ margin: 0, fontSize: "18px", fontWeight: 800, color: "#0f172a" }}>
+                          Order Details
+                        </h3>
+                      </div>
+                      <p style={{ fontSize: "12px", color: "#64748b", margin: "4px 0 0" }}>
+                        Placed on {new Date(selectedOrder.created_at).toLocaleString("en-US", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                      </p>
+                    </div>
+
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      <button
+                        type="button"
+                        onClick={() => handlePrintInvoice(selectedOrder)}
+                        className="admin-btn-secondary"
+                        style={{ padding: "6px 10px", fontSize: "12px" }}
+                        title="Print Full A4 Invoice"
+                      >
+                        <Printer size={13} /> A4
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handlePrintThermalSlip(selectedOrder)}
+                        className="btn-thermal"
+                        title="Print Compact 80mm POS Slip"
+                      >
+                        <Receipt size={13} /> POS
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedOrder(null)}
+                        className="admin-btn-secondary"
+                        style={{ padding: "6px 10px", fontSize: "12px" }}
+                        title="Close Inspector"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Customer Quick Contact Bar */}
+                  {(selectedOrder.phone || selectedOrder.email) && (
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#f8fafc", padding: "10px 14px", borderRadius: "14px", border: "1px solid #e2e8f0" }}>
+                      <div>
+                        <div style={{ fontSize: "11px", fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>
+                          Direct Customer Contact
+                        </div>
+                        <div style={{ fontSize: "13px", fontWeight: 700, color: "#0f172a", marginTop: "2px" }}>
+                          {selectedOrder.phone || "No phone provided"}
+                        </div>
+                      </div>
+
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        {getWhatsAppLink(selectedOrder) && (
+                          <a
+                            href={getWhatsAppLink(selectedOrder)!}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="btn-whatsapp"
+                          >
+                            <WhatsAppIcon /> Message
+                          </a>
+                        )}
+                        {selectedOrder.phone && (
+                          <a
+                            href={`tel:${selectedOrder.phone}`}
+                            className="btn-call"
+                          >
+                            <Phone size={12} /> Call
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Status Updater Bar */}
+                  <div style={{ background: "#ffffff", padding: "14px", borderRadius: "16px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.02)" }}>
+                    <div style={{ fontSize: "11px", fontWeight: 800, textTransform: "uppercase", color: "#64748b", marginBottom: "8px" }}>
+                      Update Order Status:
+                    </div>
+                    <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                      {["pending", "confirmed", "processing", "shipped", "delivered", "cancelled"].map(st => (
+                        <button
+                          key={st}
+                          type="button"
+                          onClick={() => handleUpdateOrderStatus(selectedOrder.id, st)}
+                          className={`order-tab-pill ${selectedOrder.status === st ? "active" : ""}`}
+                          style={{ padding: "6px 12px", fontSize: "12px", textTransform: "capitalize" }}
+                        >
+                          {st}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Customer & Payment Split Info Cards */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                    <div style={{ background: "#f8fafc", padding: "14px", borderRadius: "14px", border: "1px solid #e2e8f0" }}>
+                      <div style={{ color: "#64748b", fontSize: "11px", fontWeight: 800, textTransform: "uppercase", marginBottom: "4px" }}>
+                        Delivery Address
+                      </div>
+                      <div style={{ fontWeight: 800, color: "#0f172a", fontSize: "13px" }}>
+                        {selectedOrder.customer_name}
+                      </div>
+                      <div style={{ color: "#475569", fontSize: "12px", marginTop: "4px", lineHeight: 1.4 }}>
+                        {selectedOrder.address}
+                      </div>
+                    </div>
+
+                    <div style={{ background: "#f8fafc", padding: "14px", borderRadius: "14px", border: "1px solid #e2e8f0" }}>
+                      <div style={{ color: "#64748b", fontSize: "11px", fontWeight: 800, textTransform: "uppercase", marginBottom: "4px" }}>
+                        Payment & Shipping
+                      </div>
+                      <div style={{ fontSize: "13px", fontWeight: 800, color: "#2563eb" }}>
+                        Method: {selectedOrder.payment_method.toUpperCase()}
+                      </div>
+                      <div style={{ color: "#475569", fontSize: "12px", marginTop: "4px" }}>
+                        Delivery Fee: ৳{selectedOrder.delivery_charge}
+                      </div>
+                      <div style={{ color: "#475569", fontSize: "12px" }}>
+                        Discount: -৳{selectedOrder.discount_amount}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Ordered Items List */}
+                  <div>
+                    <h4 style={{ fontSize: "12px", fontWeight: 800, color: "#64748b", margin: "0 0 10px", textTransform: "uppercase" }}>
+                      Ordered Items ({selectedOrder.items.length})
+                    </h4>
+                    <div style={{ borderTop: "1px solid #f1f5f9", display: "flex", flexDirection: "column" }}>
+                      {selectedOrder.items.map(item => (
+                        <div
+                          key={item.id}
+                          style={{
+                            padding: "10px 0",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            borderBottom: "1px solid #f1f5f9"
+                          }}
+                        >
+                          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                            {item.product_image ? (
+                              <img
+                                src={item.product_image}
+                                alt={item.product_name}
+                                style={{ width: "38px", height: "38px", objectFit: "cover", borderRadius: "8px", border: "1px solid #e2e8f0" }}
+                              />
+                            ) : (
+                              <div style={{ width: "38px", height: "38px", borderRadius: "8px", background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", color: "#94a3b8" }}>
+                                <Package size={16} />
+                              </div>
+                            )}
+                            <div>
+                              <div style={{ fontWeight: 700, color: "#0f172a", fontSize: "13px" }}>
+                                {item.product_name}
+                              </div>
+                              <div style={{ color: "#64748b", fontSize: "11px" }}>
+                                {item.quantity} × ৳{item.unit_price}
+                              </div>
+                            </div>
+                          </div>
+                          <div style={{ fontWeight: 800, color: "#0f172a", fontSize: "13px" }}>
+                            ৳{parseFloat(item.unit_price) * item.quantity}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Grand Total */}
+                  <div style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    paddingTop: "12px",
+                    borderTop: "2px dashed #e2e8f0"
+                  }}>
+                    <span style={{ fontSize: "14px", fontWeight: 800, color: "#64748b", textTransform: "uppercase" }}>
+                      Grand Total:
+                    </span>
+                    <span style={{ fontSize: "22px", fontWeight: 900, color: "#0f172a" }}>
+                      ৳{selectedOrder.total}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
