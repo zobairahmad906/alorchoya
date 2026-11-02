@@ -354,13 +354,137 @@ export function ProductCatalog({ products, initialCategory = "all" }: { products
   </>;
 }
 
-export function CategoryFilterCards({ categories }: { categories: { name: string; slug: string }[] }) {
-  const visible = categories.slice(0, 8);
-  const showAll = () => { window.dispatchEvent(new CustomEvent("product-category", { detail: "all" })); document.getElementById("shop")?.scrollIntoView({ behavior: "smooth" }); };
-  return <div className="cat-grid">
-    <button className="cat-card all-category-card" type="button" onClick={showAll}><div className="glyph">সব</div><div className="t">সব ক্যাটাগরি</div><span className="all-category-arrow">→</span></button>
-    {visible.map(category => <button className="cat-card" type="button" key={category.slug} onClick={() => { window.dispatchEvent(new CustomEvent("product-category", { detail: category.slug })); document.getElementById("shop")?.scrollIntoView({ behavior: "smooth" }); }}><div className="glyph">{category.name.slice(0, 1)}</div><div className="t">{category.name}</div></button>)}
-  </div>;
+export type CategoryFilterItem = {
+  name: string;
+  slug: string;
+  image?: string | null;
+  count?: number;
+};
+
+export function CategoryFilterCards({ categories }: { categories: CategoryFilterItem[] }) {
+  const [activeCat, setActiveCat] = useState("all");
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  useEffect(() => {
+    const onCategory = (event: Event) => {
+      setActiveCat((event as CustomEvent<string>).detail || "all");
+    };
+    window.addEventListener("product-category", onCategory);
+    return () => window.removeEventListener("product-category", onCategory);
+  }, []);
+
+  const checkScroll = () => {
+    const el = scrollRef.current;
+    if (el) {
+      setCanScrollLeft(el.scrollLeft > 8);
+      setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 8);
+    }
+  };
+
+  useEffect(() => {
+    checkScroll();
+    window.addEventListener("resize", checkScroll);
+    return () => window.removeEventListener("resize", checkScroll);
+  }, [categories]);
+
+  const scroll = (direction: "left" | "right") => {
+    if (scrollRef.current) {
+      const scrollAmount = direction === "left" ? -260 : 260;
+      scrollRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
+    }
+  };
+
+  const selectCat = (slug: string) => {
+    setActiveCat(slug);
+    window.dispatchEvent(new CustomEvent("product-category", { detail: slug }));
+    document.getElementById("shop")?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const toBn = (n: number) => n.toString().replace(/\d/g, d => "০১২৩৪৫৬৭৮৯"[+d]);
+  const totalCount = categories.reduce((sum, item) => sum + (item.count || 1), 0);
+
+  return (
+    <div className="cat-rail-wrapper">
+      {canScrollLeft && (
+        <button
+          className="cat-scroll-btn cat-scroll-prev"
+          type="button"
+          onClick={() => scroll("left")}
+          aria-label="আগের ক্যাটাগরি"
+        >
+          ‹
+        </button>
+      )}
+
+      <div className="cat-grid cat-circle-grid" ref={scrollRef} onScroll={checkScroll}>
+        <button
+          className={`cat-card cat-circle-card ${activeCat === "all" ? "is-active" : ""}`}
+          type="button"
+          onClick={() => selectCat("all")}
+        >
+          <div className="cat-avatar-wrap">
+            <div className="cat-avatar-ring">
+              <div className="cat-avatar-inner all-avatar-inner">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="cat-all-svg">
+                  <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                  <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                  <rect x="14" y="14" width="7" height="7" rx="1.5" />
+                  <rect x="3" y="14" width="7" height="7" rx="1.5" />
+                </svg>
+              </div>
+            </div>
+            {activeCat === "all" && <span className="cat-active-dot" />}
+          </div>
+          <span className="cat-title">সব ক্যাটাগরি</span>
+          <span className="cat-count">{toBn(totalCount)}টি পণ্য</span>
+        </button>
+
+        {categories.map((category) => {
+          const isActive = activeCat === category.slug;
+          return (
+            <button
+              className={`cat-card cat-circle-card ${isActive ? "is-active" : ""}`}
+              type="button"
+              key={category.slug}
+              onClick={() => selectCat(category.slug)}
+            >
+              <div className="cat-avatar-wrap">
+                <div className="cat-avatar-ring">
+                  <div className="cat-avatar-inner">
+                    {category.image ? (
+                      <img src={category.image} alt={category.name} loading="lazy" />
+                    ) : (
+                      <div className="cat-glyph-letter">
+                        {category.name.slice(0, 1)}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                {isActive && <span className="cat-active-dot" />}
+              </div>
+              <span className="cat-title">{category.name}</span>
+              <span className="cat-count">
+                {category.count ? `${toBn(category.count)}টি পণ্য` : "পণ্য দেখুন"}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {canScrollRight && (
+        <button
+          className="cat-scroll-btn cat-scroll-next"
+          type="button"
+          onClick={() => scroll("right")}
+          aria-label="পরের ক্যাটাগরি"
+        >
+          ›
+        </button>
+      )}
+    </div>
+  );
 }
 
 function CartDrawer({ open, close }: { open: boolean; close: () => void }) {
