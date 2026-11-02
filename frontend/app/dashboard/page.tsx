@@ -7,6 +7,19 @@ import { Header } from "../components";
 import ImageGallery from "./ImageGallery";
 import ProductForm from "../admin/components/ProductForm";
 import toast, { Toaster } from "react-hot-toast";
+import {
+  LayoutDashboard,
+  ShoppingCart,
+  Boxes,
+  Image as ImageIcon,
+  Users,
+  Store,
+  ExternalLink,
+  Plus,
+  RefreshCw,
+  Menu,
+  X,
+} from "lucide-react";
 
 type OrderItem = {
   id: number;
@@ -558,15 +571,27 @@ export default function AdminDashboardPage() {
           />
         )}
 
-        {/* LEFT SIDEBAR */}
+        {/* Mobile Backdrop */}
+        {mobileSidebarOpen && (
+          <div
+            className="admin-mobile-backdrop"
+            onClick={() => setMobileSidebarOpen(false)}
+          />
+        )}
+
+        {/* LEFT SIDEBAR (White Theme like newsmartagent) */}
         <aside className={`admin-sidebar ${mobileSidebarOpen ? "open" : ""}`}>
           <div className="admin-sidebar-brand">
-            <div className="admin-sidebar-brand-icon">
-              🌟
+            <div className="admin-sidebar-brand-logo-wrap">
+              <img
+                src="/alorchoya-logo.jpeg"
+                alt="Alorchoya"
+                className="admin-sidebar-logo-img"
+              />
             </div>
             <div>
               <div className="admin-sidebar-brand-text">Alorchoya</div>
-              <div className="admin-sidebar-brand-sub">Admin Dashboard</div>
+              <div className="admin-sidebar-brand-sub">Admin Portal</div>
             </div>
           </div>
 
@@ -578,7 +603,7 @@ export default function AdminDashboardPage() {
               className={`admin-nav-item ${activeTab === "overview" ? "active" : ""}`}
             >
               <div className="admin-nav-item-content">
-                <span className="admin-nav-item-icon">📊</span>
+                <LayoutDashboard size={18} className="admin-nav-item-icon" />
                 <span>Overview</span>
               </div>
             </button>
@@ -588,7 +613,7 @@ export default function AdminDashboardPage() {
               className={`admin-nav-item ${activeTab === "orders" ? "active" : ""}`}
             >
               <div className="admin-nav-item-content">
-                <span className="admin-nav-item-icon">📦</span>
+                <ShoppingCart size={18} className="admin-nav-item-icon" />
                 <span>Orders</span>
               </div>
               {stats && stats.pending_orders > 0 && (
@@ -603,7 +628,7 @@ export default function AdminDashboardPage() {
               className={`admin-nav-item ${activeTab === "products" ? "active" : ""}`}
             >
               <div className="admin-nav-item-content">
-                <span className="admin-nav-item-icon">🛍️</span>
+                <Boxes size={18} className="admin-nav-item-icon" />
                 <span>Products & Stock</span>
               </div>
               <span className="admin-nav-badge">
@@ -616,7 +641,7 @@ export default function AdminDashboardPage() {
               className={`admin-nav-item ${activeTab === "gallery" ? "active" : ""}`}
             >
               <div className="admin-nav-item-content">
-                <span className="admin-nav-item-icon">🖼️</span>
+                <ImageIcon size={18} className="admin-nav-item-icon" />
                 <span>Image Gallery</span>
               </div>
               <span className="admin-nav-badge success">
@@ -629,7 +654,7 @@ export default function AdminDashboardPage() {
               className={`admin-nav-item ${activeTab === "customers" ? "active" : ""}`}
             >
               <div className="admin-nav-item-content">
-                <span className="admin-nav-item-icon">👥</span>
+                <Users size={18} className="admin-nav-item-icon" />
                 <span>Customers</span>
               </div>
               <span className="admin-nav-badge">
@@ -644,18 +669,18 @@ export default function AdminDashboardPage() {
                 AD
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: "12px", fontWeight: 700, color: "#f8fafc", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <div className="admin-sidebar-user-name">
                   Store Admin
                 </div>
-                <div style={{ fontSize: "10px", color: "#34d399" }}>
-                  ● Online Session
+                <div className="admin-sidebar-user-status">
+                  <span className="admin-status-dot" /> Online Session
                 </div>
               </div>
             </div>
 
             <div className="admin-sidebar-sublinks">
               <Link href="/" className="admin-sidebar-sublink" title="View Storefront">
-                🏪 Storefront ↗
+                <Store size={14} /> Storefront ↗
               </Link>
               <a
                 href={getApiUrl("/admin/")}
@@ -664,7 +689,7 @@ export default function AdminDashboardPage() {
                 className="admin-sidebar-sublink"
                 title="Django Admin"
               >
-                ⚙️ Django ↗
+                <ExternalLink size={14} /> Django ↗
               </a>
             </div>
           </div>
@@ -680,7 +705,7 @@ export default function AdminDashboardPage() {
                 className="admin-topbar-toggle"
                 title="Toggle Menu"
               >
-                ☰
+                {mobileSidebarOpen ? <X size={18} /> : <Menu size={18} />}
               </button>
               <div className="admin-topbar-title">
                 {activeTab === "overview" && "Dashboard Overview"}
@@ -694,17 +719,16 @@ export default function AdminDashboardPage() {
             <div className="admin-topbar-actions">
               <button
                 onClick={openCreateModal}
-                className="admin-header-link"
-                style={{ background: "var(--forest)", color: "#fff", borderColor: "var(--forest)" }}
+                className="admin-btn-primary"
               >
-                + Add Product
+                <Plus size={15} /> Add Product
               </button>
               <button
                 onClick={() => fetchDashboardData()}
-                className="admin-header-link"
+                className="admin-btn-secondary"
                 title="Refresh Data"
               >
-                🔄 Refresh
+                <RefreshCw size={14} /> Refresh
               </button>
             </div>
           </header>
@@ -762,7 +786,7 @@ export default function AdminDashboardPage() {
             <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: "24px" }}>
               {/* Daily Sales Bar Chart */}
               <div className="admin-panel">
-                <h3 style={{ fontFamily: "'Tiro Bangla', serif", fontSize: "20px", color: "var(--forest)", margin: "0 0 20px" }}>
+                <h3 style={{ fontSize: "18px", fontWeight: 800, color: "#0f172a", margin: "0 0 20px" }}>
                   Sales Analytics (Last 7 Days)
                 </h3>
                 <div style={{ height: "200px", display: "flex", alignItems: "flex-end", gap: "16px", paddingTop: "16px", borderBottom: "1px solid var(--line)", paddingBottom: "8px" }}>
@@ -783,7 +807,7 @@ export default function AdminDashboardPage() {
 
               {/* Top Selling Products */}
               <div className="admin-panel">
-                <h3 style={{ fontFamily: "'Tiro Bangla', serif", fontSize: "20px", color: "var(--forest)", margin: "0 0 16px" }}>
+                <h3 style={{ fontSize: "18px", fontWeight: 800, color: "#0f172a", margin: "0 0 16px" }}>
                   Top Selling Products
                 </h3>
                 {stats.top_products && stats.top_products.length > 0 ? (
@@ -939,7 +963,7 @@ export default function AdminDashboardPage() {
               <div className="admin-panel" style={{ position: "sticky", top: "80px", alignSelf: "flex-start", display: "flex", flexDirection: "column", gap: "20px" }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid var(--line)", paddingBottom: "12px" }}>
                   <div>
-                    <h3 style={{ fontFamily: "'Tiro Bangla', serif", fontSize: "20px", color: "var(--forest)", margin: 0 }}>
+                    <h3 style={{ fontSize: "18px", fontWeight: 800, color: "#0f172a", margin: 0 }}>
                       Order Details <span style={{ color: "var(--emerald)" }}>#{selectedOrder.id}</span>
                     </h3>
                     <p style={{ fontSize: "12px", color: "var(--coffee)", margin: "4px 0 0" }}>
@@ -1262,7 +1286,7 @@ export default function AdminDashboardPage() {
         <div style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(23,63,53,0.4)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "16px" }}>
           <div className="admin-login-card" style={{ maxWidth: "560px", padding: "32px", maxHeight: "90vh", overflowY: "auto" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid var(--line)", paddingBottom: "12px", marginBottom: "20px" }}>
-              <h3 style={{ fontFamily: "'Tiro Bangla', serif", fontSize: "22px", color: "var(--forest)", margin: 0 }}>
+              <h3 style={{ fontSize: "18px", fontWeight: 800, color: "#0f172a", margin: 0 }}>
                 {editingProduct ? "Edit Product" : "Add New Product"}
               </h3>
               <button onClick={() => setShowProductModal(false)} style={{ background: "none", border: "none", fontSize: "18px", color: "var(--coffee)", cursor: "pointer" }}>✕</button>
