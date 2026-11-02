@@ -59,6 +59,9 @@ type Order = {
   status_display: string;
   payment_method: string;
   customer_name: string;
+  customer_profile_name?: string | null;
+  customer_username?: string | null;
+  customer_avatar?: string | null;
   phone?: string;
   email?: string;
   address: string;
@@ -67,6 +70,21 @@ type Order = {
   created_at: string;
   total: number;
   items: OrderItem[];
+};
+
+type CustomerDirectoryItem = {
+  id: string | number;
+  customer_name: string;
+  profile_name?: string | null;
+  username?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  avatar_url?: string | null;
+  address: string;
+  total_orders: number;
+  total_spent: number;
+  last_order_date: string;
+  purchased_products: { id: number; name: string; image?: string | null }[];
 };
 
 type Product = {
@@ -159,30 +177,55 @@ export default function AdminDashboardPage() {
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState<string | null>(null);
   const [isSubmittingLogin, setIsSubmittingLogin] = useState(false);
+  const [serverCustomers, setServerCustomers] = useState<CustomerDirectoryItem[]>([]);
 
-  const customersList = React.useMemo(() => {
-    const map = new Map<string, { customer_name: string; address: string; total_orders: number; total_spent: number; last_order_date: string }>();
+  const customersList = React.useMemo<CustomerDirectoryItem[]>(() => {
+    if (serverCustomers.length > 0) {
+      return serverCustomers;
+    }
+    const map = new Map<string, CustomerDirectoryItem>();
     orders.forEach((ord) => {
       const key = ord.customer_name ? ord.customer_name.trim() : `Customer #${ord.id}`;
+      const productThumbs = (ord.items || []).map(it => ({
+        id: it.id,
+        name: it.product_name,
+        image: it.product_image || null,
+      }));
       if (!map.has(key)) {
         map.set(key, {
+          id: key,
           customer_name: key,
+          profile_name: ord.customer_profile_name || null,
+          username: ord.customer_username || null,
+          email: ord.email || null,
+          phone: ord.phone || null,
+          avatar_url: ord.customer_avatar || null,
           address: ord.address || "N/A",
           total_orders: 1,
           total_spent: ord.total,
           last_order_date: ord.created_at,
+          purchased_products: productThumbs,
         });
       } else {
         const item = map.get(key)!;
         item.total_orders += 1;
         item.total_spent += ord.total;
+        if (!item.avatar_url && ord.customer_avatar) item.avatar_url = ord.customer_avatar;
+        if (!item.profile_name && ord.customer_profile_name) item.profile_name = ord.customer_profile_name;
+        if (!item.email && ord.email) item.email = ord.email;
+        if (!item.phone && ord.phone) item.phone = ord.phone;
         if (new Date(ord.created_at) > new Date(item.last_order_date)) {
           item.last_order_date = ord.created_at;
         }
+        productThumbs.forEach(pt => {
+          if (!item.purchased_products.some(p => p.name === pt.name)) {
+            item.purchased_products.push(pt);
+          }
+        });
       }
     });
     return Array.from(map.values());
-  }, [orders]);
+  }, [serverCustomers, orders]);
 
   const getApiUrl = (endpoint: string) => {
     let [pathStr, queryStr] = endpoint.split("?");
@@ -237,6 +280,17 @@ export default function AdminDashboardPage() {
       if (catRes.ok) {
         const catData = await catRes.json();
         setCategories(catData.results || catData);
+      }
+
+      // Fetch Customers Directory
+      try {
+        const custRes = await fetch(getApiUrl("/admin/customers/"), { credentials: "include" });
+        if (custRes.ok) {
+          const custData = await custRes.json();
+          setServerCustomers(custData);
+        }
+      } catch (cErr) {
+        console.error("Failed to load customer directory:", cErr);
       }
     } catch (err) {
       console.error(err);
@@ -1330,7 +1384,7 @@ export default function AdminDashboardPage() {
                         onClick={() => setSelectedOrder(order)}
                         className={`order-card-row ${isActive ? "selected" : ""}`}
                       >
-                        <div style={{ display: "flex", alignItems: "center", gap: "14px", minWidth: 0 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "12px", minWidth: 0 }}>
                           <input
                             type="checkbox"
                             checked={isSelected}
@@ -1342,6 +1396,41 @@ export default function AdminDashboardPage() {
                             style={{ width: "16px", height: "16px", accentColor: "#2563eb", cursor: "pointer", flexShrink: 0 }}
                           />
 
+                          {/* Customer Avatar / Badge */}
+                          {order.customer_avatar ? (
+                            <img
+                              src={order.customer_avatar}
+                              alt={order.customer_profile_name || order.customer_name}
+                              style={{
+                                width: "40px",
+                                height: "40px",
+                                borderRadius: "50%",
+                                objectFit: "cover",
+                                border: "2px solid #3b82f6",
+                                flexShrink: 0
+                              }}
+                            />
+                          ) : (
+                            <div
+                              style={{
+                                width: "40px",
+                                height: "40px",
+                                borderRadius: "50%",
+                                background: "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)",
+                                color: "#1d4ed8",
+                                fontWeight: 800,
+                                fontSize: "14px",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                border: "1.5px solid #bfdbfe",
+                                flexShrink: 0
+                              }}
+                            >
+                              {(order.customer_profile_name || order.customer_name || "C").charAt(0).toUpperCase()}
+                            </div>
+                          )}
+
                           <div style={{ minWidth: 0 }}>
                             <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                               <span style={{ fontWeight: 900, color: "#2563eb", fontSize: "14px" }}>
@@ -1350,10 +1439,50 @@ export default function AdminDashboardPage() {
                               <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "14px" }}>
                                 {order.customer_name}
                               </span>
+                              {order.customer_profile_name && order.customer_profile_name !== order.customer_name && (
+                                <span style={{ fontSize: "11px", fontWeight: 600, color: "#475569", background: "#f1f5f9", padding: "1px 6px", borderRadius: "6px" }}>
+                                  👤 {order.customer_profile_name}
+                                </span>
+                              )}
                               <span style={{ fontSize: "11px", fontWeight: 700, color: "#64748b", background: "#f1f5f9", padding: "1px 6px", borderRadius: "6px" }}>
                                 {order.items.length} items
                               </span>
                             </div>
+
+                            {/* Product Thumbnails Preview */}
+                            {order.items && order.items.length > 0 && (
+                              <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "4px" }}>
+                                {order.items.slice(0, 3).map((it, idx) => (
+                                  <div
+                                    key={it.id || idx}
+                                    title={`${it.product_name} (${it.quantity}x)`}
+                                    style={{
+                                      width: "28px",
+                                      height: "28px",
+                                      borderRadius: "6px",
+                                      overflow: "hidden",
+                                      border: "1px solid #e2e8f0",
+                                      background: "#f8fafc",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      flexShrink: 0
+                                    }}
+                                  >
+                                    {it.product_image ? (
+                                      <img src={it.product_image} alt={it.product_name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                    ) : (
+                                      <Package size={14} style={{ color: "#94a3b8" }} />
+                                    )}
+                                  </div>
+                                ))}
+                                {order.items.length > 3 && (
+                                  <span style={{ fontSize: "11px", fontWeight: 700, color: "#64748b", background: "#f1f5f9", padding: "2px 6px", borderRadius: "6px" }}>
+                                    +{order.items.length - 3} more
+                                  </span>
+                                )}
+                              </div>
+                            )}
 
                             <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "4px", fontSize: "12px", color: "#64748b", flexWrap: "wrap" }}>
                               <span>{new Date(order.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}</span>
@@ -1530,11 +1659,49 @@ export default function AdminDashboardPage() {
                   {/* Customer & Payment Split Info Cards */}
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
                     <div style={{ background: "#f8fafc", padding: "14px", borderRadius: "14px", border: "1px solid #e2e8f0" }}>
-                      <div style={{ color: "#64748b", fontSize: "11px", fontWeight: 800, textTransform: "uppercase", marginBottom: "4px" }}>
-                        Delivery Address
+                      <div style={{ color: "#64748b", fontSize: "11px", fontWeight: 800, textTransform: "uppercase", marginBottom: "8px" }}>
+                        Customer & Delivery Address
                       </div>
-                      <div style={{ fontWeight: 800, color: "#0f172a", fontSize: "13px" }}>
-                        {selectedOrder.customer_name}
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
+                        {selectedOrder.customer_avatar ? (
+                          <img
+                            src={selectedOrder.customer_avatar}
+                            alt={selectedOrder.customer_profile_name || selectedOrder.customer_name}
+                            style={{ width: "38px", height: "38px", borderRadius: "50%", objectFit: "cover", border: "1.5px solid #3b82f6", flexShrink: 0 }}
+                          />
+                        ) : (
+                          <div style={{
+                            width: "38px",
+                            height: "38px",
+                            borderRadius: "50%",
+                            background: "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)",
+                            color: "#1d4ed8",
+                            fontWeight: 800,
+                            fontSize: "14px",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            border: "1px solid #bfdbfe",
+                            flexShrink: 0
+                          }}>
+                            {(selectedOrder.customer_profile_name || selectedOrder.customer_name || "C").charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        <div>
+                          <div style={{ fontWeight: 800, color: "#0f172a", fontSize: "13px" }}>
+                            {selectedOrder.customer_name}
+                          </div>
+                          {selectedOrder.customer_profile_name && selectedOrder.customer_profile_name !== selectedOrder.customer_name && (
+                            <div style={{ fontSize: "11px", color: "#64748b" }}>
+                              Profile: {selectedOrder.customer_profile_name}
+                            </div>
+                          )}
+                          {selectedOrder.customer_username && (
+                            <div style={{ fontSize: "11px", color: "#2563eb" }}>
+                              @{selectedOrder.customer_username}
+                            </div>
+                          )}
+                        </div>
                       </div>
                       <div style={{ color: "#475569", fontSize: "12px", marginTop: "4px", lineHeight: 1.4 }}>
                         {selectedOrder.address}
@@ -1803,8 +1970,10 @@ export default function AdminDashboardPage() {
                 <table className="admin-table">
                   <thead>
                     <tr>
-                      <th>Customer Name</th>
+                      <th>Customer</th>
+                      <th>Contact Info</th>
                       <th>Address / Location</th>
+                      <th>Purchased Products</th>
                       <th>Total Orders</th>
                       <th>Total Spent</th>
                       <th>Last Order Date</th>
@@ -1813,22 +1982,100 @@ export default function AdminDashboardPage() {
                   <tbody>
                     {customersList.length === 0 ? (
                       <tr>
-                        <td colSpan={5} style={{ textAlign: "center", padding: "32px", color: "var(--coffee)" }}>
+                        <td colSpan={7} style={{ textAlign: "center", padding: "32px", color: "var(--coffee)" }}>
                           No customer records found.
                         </td>
                       </tr>
                     ) : (
                       customersList.map((c, idx) => (
-                        <tr key={idx}>
-                          <td style={{ fontWeight: 700, color: "var(--forest)" }}>{c.customer_name}</td>
-                          <td style={{ color: "var(--ink)" }}>{c.address}</td>
+                        <tr key={c.id || idx}>
+                          <td>
+                            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                              {c.avatar_url ? (
+                                <img
+                                  src={c.avatar_url}
+                                  alt={c.profile_name || c.customer_name}
+                                  style={{ width: "38px", height: "38px", borderRadius: "50%", objectFit: "cover", border: "1.5px solid #2563eb", flexShrink: 0 }}
+                                />
+                              ) : (
+                                <div style={{
+                                  width: "38px",
+                                  height: "38px",
+                                  borderRadius: "50%",
+                                  background: "#eff6ff",
+                                  color: "#1d4ed8",
+                                  fontWeight: 800,
+                                  fontSize: "14px",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  border: "1px solid #bfdbfe",
+                                  flexShrink: 0
+                                }}>
+                                  {(c.profile_name || c.customer_name || "C").charAt(0).toUpperCase()}
+                                </div>
+                              )}
+                              <div>
+                                <div style={{ fontWeight: 700, color: "var(--forest)" }}>{c.customer_name}</div>
+                                {c.profile_name && c.profile_name !== c.customer_name && (
+                                  <div style={{ fontSize: "11px", color: "var(--coffee)" }}>👤 {c.profile_name}</div>
+                                )}
+                                {c.username && (
+                                  <div style={{ fontSize: "11px", color: "#2563eb" }}>@{c.username}</div>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          <td>
+                            <div style={{ fontSize: "12px", color: "var(--ink)", fontWeight: 600 }}>{c.phone || "—"}</div>
+                            {c.email && <div style={{ fontSize: "11px", color: "var(--coffee)" }}>{c.email}</div>}
+                          </td>
+                          <td style={{ color: "var(--ink)", fontSize: "12px", maxWidth: "200px" }}>{c.address}</td>
+                          <td>
+                            <div style={{ display: "flex", alignItems: "center", gap: "5px", flexWrap: "wrap", maxWidth: "160px" }}>
+                              {(c.purchased_products || []).slice(0, 4).map((p, pIdx) => (
+                                <div
+                                  key={pIdx}
+                                  title={p.name}
+                                  style={{
+                                    width: "28px",
+                                    height: "28px",
+                                    borderRadius: "6px",
+                                    overflow: "hidden",
+                                    border: "1px solid #e2e8f0",
+                                    background: "#f8fafc",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    flexShrink: 0
+                                  }}
+                                >
+                                  {p.image ? (
+                                    <img src={p.image} alt={p.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                  ) : (
+                                    <Package size={14} style={{ color: "#94a3b8" }} />
+                                  )}
+                                </div>
+                              ))}
+                              {(c.purchased_products || []).length > 4 && (
+                                <span style={{ fontSize: "11px", fontWeight: 700, color: "#64748b", background: "#f1f5f9", padding: "1px 5px", borderRadius: "6px" }}>
+                                  +{c.purchased_products.length - 4}
+                                </span>
+                              )}
+                              {(!c.purchased_products || c.purchased_products.length === 0) && (
+                                <span style={{ color: "var(--coffee)", fontSize: "12px" }}>—</span>
+                              )}
+                            </div>
+                          </td>
                           <td style={{ fontWeight: 700 }}>
                             <span className="admin-badge delivered" style={{ background: "rgba(16,185,129,0.1)", color: "var(--forest)" }}>
                               {c.total_orders} Orders
                             </span>
                           </td>
                           <td style={{ fontWeight: 800, color: "var(--emerald)" }}>৳{c.total_spent}</td>
-                          <td style={{ color: "var(--coffee)", fontSize: "13px" }}>{new Date(c.last_order_date).toLocaleDateString("bn-BD")}</td>
+                          <td style={{ color: "var(--coffee)", fontSize: "12px" }}>
+                            {c.last_order_date ? new Date(c.last_order_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—"}
+                          </td>
                         </tr>
                       ))
                     )}

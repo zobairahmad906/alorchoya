@@ -257,7 +257,7 @@ class CustomerOrderItemSerializer(serializers.ModelSerializer):
         img_obj = obj.product.images.filter(is_primary=True).first() or obj.product.images.first()
         if not img_obj:
             return None
-        file_obj = img_obj.hero_desktop or img_obj.image
+        file_obj = img_obj.card_image or img_obj.hero_desktop or img_obj.image
         if not file_obj:
             return None
         url = file_obj.url
@@ -273,10 +273,56 @@ class CustomerOrderSerializer(serializers.ModelSerializer):
     total = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     items = CustomerOrderItemSerializer(many=True, read_only=True)
     status_display = serializers.CharField(source="get_status_display", read_only=True)
+    customer_avatar = serializers.SerializerMethodField()
+    customer_profile_name = serializers.SerializerMethodField()
+    customer_username = serializers.SerializerMethodField()
 
     class Meta:
         model = Order
-        fields = ("id", "status", "status_display", "payment_method", "customer_name", "phone", "email", "address", "delivery_charge", "discount_amount", "created_at", "total", "items")
+        fields = (
+            "id",
+            "status",
+            "status_display",
+            "payment_method",
+            "customer_name",
+            "customer_profile_name",
+            "customer_username",
+            "customer_avatar",
+            "phone",
+            "email",
+            "address",
+            "delivery_charge",
+            "discount_amount",
+            "created_at",
+            "total",
+            "items",
+        )
+
+    def get_customer_avatar(self, obj):
+        if obj.customer:
+            profile = getattr(obj.customer, "customer_profile", None)
+            if profile and profile.avatar_url:
+                return profile.avatar_url
+        if obj.email:
+            profile = CustomerProfile.objects.filter(user__email=obj.email).exclude(avatar_url="").first()
+            if profile and profile.avatar_url:
+                return profile.avatar_url
+        if obj.phone:
+            profile = CustomerProfile.objects.filter(phone=obj.phone).exclude(avatar_url="").first()
+            if profile and profile.avatar_url:
+                return profile.avatar_url
+        return None
+
+    def get_customer_profile_name(self, obj):
+        if obj.customer:
+            full_name = f"{obj.customer.first_name or ''} {obj.customer.last_name or ''}".strip()
+            return full_name or obj.customer.username or obj.customer_name
+        return obj.customer_name
+
+    def get_customer_username(self, obj):
+        if obj.customer:
+            return obj.customer.username
+        return None
 
 
 class ProductImageAssetLinkSerializer(serializers.ModelSerializer):

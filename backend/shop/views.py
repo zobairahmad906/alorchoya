@@ -406,6 +406,102 @@ class AdminOrderListDetailView(APIView):
         return Response({"error": "Invalid request for bulk update"}, status=400)
 
 
+class AdminCustomerListView(APIView):
+    permission_classes = (IsAdminUser,)
+
+    def get(self, request):
+        customers_map = {}
+
+        # 1. Registered CustomerProfiles
+        profiles = CustomerProfile.objects.select_related("user").prefetch_related("addresses").all()
+        for prof in profiles:
+            key = f"user_{prof.user_id}"
+            full_name = f"{prof.user.first_name or ''} {prof.user.last_name or ''}".strip() or prof.user.username
+            default_addr = prof.addresses.filter(is_default=True).first() or prof.addresses.first()
+            customers_map[key] = {
+                "id": prof.id,
+                "user_id": prof.user_id,
+                "customer_name": default_addr.recipient_name if default_addr else full_name,
+                "profile_name": full_name,
+                "username": prof.user.username,
+                "email": prof.user.email,
+                "phone": prof.phone or (default_addr.phone if default_addr else ""),
+                "avatar_url": prof.avatar_url or "",
+                "address": default_addr.address if default_addr else "",
+                "total_orders": 0,
+                "total_spent": 0.0,
+                "last_order_date": None,
+                "purchased_products": [],
+                "is_registered": True,
+            }
+
+        # 2. Iterate orders to accumulate statistics & purchased product previews
+        orders = Order.objects.select_related("customer").prefetch_related("items__product__images").order_by("-created_at")
+        for ord in orders:
+            if ord.customer_id:
+                key = f"user_{ord.customer_id}"
+            elif ord.phone:
+                key = f"phone_{ord.phone.strip()}"
+            elif ord.email:
+                key = f"email_{ord.email.strip().lower()}"
+            else:
+                key = f"order_{ord.id}"
+
+            if key not in customers_map:
+                customers_map[key] = {
+                    "id": ord.id,
+                    "user_id": ord.customer_id,
+                    "customer_name": ord.customer_name or "Guest Customer",
+                    "profile_name": ord.customer_name or "Guest",
+                    "username": "",
+                    "email": ord.email or "",
+                    "phone": ord.phone or "",
+                    "avatar_url": "",
+                    "address": ord.address or "",
+                    "total_orders": 0,
+                    "total_spent": 0.0,
+                    "last_order_date": None,
+                    "purchased_products": [],
+                    "is_registered": bool(ord.customer_id),
+                }
+
+            cust = customers_map[key]
+            cust["total_orders"] += 1
+            cust["total_spent"] += float(ord.total)
+            if not cust["last_order_date"] or ord.created_at > cust["last_order_date"]:
+                cust["last_order_date"] = ord.created_at
+            if not cust["address"] and ord.address:
+                cust["address"] = ord.address
+
+            existing_prod_ids = {p["id"] for p in cust["purchased_products"]}
+            for itm in ord.items.all():
+                if itm.product_id not in existing_prod_ids:
+                    img_obj = itm.product.images.filter(is_primary=True).first() or itm.product.images.first()
+                    img_url = None
+                    if img_obj:
+                        file_obj = img_obj.card_image or img_obj.hero_desktop or img_obj.image
+                        if file_obj:
+                            url = file_obj.url
+                            if url.startswith("/"):
+                                img_url = request.build_absolute_uri(url)
+                            else:
+                                internal = os.getenv("MINIO_ENDPOINT", "minio:9000")
+                                public = os.getenv("MINIO_PUBLIC_ENDPOINT", "localhost:9000")
+                                scheme = "https" if public not in ("localhost:9000", "127.0.0.1:9000") else "http"
+                                img_url = url.replace(f"http://{internal}", f"{scheme}://{public}")
+                    cust["purchased_products"].append({
+                        "id": itm.product_id,
+                        "name": itm.product.name,
+                        "slug": itm.product.slug,
+                        "image": img_url,
+                    })
+                    existing_prod_ids.add(itm.product_id)
+
+        customer_list = list(customers_map.values())
+        customer_list.sort(key=lambda c: (c["total_spent"], c["total_orders"]), reverse=True)
+        return Response(customer_list)
+
+
 class AdminProductListCreateView(APIView):
     permission_classes = (IsAdminUser,)
     parser_classes = (MultiPartParser, FormParser, JSONParser)
