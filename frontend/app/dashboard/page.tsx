@@ -19,6 +19,13 @@ import {
   RefreshCw,
   Menu,
   X,
+  Wallet,
+  TrendingUp,
+  ShieldCheck,
+  Award,
+  Filter,
+  ArrowUpRight,
+  Package,
 } from "lucide-react";
 
 type OrderItem = {
@@ -734,154 +741,297 @@ export default function AdminDashboardPage() {
           </header>
 
           <main className="admin-main-viewport">
-            {/* OVERVIEW TAB */}
+            {/* OVERVIEW TAB (Exact newsmartagent Profit Style) */}
             {activeTab === "overview" && stats && (
               <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-                {/* KPI Cards Grid */}
-            <div className="admin-kpi-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))" }}>
-              <div className="admin-kpi-card">
-                <div className="admin-kpi-title">Total Revenue</div>
-                <div className="admin-kpi-val emerald">৳{stats.total_revenue.toLocaleString()}</div>
-                <div className="admin-kpi-sub" style={{ color: "#64748b" }}>Last 30 Days: ৳{stats.monthly_revenue.toLocaleString()}</div>
-              </div>
+                {/* 1. Overview / Profit Style Header Bar */}
+                <div className="profit-filter-bar">
+                  <div className="profit-filter-left">
+                    <div className="profit-filter-icon-box">
+                      <Filter size={20} />
+                    </div>
+                    <div>
+                      <h3 className="profit-filter-title">
+                        Store Performance & Financial Overview
+                      </h3>
+                      <p className="profit-filter-sub">
+                        Live revenue, order fulfillment, stock valuation & customer directory ledger
+                      </p>
+                    </div>
+                  </div>
 
-              <div className="admin-kpi-card">
-                <div className="admin-kpi-title">Average Order Value (AOV)</div>
-                <div className="admin-kpi-val" style={{ color: "var(--forest)" }}>৳{stats.avg_order_value || 0}</div>
-                <div className="admin-kpi-sub" style={{ color: "#64748b" }}>Avg. spend per order</div>
-              </div>
-
-              <div className="admin-kpi-card">
-                <div className="admin-kpi-title">Total Orders</div>
-                <div className="admin-kpi-val">{stats.total_orders}</div>
-                <div className="admin-kpi-sub" style={{ color: "#fbbf24" }}>Pending: {stats.pending_orders} | Delivered: {stats.delivered_orders}</div>
-              </div>
-
-              <div className="admin-kpi-card">
-                <div className="admin-kpi-title">Total Customers</div>
-                <div className="admin-kpi-val" style={{ color: "var(--forest)" }}>{stats.unique_customers || customersList.length} Profiles</div>
-                <div className="admin-kpi-sub" style={{ color: "var(--emerald)" }}>Unique Customer Directory</div>
-              </div>
-
-              <div className="admin-kpi-card">
-                <div className="admin-kpi-title">Inventory & Stock Status</div>
-                <div className="admin-kpi-val">{stats.total_products} Products</div>
-                <div className="admin-kpi-sub" style={{ color: "#fb7185" }}>Out of stock: {stats.out_of_stock_products} | Low stock: {stats.low_stock_products}</div>
-              </div>
-
-              <div className="admin-kpi-card" style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-                <div className="admin-kpi-title">Quick Actions</div>
-                <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
-                  <button onClick={openCreateModal} className="admin-tab-btn active" style={{ flex: 1, fontSize: "12px", padding: "8px" }}>
-                    + Add Product
-                  </button>
-                  <button onClick={() => setActiveTab("orders")} className="admin-header-link" style={{ flex: 1, fontSize: "12px", textAlign: "center" }}>
-                    Orders List ➔
-                  </button>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      onClick={openCreateModal}
+                      className="admin-btn-primary"
+                    >
+                      <Plus size={15} /> Add Product
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("orders")}
+                      className="admin-btn-secondary"
+                    >
+                      View Orders <ArrowUpRight size={14} />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            </div>
 
-            {/* Sales Chart & Top Selling Products Row */}
-            <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: "24px" }}>
-              {/* Daily Sales Bar Chart */}
-              <div className="admin-panel">
-                <h3 style={{ fontSize: "18px", fontWeight: 800, color: "#0f172a", margin: "0 0 20px" }}>
-                  Sales Analytics (Last 7 Days)
-                </h3>
-                <div style={{ height: "200px", display: "flex", alignItems: "flex-end", gap: "16px", paddingTop: "16px", borderBottom: "1px solid var(--line)", paddingBottom: "8px" }}>
-                  {stats.daily_sales.map((day, idx) => {
-                    const maxRev = Math.max(...stats.daily_sales.map(d => d.revenue), 1000);
-                    const heightPercent = Math.max((day.revenue / maxRev) * 100, 8);
-                    return (
-                      <div key={idx} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
-                        <div
-                          style={{ height: `${heightPercent}%`, width: "100%", background: "linear-gradient(180deg, var(--emerald), var(--forest))", borderRadius: "6px 6px 0 0" }}
-                        ></div>
-                        <span style={{ fontSize: "12px", color: "var(--coffee)", fontWeight: 600 }}>{day.date}</span>
+                {/* 2. Key Financial & Operational StatCards (Exact newsmartagent Profit Style) */}
+                <div className="profit-stat-grid">
+                  {/* Card 1: Total Revenue (Green) */}
+                  <div className="profit-stat-card green">
+                    <div className="profit-stat-inner">
+                      <div className="profit-glow-orb" style={{ background: "#10b981" }} />
+                      <div className="profit-icon-box green">
+                        <TrendingUp size={22} />
                       </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Top Selling Products */}
-              <div className="admin-panel">
-                <h3 style={{ fontSize: "18px", fontWeight: 800, color: "#0f172a", margin: "0 0 16px" }}>
-                  Top Selling Products
-                </h3>
-                {stats.top_products && stats.top_products.length > 0 ? (
-                  <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                    {stats.top_products.map((item, idx) => (
-                      <div key={idx} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", background: "var(--ivory)", borderRadius: "8px", border: "1px solid var(--line)" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                          <span style={{ fontWeight: 800, color: "var(--emerald)", fontSize: "14px" }}>#{idx + 1}</span>
-                          <span style={{ fontWeight: 600, fontSize: "13px", color: "var(--forest)" }}>{item.name}</span>
+                      <div>
+                        <div className="profit-title">Total Revenue</div>
+                        <div className="profit-val">৳{stats.total_revenue.toLocaleString()}</div>
+                        <div className="profit-sub">
+                          Last 30 Days: ৳{stats.monthly_revenue.toLocaleString()}
                         </div>
-                        <span style={{ fontSize: "12px", fontWeight: 700, color: "var(--coffee)", background: "var(--cream)", padding: "2px 8px", borderRadius: "6px" }}>
-                          {item.sold} sold
-                        </span>
                       </div>
-                    ))}
+                    </div>
                   </div>
-                ) : (
-                  <div style={{ color: "var(--coffee)", fontSize: "13px", textAlign: "center", paddingTop: "30px" }}>
-                    No order records available yet.
+
+                  {/* Card 2: Average Order Value (Blue) */}
+                  <div className="profit-stat-card blue">
+                    <div className="profit-stat-inner">
+                      <div className="profit-glow-orb" style={{ background: "#3b82f6" }} />
+                      <div className="profit-icon-box blue">
+                        <Wallet size={22} />
+                      </div>
+                      <div>
+                        <div className="profit-title">Average Order Value</div>
+                        <div className="profit-val">৳{stats.avg_order_value || 0}</div>
+                        <div className="profit-sub">
+                          Avg. customer spend per checkout
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                )}
-              </div>
-            </div>
 
-            {/* Recent Orders Overview */}
-            <div className="admin-panel">
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
-                <h3 style={{ fontSize: "20px", fontWeight: 800, color: "var(--forest)", margin: 0 }}>Recent Orders (Last 10)</h3>
-                <button onClick={() => setActiveTab("orders")} className="admin-header-link" style={{ fontSize: "12px" }}>
-                  View All Orders ➔
-                </button>
-              </div>
+                  {/* Card 3: Total Orders (Indigo) */}
+                  <div className="profit-stat-card indigo">
+                    <div className="profit-stat-inner">
+                      <div className="profit-glow-orb" style={{ background: "#6366f1" }} />
+                      <div className="profit-icon-box indigo">
+                        <ShoppingCart size={22} />
+                      </div>
+                      <div>
+                        <div className="profit-title">Total Orders</div>
+                        <div className="profit-val">{stats.total_orders}</div>
+                        <div className="profit-sub">
+                          Pending: {stats.pending_orders} | Delivered: {stats.delivered_orders}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
 
-              <div style={{ overflowX: "auto" }}>
-                <table className="admin-table">
-                  <thead>
-                    <tr>
-                      <th>Order ID</th>
-                      <th>Customer Name</th>
-                      <th>Date</th>
-                      <th>Total</th>
-                      <th>Status</th>
-                      <th style={{ textAlign: "right" }}>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {stats.recent_orders.map(order => (
-                      <tr key={order.id}>
-                        <td style={{ fontWeight: 700, color: "var(--forest)" }}>#{order.id}</td>
-                        <td style={{ fontWeight: 600 }}>{order.customer_name}</td>
-                        <td style={{ color: "var(--coffee)", fontSize: "13px" }}>{new Date(order.created_at).toLocaleDateString("bn-BD")}</td>
-                        <td style={{ fontWeight: 700, color: "var(--forest)" }}>৳{order.total}</td>
-                        <td>
-                          <span className={`admin-badge ${order.status}`}>
-                            {order.status_display || order.status}
-                          </span>
-                        </td>
-                        <td style={{ textAlign: "right" }}>
-                          <button
-                            onClick={() => { setSelectedOrder(order); setActiveTab("orders"); }}
-                            className="admin-header-link"
-                            style={{ padding: "4px 12px", fontSize: "12px" }}
-                          >
-                            Details
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                  {/* Card 4: Total Customers (Purple) */}
+                  <div className="profit-stat-card purple">
+                    <div className="profit-stat-inner">
+                      <div className="profit-glow-orb" style={{ background: "#a855f7" }} />
+                      <div className="profit-icon-box purple">
+                        <Users size={22} />
+                      </div>
+                      <div>
+                        <div className="profit-title">Customer Profiles</div>
+                        <div className="profit-val">{stats.unique_customers || customersList.length}</div>
+                        <div className="profit-sub">
+                          Unique customer accounts recorded
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card 5: Inventory & Stock Status (Orange) */}
+                  <div className="profit-stat-card orange">
+                    <div className="profit-stat-inner">
+                      <div className="profit-glow-orb" style={{ background: "#f59e0b" }} />
+                      <div className="profit-icon-box orange">
+                        <Boxes size={22} />
+                      </div>
+                      <div>
+                        <div className="profit-title">Inventory & Stock</div>
+                        <div className="profit-val">{stats.total_products} Products</div>
+                        <div className="profit-sub">
+                          Out of stock: {stats.out_of_stock_products} | Low: {stats.low_stock_products}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card 6: Operations Health (Teal) */}
+                  <div className="profit-stat-card teal">
+                    <div className="profit-stat-inner">
+                      <div className="profit-glow-orb" style={{ background: "#0d9488" }} />
+                      <div className="profit-icon-box teal">
+                        <ShieldCheck size={22} />
+                      </div>
+                      <div>
+                        <div className="profit-title">System Status</div>
+                        <div className="profit-val">100% Active</div>
+                        <div className="profit-sub">
+                          Live store & AI catalog active
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Sales Trend & Top Products Row (Profit Panel Style) */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "20px" }}>
+                  {/* Daily Sales Bar Chart */}
+                  <div className="profit-panel-card" style={{ flex: 1.6 }}>
+                    <div className="profit-panel-header">
+                      <h3 className="profit-panel-title">
+                        <TrendingUp size={20} style={{ color: "#4f46e5" }} />
+                        Sales Analytics (Last 7 Days)
+                      </h3>
+                      <p className="profit-panel-sub">
+                        Daily sales revenue velocity and turnover
+                      </p>
+                    </div>
+                    <div className="profit-bar-chart">
+                      {stats.daily_sales.map((day, idx) => {
+                        const maxRev = Math.max(...stats.daily_sales.map(d => d.revenue), 1000);
+                        const heightPercent = Math.max((day.revenue / maxRev) * 100, 8);
+                        return (
+                          <div key={idx} className="profit-bar-col">
+                            <span style={{ fontSize: "11px", fontWeight: 700, color: "#64748b" }}>
+                              ৳{day.revenue > 0 ? (day.revenue >= 1000 ? `${(day.revenue / 1000).toFixed(1)}k` : day.revenue) : 0}
+                            </span>
+                            <div
+                              className="profit-bar-fill"
+                              style={{ height: `${heightPercent}%` }}
+                              title={`${day.date}: ৳${day.revenue}`}
+                            />
+                            <span style={{ fontSize: "12px", color: "#64748b", fontWeight: 700 }}>
+                              {day.date}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Top Selling Products */}
+                  <div className="profit-panel-card" style={{ flex: 1 }}>
+                    <div className="profit-panel-header">
+                      <h3 className="profit-panel-title">
+                        <Award size={20} style={{ color: "#f59e0b" }} />
+                        Top Selling Products
+                      </h3>
+                      <p className="profit-panel-sub">
+                        Best-performing catalog items by units sold
+                      </p>
+                    </div>
+                    {stats.top_products && stats.top_products.length > 0 ? (
+                      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                        {stats.top_products.map((item, idx) => (
+                          <div key={idx} className="profit-top-product-item">
+                            <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0 }}>
+                              <span style={{
+                                width: "26px",
+                                height: "26px",
+                                borderRadius: "8px",
+                                background: idx === 0 ? "#fef3c7" : idx === 1 ? "#eff6ff" : "#f1f5f9",
+                                color: idx === 0 ? "#b45309" : idx === 1 ? "#1d4ed8" : "#475569",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontWeight: 900,
+                                fontSize: "12px",
+                                flexShrink: 0
+                              }}>
+                                #{idx + 1}
+                              </span>
+                              <span style={{ fontWeight: 700, fontSize: "13px", color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                {item.name}
+                              </span>
+                            </div>
+                            <span style={{ fontSize: "12px", fontWeight: 800, color: "#059669", background: "#ecfdf5", border: "1px solid #a7f3d0", padding: "3px 10px", borderRadius: "8px", flexShrink: 0 }}>
+                              {item.sold} sold
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={{ color: "#94a3b8", fontSize: "13px", textAlign: "center", padding: "40px 0", fontWeight: 600 }}>
+                        No product sales recorded yet.
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* 4. Recent Orders Panel (Profit Table Style) */}
+                <div className="profit-panel-card" style={{ padding: "20px 24px" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "18px", paddingBottom: "14px", borderBottom: "1px solid #f1f5f9" }}>
+                    <div>
+                      <h3 className="profit-panel-title">
+                        <Package size={20} style={{ color: "#2563eb" }} />
+                        Recent Orders (Last 10)
+                      </h3>
+                      <p className="profit-panel-sub">
+                        Latest customer checkouts and fulfillment status
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setActiveTab("orders")}
+                      className="admin-btn-secondary"
+                      style={{ fontSize: "12px", padding: "7px 14px" }}
+                    >
+                      View All Orders <ArrowUpRight size={13} />
+                    </button>
+                  </div>
+
+                  <div style={{ overflowX: "auto" }}>
+                    <table className="admin-table">
+                      <thead>
+                        <tr>
+                          <th>Order ID</th>
+                          <th>Customer Name</th>
+                          <th>Date</th>
+                          <th>Total</th>
+                          <th>Status</th>
+                          <th style={{ textAlign: "right" }}>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {stats.recent_orders.map(order => (
+                          <tr key={order.id}>
+                            <td style={{ fontWeight: 800, color: "#2563eb" }}>#{order.id}</td>
+                            <td style={{ fontWeight: 700, color: "#0f172a" }}>{order.customer_name}</td>
+                            <td style={{ color: "#64748b", fontSize: "13px" }}>
+                              {new Date(order.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
+                            </td>
+                            <td style={{ fontWeight: 800, color: "#0f172a" }}>৳{order.total}</td>
+                            <td>
+                              <span className={`admin-badge ${order.status}`}>
+                                {order.status_display || order.status}
+                              </span>
+                            </td>
+                            <td style={{ textAlign: "right" }}>
+                              <button
+                                onClick={() => { setSelectedOrder(order); setActiveTab("orders"); }}
+                                className="admin-btn-secondary"
+                                style={{ padding: "5px 12px", fontSize: "11px", fontWeight: 700 }}
+                              >
+                                Details
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-        )}
+          )}
 
         {/* ORDERS TAB */}
         {activeTab === "orders" && (
