@@ -427,6 +427,11 @@ class AdminDashboardStatsView(APIView):
         pending_orders = orders_qs.filter(status="pending").count()
         delivered_orders = orders_qs.filter(status="delivered").count()
         cancelled_orders = orders_qs.filter(status="cancelled").count()
+        order_status_counts = {status: 0 for status, _ in Order.STATUS_CHOICES}
+        order_status_counts.update({
+            row["status"]: row["count"]
+            for row in orders_qs.values("status").annotate(count=Count("id"))
+        })
 
         # Calculate revenue excluding cancelled
         valid_orders = orders_qs.exclude(status="cancelled")
@@ -476,6 +481,7 @@ class AdminDashboardStatsView(APIView):
             "pending_orders": pending_orders,
             "delivered_orders": delivered_orders,
             "cancelled_orders": cancelled_orders,
+            "order_status_counts": order_status_counts,
             "total_products": total_products,
             "low_stock_products": low_stock_products,
             "out_of_stock_products": out_of_stock_products,

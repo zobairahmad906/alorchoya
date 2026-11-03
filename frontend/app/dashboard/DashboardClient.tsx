@@ -359,6 +359,8 @@ type DashboardStats = {
 
   cancelled_orders: number;
 
+  order_status_counts?: Record<string, number>;
+
   total_products: number;
 
   low_stock_products: number;
@@ -428,6 +430,8 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   const [loading, setLoading] = useState(true);
+
+  const dashboardLoadedRef = useRef(false);
 
   const [error, setError] = useState<string | null>(null);
 
@@ -779,11 +783,11 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
     fetchDashboardData();
 
-  }, [orderStatusFilter]);
+  }, []);
 
   const fetchDashboardData = async () => {
 
-    setLoading(true);
+    if (!dashboardLoadedRef.current) setLoading(true);
 
     setError(null);
 
@@ -811,7 +815,7 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
       // Fetch Orders
 
-      const orderQuery = orderStatusFilter ? `?status=${encodeURIComponent(orderStatusFilter)}&dashboard_refresh=1` : "?dashboard_refresh=1";
+      const orderQuery = "?dashboard_refresh=1";
 
       const ordersUrl = getApiUrl(`/admin/orders/${orderQuery}`);
 
@@ -978,6 +982,8 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
       setError("Failed to load dashboard data. Please check server status.");
 
     } finally {
+
+      dashboardLoadedRef.current = true;
 
       setLoading(false);
 
@@ -3623,21 +3629,21 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
               {[
 
-                { id: "all", label: "All Orders", count: orders.length },
+                { id: "all", label: "All Orders", count: stats?.total_orders ?? orders.length },
 
-                { id: "pending", label: "Pending", count: orders.filter(o => o.status === "pending").length },
+                { id: "pending", label: "Pending", count: stats?.order_status_counts?.pending ?? orders.filter(o => o.status === "pending").length },
 
-                { id: "confirmed", label: "Confirmed", count: orders.filter(o => o.status === "confirmed").length },
+                { id: "confirmed", label: "Confirmed", count: stats?.order_status_counts?.confirmed ?? orders.filter(o => o.status === "confirmed").length },
 
-                { id: "courier_booked", label: "Booked to Courier", count: orders.filter(o => o.status === "courier_booked").length },
+                { id: "courier_booked", label: "Booked to Courier", count: stats?.order_status_counts?.courier_booked ?? orders.filter(o => o.status === "courier_booked").length },
 
-                { id: "processing", label: "Processing", count: orders.filter(o => o.status === "processing").length },
+                { id: "processing", label: "Processing", count: stats?.order_status_counts?.processing ?? orders.filter(o => o.status === "processing").length },
 
-                { id: "shipped", label: "Shipped", count: orders.filter(o => o.status === "shipped").length },
+                { id: "shipped", label: "Shipped", count: stats?.order_status_counts?.shipped ?? orders.filter(o => o.status === "shipped").length },
 
-                { id: "delivered", label: "Delivered", count: orders.filter(o => o.status === "delivered").length },
+                { id: "delivered", label: "Delivered", count: stats?.order_status_counts?.delivered ?? orders.filter(o => o.status === "delivered").length },
 
-                { id: "cancelled", label: "Cancelled", count: orders.filter(o => o.status === "cancelled").length },
+                { id: "cancelled", label: "Cancelled", count: stats?.order_status_counts?.cancelled ?? orders.filter(o => o.status === "cancelled").length },
 
               ].map(tab => (
 
