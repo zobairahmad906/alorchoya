@@ -183,6 +183,8 @@ class PathaoCourierClient:
 
         candidates = ("delivery_fee", "delivery_charge", "charge", "price", "amount", "cost")
         def find_amount(value):
+            if isinstance(value, (int, float)):
+                return float(value)
             if isinstance(value, dict):
                 for key in candidates:
                     if key in value and isinstance(value[key], (int, float, str)):

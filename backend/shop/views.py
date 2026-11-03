@@ -53,8 +53,8 @@ class OrderCreate(generics.CreateAPIView):
 
 def _active_pathao_client():
     config = CourierConfig.objects.filter(provider="pathao", is_active=True).first()
-    if not config or not (config.client_id and config.client_secret and config.username and config.password):
-        raise ValueError("Pathao live checkout is not configured. Please contact the store.")
+    if not config or config.is_sandbox or not (config.client_id and config.client_secret and config.username and config.password):
+        raise ValueError("Pathao production credentials are not configured. Please contact the store.")
     if not config.store_id:
         raise ValueError("Pathao Store ID is missing. Please contact the store.")
     return PathaoCourierClient(config)
@@ -73,7 +73,7 @@ class CheckoutCourierOptionsView(APIView):
 
     def get(self, request):
         config = CourierConfig.objects.filter(provider="pathao", is_active=True).first()
-        is_ready = bool(config and config.client_id and config.client_secret and config.username and config.password and config.store_id)
+        is_ready = bool(config and not config.is_sandbox and config.client_id and config.client_secret and config.username and config.password and config.store_id)
         return Response({"providers": ([{"id": "pathao", "name": "Pathao", "live_quote": True}] if is_ready else [])})
 
 
@@ -702,6 +702,8 @@ class AdminCourierBookView(APIView):
             return Response({"error": "order_id is required"}, status=400)
 
         order = get_object_or_404(Order, pk=order_id)
+        if order.courier_city_id and provider != order.courier_provider:
+            return Response({"error": "This order must be booked with the courier used for the checkout delivery quote."}, status=400)
         config = CourierConfig.objects.filter(provider=provider).first()
 
         cod_amount = request.data.get("cod_amount")
@@ -744,8 +746,9 @@ class AdminCourierBookView(APIView):
                         "recipient_city": int(order.courier_city_id) if order.courier_city_id else None,
                         "recipient_zone": int(order.courier_zone_id) if order.courier_zone_id else None,
                         "recipient_area": int(order.courier_area_id) if order.courier_area_id else None,
+                        "delivery_type": 48,
                         "amount_to_collect": int(cod_amount),
-                        "item_type": 1,
+                        "item_type": 2,
                         "item_quantity": sum(it.quantity for it in order.items.all()) or 1,
                         "item_weight": float(request.data.get("weight") or order.courier_weight_kg or 0.5),
                         "item_description": note,

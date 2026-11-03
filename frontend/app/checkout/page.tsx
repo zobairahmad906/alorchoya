@@ -114,6 +114,8 @@ export default function CheckoutPage() {
 
   const handleSelectSavedAddress = (addr: { id: number; recipient_name: string; phone: string; address: string; district: string; upazila?: string }) => {
     setSelectedAddressId(addr.id);
+    setCityId(""); setZoneId(""); setAreaId(""); setZones([]); setAreas([]);
+    setDeliveryCharge(null);
     if (addr.recipient_name) setName(addr.recipient_name);
     if (addr.phone) setPhone(addr.phone);
     setDeliveryAddress(addr.address);
@@ -526,7 +528,7 @@ export default function CheckoutPage() {
                     </div>
                     {courierError && <div className="checkout-error-box" role="alert">{courierError}</div>}
                     {quoteLoading && <p aria-live="polite">Checking live delivery charge...</p>}
-                    {deliveryCharge !== null && !quoteLoading && <p aria-live="polite">Live delivery charge: <strong>{deliveryCharge === null ? "?" : `BDT ${deliveryCharge.toLocaleString("bn-BD")}`}</strong></p>}
+                    {deliveryCharge !== null && !quoteLoading && <p aria-live="polite">Live delivery charge: <strong>BDT {deliveryCharge.toLocaleString("bn-BD")}</strong></p>}
 
                     <div className="field-group">
                       <label>Detailed address (house, road, landmark) *</label>
@@ -629,7 +631,7 @@ export default function CheckoutPage() {
                   </div>
                   <div className="cost-row">
                     <span>ডেলিভারি চার্জ</span>
-                    <strong>{deliveryCharge === null ? "?" : `BDT ${deliveryCharge.toLocaleString("bn-BD")}`}</strong>
+                    <strong>{deliveryCharge === null ? "—" : `BDT ${deliveryCharge.toLocaleString("bn-BD")}`}</strong>
                   </div>
                   {couponDiscount > 0 && (
                     <div className="cost-row discount">

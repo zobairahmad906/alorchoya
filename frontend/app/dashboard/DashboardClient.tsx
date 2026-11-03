@@ -1033,6 +1033,8 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
     setBookingOrder(order);
 
+    setBookingProvider(order.courier_provider === "pathao" ? "pathao" : "steadfast");
+
     setBookingRecipientName(order.customer_name);
 
     setBookingRecipientPhone(order.phone || "");
@@ -7955,6 +7957,8 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
                     onClick={() => setBookingProvider("steadfast")}
 
+                    disabled={Boolean(bookingOrder.courier_city_id && bookingOrder.courier_provider !== "steadfast")}
+
                     style={{
 
                       padding: "10px",
@@ -7986,6 +7990,8 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                     type="button"
 
                     onClick={() => setBookingProvider("pathao")}
+
+                    disabled={Boolean(bookingOrder.courier_city_id && bookingOrder.courier_provider !== "pathao")}
 
                     style={{
 
