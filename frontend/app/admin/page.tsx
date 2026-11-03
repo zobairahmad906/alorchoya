@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Header } from "../components";
 import ProductForm from "./components/ProductForm";
+import { Package } from "lucide-react";
 
 type OrderItem = {
   id: number;
@@ -19,12 +20,32 @@ type Order = {
   status_display: string;
   payment_method: string;
   customer_name: string;
+  customer_profile_name?: string | null;
+  customer_username?: string | null;
+  customer_avatar?: string | null;
+  phone?: string;
+  email?: string;
   address: string;
   delivery_charge: string;
   discount_amount: string;
   created_at: string;
   total: number;
   items: OrderItem[];
+};
+
+type CustomerDirectoryItem = {
+  id: string | number;
+  customer_name: string;
+  profile_name?: string | null;
+  username?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  avatar_url?: string | null;
+  address: string;
+  total_orders: number;
+  total_spent: number;
+  last_order_date: string;
+  purchased_products: { id: number; name: string; image?: string | null }[];
 };
 
 type Product = {
@@ -106,30 +127,55 @@ export default function AdminDashboardPage() {
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState<string | null>(null);
   const [isSubmittingLogin, setIsSubmittingLogin] = useState(false);
+  const [serverCustomers, setServerCustomers] = useState<CustomerDirectoryItem[]>([]);
 
-  const customersList = React.useMemo(() => {
-    const map = new Map<string, { customer_name: string; address: string; total_orders: number; total_spent: number; last_order_date: string }>();
+  const customersList = React.useMemo<CustomerDirectoryItem[]>(() => {
+    if (serverCustomers.length > 0) {
+      return serverCustomers;
+    }
+    const map = new Map<string, CustomerDirectoryItem>();
     orders.forEach((ord) => {
       const key = ord.customer_name ? ord.customer_name.trim() : `Customer #${ord.id}`;
+      const productThumbs = (ord.items || []).map(it => ({
+        id: it.id,
+        name: it.product_name,
+        image: it.product_image || null,
+      }));
       if (!map.has(key)) {
         map.set(key, {
+          id: key,
           customer_name: key,
+          profile_name: ord.customer_profile_name || null,
+          username: ord.customer_username || null,
+          email: ord.email || null,
+          phone: ord.phone || null,
+          avatar_url: ord.customer_avatar || null,
           address: ord.address || "N/A",
           total_orders: 1,
           total_spent: ord.total,
           last_order_date: ord.created_at,
+          purchased_products: productThumbs,
         });
       } else {
         const item = map.get(key)!;
         item.total_orders += 1;
         item.total_spent += ord.total;
+        if (!item.avatar_url && ord.customer_avatar) item.avatar_url = ord.customer_avatar;
+        if (!item.profile_name && ord.customer_profile_name) item.profile_name = ord.customer_profile_name;
+        if (!item.email && ord.email) item.email = ord.email;
+        if (!item.phone && ord.phone) item.phone = ord.phone;
         if (new Date(ord.created_at) > new Date(item.last_order_date)) {
           item.last_order_date = ord.created_at;
         }
+        productThumbs.forEach(pt => {
+          if (!item.purchased_products.some(p => p.name === pt.name)) {
+            item.purchased_products.push(pt);
+          }
+        });
       }
     });
     return Array.from(map.values());
-  }, [orders]);
+  }, [serverCustomers, orders]);
 
   const getApiUrl = (endpoint: string) => {
     let [pathStr, queryStr] = endpoint.split("?");
@@ -183,6 +229,17 @@ export default function AdminDashboardPage() {
       if (catRes.ok) {
         const catData = await catRes.json();
         setCategories(catData.results || catData);
+      }
+
+      // Fetch Customers Directory
+      try {
+        const custRes = await fetch(getApiUrl("/admin/customers/"), { credentials: "include" });
+        if (custRes.ok) {
+          const custData = await custRes.json();
+          setServerCustomers(custData);
+        }
+      } catch (cErr) {
+        console.error("Failed to load customer directory:", cErr);
       }
     } catch (err) {
       console.error(err);
@@ -789,20 +846,103 @@ export default function AdminDashboardPage() {
                         alignItems: "center",
                         justifyContent: "space-between",
                         borderColor: selectedOrder?.id === order.id ? "var(--forest)" : "var(--line)",
-                        background: selectedOrder?.id === order.id ? "var(--cream)" : "#ffffff"
+                        background: selectedOrder?.id === order.id ? "var(--cream)" : "#ffffff",
+                        gap: "14px"
                       }}
                     >
-                      <div>
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                          <span style={{ fontWeight: 800, color: "var(--forest)" }}>#{order.id}</span>
-                          <span style={{ fontWeight: 600, color: "var(--ink)" }}>{order.customer_name}</span>
-                        </div>
-                        <div style={{ fontSize: "12px", color: "var(--coffee)", marginTop: "4px" }}>
-                          {new Date(order.created_at).toLocaleString("bn-BD")}
+                      <div style={{ display: "flex", alignItems: "center", gap: "12px", minWidth: 0 }}>
+                        {/* Customer Avatar / Badge */}
+                        {order.customer_avatar ? (
+                          <img
+                            src={order.customer_avatar}
+                            alt={order.customer_profile_name || order.customer_name}
+                            style={{
+                              width: "40px",
+                              height: "40px",
+                              borderRadius: "50%",
+                              objectFit: "cover",
+                              border: "1.5px solid var(--emerald)",
+                              flexShrink: 0
+                            }}
+                          />
+                        ) : (
+                          <div
+                            style={{
+                              width: "40px",
+                              height: "40px",
+                              borderRadius: "50%",
+                              background: "var(--ivory)",
+                              color: "var(--forest)",
+                              fontWeight: 800,
+                              fontSize: "14px",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              border: "1px solid var(--line)",
+                              flexShrink: 0
+                            }}
+                          >
+                            {(order.customer_profile_name || order.customer_name || "C").charAt(0).toUpperCase()}
+                          </div>
+                        )}
+
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                            <span style={{ fontWeight: 800, color: "var(--forest)" }}>#{order.id}</span>
+                            <span style={{ fontWeight: 600, color: "var(--ink)" }}>{order.customer_name}</span>
+                            {order.customer_profile_name && order.customer_profile_name !== order.customer_name && (
+                              <span style={{ fontSize: "11px", fontWeight: 600, color: "var(--coffee)", background: "var(--ivory)", padding: "1px 6px", borderRadius: "6px" }}>
+                                👤 {order.customer_profile_name}
+                              </span>
+                            )}
+                            <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--coffee)", background: "var(--ivory)", padding: "1px 6px", borderRadius: "6px" }}>
+                              {order.items.length} আইটেম
+                            </span>
+                          </div>
+
+                          {/* Product Thumbnails Preview */}
+                          {order.items && order.items.length > 0 && (
+                            <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "4px" }}>
+                              {order.items.slice(0, 3).map((it, idx) => (
+                                <div
+                                  key={it.id || idx}
+                                  title={`${it.product_name} (${it.quantity}x)`}
+                                  style={{
+                                    width: "28px",
+                                    height: "28px",
+                                    borderRadius: "6px",
+                                    overflow: "hidden",
+                                    border: "1px solid var(--line)",
+                                    background: "#ffffff",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    flexShrink: 0
+                                  }}
+                                >
+                                  {it.product_image ? (
+                                    <img src={it.product_image} alt={it.product_name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                  ) : (
+                                    <Package size={14} style={{ color: "var(--coffee)" }} />
+                                  )}
+                                </div>
+                              ))}
+                              {order.items.length > 3 && (
+                                <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--coffee)", background: "var(--ivory)", padding: "2px 6px", borderRadius: "6px" }}>
+                                  +{order.items.length - 3} আরও
+                                </span>
+                              )}
+                            </div>
+                          )}
+
+                          <div style={{ fontSize: "12px", color: "var(--coffee)", marginTop: "4px" }}>
+                            {new Date(order.created_at).toLocaleString("bn-BD")}
+                            {order.phone && <span> • {order.phone}</span>}
+                          </div>
                         </div>
                       </div>
 
-                      <div style={{ textAlign: "right" }}>
+                      <div style={{ textAlign: "right", flexShrink: 0 }}>
                         <div style={{ fontWeight: 800, color: "var(--forest)", fontSize: "16px" }}>৳{order.total}</div>
                         <span className={`admin-badge ${order.status}`} style={{ marginTop: "4px" }}>
                           {order.status_display || order.status}
@@ -864,9 +1004,46 @@ export default function AdminDashboardPage() {
                 {/* Customer Details */}
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", background: "var(--ivory)", padding: "16px", borderRadius: "12px", border: "1px solid var(--line)", fontSize: "13px" }}>
                   <div>
-                    <div style={{ color: "var(--coffee)", fontWeight: 700, marginBottom: "4px" }}>গ্রাহকের ঠিকানা & নাম</div>
-                    <div style={{ fontWeight: 700, color: "var(--forest)" }}>{selectedOrder.customer_name}</div>
-                    <div style={{ color: "var(--ink)", marginTop: "4px" }}>{selectedOrder.address}</div>
+                    <div style={{ color: "var(--coffee)", fontWeight: 700, marginBottom: "8px" }}>গ্রাহকের পরিচিতি & ঠিকানা</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
+                      {selectedOrder.customer_avatar ? (
+                        <img
+                          src={selectedOrder.customer_avatar}
+                          alt={selectedOrder.customer_profile_name || selectedOrder.customer_name}
+                          style={{ width: "38px", height: "38px", borderRadius: "50%", objectFit: "cover", border: "1.5px solid var(--emerald)", flexShrink: 0 }}
+                        />
+                      ) : (
+                        <div style={{
+                          width: "38px",
+                          height: "38px",
+                          borderRadius: "50%",
+                          background: "#ffffff",
+                          color: "var(--forest)",
+                          fontWeight: 800,
+                          fontSize: "14px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          border: "1px solid var(--line)",
+                          flexShrink: 0
+                        }}>
+                          {(selectedOrder.customer_profile_name || selectedOrder.customer_name || "C").charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      <div>
+                        <div style={{ fontWeight: 700, color: "var(--forest)" }}>{selectedOrder.customer_name}</div>
+                        {selectedOrder.customer_profile_name && selectedOrder.customer_profile_name !== selectedOrder.customer_name && (
+                          <div style={{ fontSize: "11px", color: "var(--coffee)" }}>প্রোফাইল: {selectedOrder.customer_profile_name}</div>
+                        )}
+                        {selectedOrder.customer_username && (
+                          <div style={{ fontSize: "11px", color: "var(--emerald)" }}>@{selectedOrder.customer_username}</div>
+                        )}
+                      </div>
+                    </div>
+                    <div style={{ color: "var(--ink)", marginTop: "4px", lineHeight: 1.4 }}>{selectedOrder.address}</div>
+                    {selectedOrder.phone && (
+                      <div style={{ color: "var(--coffee)", fontSize: "12px", marginTop: "4px" }}>ফোন: {selectedOrder.phone}</div>
+                    )}
                   </div>
                   <div>
                     <div style={{ color: "var(--coffee)", fontWeight: 700, marginBottom: "4px" }}>পেমেন্ট & ডেলিভারি</div>
@@ -1071,32 +1248,112 @@ export default function AdminDashboardPage() {
                 <table className="admin-table">
                   <thead>
                     <tr>
-                      <th>কাস্টমারের নাম</th>
+                      <th>কাস্টমার</th>
+                      <th>যোগাযোগ</th>
                       <th>ঠিকানা / অবস্থান</th>
+                      <th>ক্রয়কৃত পণ্য</th>
                       <th>মোট অর্ডার সংখ্যা</th>
-                      <th>মোট ক্রয় মান (Total Spent)</th>
-                      <th>সর্বশেষ অর্ডারের তারিখ</th>
+                      <th>মোট ক্রয় মান</th>
+                      <th>সর্বশেষ অর্ডার</th>
                     </tr>
                   </thead>
                   <tbody>
                     {customersList.length === 0 ? (
                       <tr>
-                        <td colSpan={5} style={{ textAlign: "center", padding: "32px", color: "var(--coffee)" }}>
+                        <td colSpan={7} style={{ textAlign: "center", padding: "32px", color: "var(--coffee)" }}>
                           কোনো কাস্টমার ডেটা পাওয়া যায়নি।
                         </td>
                       </tr>
                     ) : (
                       customersList.map((c, idx) => (
-                        <tr key={idx}>
-                          <td style={{ fontWeight: 700, color: "var(--forest)" }}>{c.customer_name}</td>
-                          <td style={{ color: "var(--ink)" }}>{c.address}</td>
+                        <tr key={c.id || idx}>
+                          <td>
+                            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                              {c.avatar_url ? (
+                                <img
+                                  src={c.avatar_url}
+                                  alt={c.profile_name || c.customer_name}
+                                  style={{ width: "38px", height: "38px", borderRadius: "50%", objectFit: "cover", border: "1.5px solid var(--emerald)", flexShrink: 0 }}
+                                />
+                              ) : (
+                                <div style={{
+                                  width: "38px",
+                                  height: "38px",
+                                  borderRadius: "50%",
+                                  background: "var(--ivory)",
+                                  color: "var(--forest)",
+                                  fontWeight: 800,
+                                  fontSize: "14px",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  border: "1px solid var(--line)",
+                                  flexShrink: 0
+                                }}>
+                                  {(c.profile_name || c.customer_name || "C").charAt(0).toUpperCase()}
+                                </div>
+                              )}
+                              <div>
+                                <div style={{ fontWeight: 700, color: "var(--forest)" }}>{c.customer_name}</div>
+                                {c.profile_name && c.profile_name !== c.customer_name && (
+                                  <div style={{ fontSize: "11px", color: "var(--coffee)" }}>👤 {c.profile_name}</div>
+                                )}
+                                {c.username && (
+                                  <div style={{ fontSize: "11px", color: "var(--emerald)" }}>@{c.username}</div>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          <td>
+                            <div style={{ fontSize: "12px", color: "var(--ink)", fontWeight: 600 }}>{c.phone || "—"}</div>
+                            {c.email && <div style={{ fontSize: "11px", color: "var(--coffee)" }}>{c.email}</div>}
+                          </td>
+                          <td style={{ color: "var(--ink)", fontSize: "12px", maxWidth: "200px" }}>{c.address}</td>
+                          <td>
+                            <div style={{ display: "flex", alignItems: "center", gap: "5px", flexWrap: "wrap", maxWidth: "160px" }}>
+                              {(c.purchased_products || []).slice(0, 4).map((p, pIdx) => (
+                                <div
+                                  key={pIdx}
+                                  title={p.name}
+                                  style={{
+                                    width: "28px",
+                                    height: "28px",
+                                    borderRadius: "6px",
+                                    overflow: "hidden",
+                                    border: "1px solid var(--line)",
+                                    background: "#ffffff",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    flexShrink: 0
+                                  }}
+                                >
+                                  {p.image ? (
+                                    <img src={p.image} alt={p.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                  ) : (
+                                    <Package size={14} style={{ color: "var(--coffee)" }} />
+                                  )}
+                                </div>
+                              ))}
+                              {(c.purchased_products || []).length > 4 && (
+                                <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--coffee)", background: "var(--ivory)", padding: "1px 5px", borderRadius: "6px" }}>
+                                  +{c.purchased_products.length - 4}
+                                </span>
+                              )}
+                              {(!c.purchased_products || c.purchased_products.length === 0) && (
+                                <span style={{ color: "var(--coffee)", fontSize: "12px" }}>—</span>
+                              )}
+                            </div>
+                          </td>
                           <td style={{ fontWeight: 700 }}>
                             <span className="admin-badge delivered" style={{ background: "rgba(16,185,129,0.1)", color: "var(--forest)" }}>
                               {c.total_orders} টি অর্ডার
                             </span>
                           </td>
                           <td style={{ fontWeight: 800, color: "var(--emerald)" }}>৳{c.total_spent}</td>
-                          <td style={{ color: "var(--coffee)", fontSize: "13px" }}>{new Date(c.last_order_date).toLocaleDateString("bn-BD")}</td>
+                          <td style={{ color: "var(--coffee)", fontSize: "12px" }}>
+                            {c.last_order_date ? new Date(c.last_order_date).toLocaleDateString("bn-BD") : "—"}
+                          </td>
                         </tr>
                       ))
                     )}
