@@ -150,7 +150,7 @@ type DashboardStats = {
 };
 
 export default function AdminDashboardPage() {
-  const [activeTab, setActiveTab] = useState<"overview" | "orders" | "products" | "coupons" | "gallery" | "customers">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "orders" | "products" | "coupons" | "gallery" | "customers" | "hero">("overview");
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -456,6 +456,156 @@ export default function AdminDashboardPage() {
       }
     } catch (e) {
       toast.error("Failed to delete coupon");
+    }
+  };
+
+  const openCreateSlideModal = () => {
+    setEditingSlide(null);
+    setSlideImageFile(null);
+    setSlideMobileImageFile(null);
+    setSlideImagePreview("");
+    setSlideMobileImagePreview("");
+    setSlideForm({
+      title: "",
+      subtitle: "",
+      eyebrow: "★ বিশেষ অফার",
+      button_text: "কেনাকাটা শুরু করুন",
+      button_link: "#shop",
+      product: "",
+      position: heroSlides.length,
+      is_active: true,
+    });
+    setShowSlideModal(true);
+  };
+
+  const openEditSlideModal = (slide: HeroSlide) => {
+    setEditingSlide(slide);
+    setSlideImageFile(null);
+    setSlideMobileImageFile(null);
+    setSlideImagePreview(slide.image || "");
+    setSlideMobileImagePreview(slide.mobile_image || "");
+    setSlideForm({
+      title: slide.title || "",
+      subtitle: slide.subtitle || "",
+      eyebrow: slide.eyebrow || "★ বিশেষ অফার",
+      button_text: slide.button_text || "কেনাকাটা শুরু করুন",
+      button_link: slide.button_link || "#shop",
+      product: slide.product || "",
+      position: slide.position || 0,
+      is_active: slide.is_active,
+    });
+    setShowSlideModal(true);
+  };
+
+  const handleSaveSlide = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingSlide && !slideImageFile) {
+      toast.error("অনুগ্রহ করে স্লাইডের ছবি নির্বাচন করুন।");
+      return;
+    }
+    setSlideSubmitting(true);
+    try {
+      const formData = new FormData();
+      formData.append("title", slideForm.title);
+      formData.append("subtitle", slideForm.subtitle);
+      formData.append("eyebrow", slideForm.eyebrow);
+      formData.append("button_text", slideForm.button_text);
+      formData.append("button_link", slideForm.button_link);
+      formData.append("position", String(slideForm.position));
+      formData.append("is_active", String(slideForm.is_active));
+      if (slideForm.product) {
+        formData.append("product", String(slideForm.product));
+      } else {
+        formData.append("product", "");
+      }
+      if (slideImageFile) {
+        formData.append("image", slideImageFile);
+      }
+      if (slideMobileImageFile) {
+        formData.append("mobile_image", slideMobileImageFile);
+      }
+
+      const url = editingSlide
+        ? getApiUrl(`/admin/hero-slides/${editingSlide.id}/`)
+        : getApiUrl("/admin/hero-slides/");
+      const method = editingSlide ? "PATCH" : "POST";
+
+      const res = await fetch(url, {
+        method,
+        credentials: "include",
+        headers: { ...(csrfToken ? { "X-CSRFToken": csrfToken } : {}) },
+        body: formData,
+      });
+
+      if (res.ok) {
+        toast.success(editingSlide ? "স্লাইড আপডেট সফল হয়েছে!" : "নতুন ব্যানার স্লাইড তৈরি হয়েছে!");
+        setShowSlideModal(false);
+        fetchDashboardData();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.detail || "সংরক্ষণ করতে সমস্যা হয়েছে।");
+      }
+    } catch {
+      toast.error("সার্ভার সমস্যা হয়েছে।");
+    } finally {
+      setSlideSubmitting(false);
+    }
+  };
+
+  const handleToggleSlideActive = async (slide: HeroSlide) => {
+    try {
+      const res = await fetch(getApiUrl(`/admin/hero-slides/${slide.id}/`), {
+        method: "PATCH",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          ...(csrfToken ? { "X-CSRFToken": csrfToken } : {})
+        },
+        body: JSON.stringify({ is_active: !slide.is_active }),
+      });
+      if (res.ok) {
+        setHeroSlides(prev => prev.map(s => s.id === slide.id ? { ...s, is_active: !s.is_active } : s));
+        toast.success(slide.is_active ? "ব্যানার নিষ্ক্রিয় করা হয়েছে" : "ব্যানার সক্রিয় করা হয়েছে");
+      }
+    } catch {
+      toast.error("স্ট্যাটাস আপডেট ব্যর্থ হয়েছে");
+    }
+  };
+
+  const handleMoveSlide = async (slide: HeroSlide, direction: "up" | "down") => {
+    const newPos = direction === "up" ? Math.max(0, slide.position - 1) : slide.position + 1;
+    try {
+      const res = await fetch(getApiUrl(`/admin/hero-slides/${slide.id}/`), {
+        method: "PATCH",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          ...(csrfToken ? { "X-CSRFToken": csrfToken } : {})
+        },
+        body: JSON.stringify({ position: newPos }),
+      });
+      if (res.ok) {
+        fetchDashboardData();
+      }
+    } catch {
+      toast.error("পজিশন আপডেট ব্যর্থ হয়েছে");
+    }
+  };
+
+  const handleDeleteSlide = async (id: number) => {
+    if (!confirm("আপনি কি নিশ্চিত এই ব্যানার স্লাইডটি ডিলিট করতে চান?")) return;
+    try {
+      const res = await fetch(getApiUrl(`/admin/hero-slides/${id}/`), {
+        method: "DELETE",
+        credentials: "include",
+        headers: { ...(csrfToken ? { "X-CSRFToken": csrfToken } : {}) },
+      });
+      if (res.ok) {
+        setHeroSlides(prev => prev.filter(s => s.id !== id));
+        toast.success("ব্যানার স্লাইড মুছে ফেলা হয়েছে!");
+      }
+    } catch {
+      toast.error("সার্ভার ত্রুটি");
     }
   };
 
@@ -1142,6 +1292,7 @@ export default function AdminDashboardPage() {
                 {activeTab === "overview" && "Dashboard Overview"}
                 {activeTab === "orders" && "Orders & Fulfillment"}
                 {activeTab === "products" && "Products & Inventory"}
+                {activeTab === "hero" && "হোম হিরো স্লাইডার ও ব্যানার ম্যানেজমেন্ট"}
                 {activeTab === "coupons" && "Promotions & Coupon Discounts"}
                 {activeTab === "gallery" && "Central Image Gallery & Media Hub"}
                 {activeTab === "customers" && "Customer Directory"}
@@ -2616,6 +2767,190 @@ export default function AdminDashboardPage() {
             onRefreshProducts={fetchDashboardData}
           />
         )}
+        {/* HERO SECTION SLIDES & BANNERS TAB */}
+        {activeTab === "hero" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+            {/* Header / Action Bar */}
+            <div className="admin-panel" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "16px", padding: "20px 24px" }}>
+              <div>
+                <h3 style={{ fontSize: "20px", fontWeight: 800, color: "#0f172a", margin: "0 0 6px" }}>
+                  🖼️ হোম হিরো সেকশন ব্যানার ও স্লাইডার
+                </h3>
+                <p style={{ margin: 0, fontSize: "13px", color: "#64748b" }}>
+                  হোমপেজের মূল স্লাইডারে প্রদর্শনের জন্য ছবি, আকর্ষণীয় শিরোনাম, অফার ব্যাজ ও বাটন কাস্টমাইজ করুন।
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={openCreateSlideModal}
+                className="admin-btn-primary"
+                style={{ padding: "10px 20px", fontSize: "13px", display: "flex", alignItems: "center", gap: "8px" }}
+              >
+                <Plus size={16} /> নতুন স্লাইড যোগ করুন
+              </button>
+            </div>
+
+            {/* Slides List / Cards */}
+            {heroSlides.length === 0 ? (
+              <div className="admin-panel" style={{ padding: "48px 24px", textAlign: "center" }}>
+                <div style={{ width: "64px", height: "64px", borderRadius: "50%", background: "#f1f5f9", display: "grid", placeItems: "center", margin: "0 auto 16px", color: "#64748b" }}>
+                  <ImageIcon size={32} />
+                </div>
+                <h4 style={{ fontSize: "17px", fontWeight: 700, color: "#1e293b", margin: "0 0 8px" }}>
+                  কোনো কাস্টম হিরো ব্যানার পাওয়া যায়নি
+                </h4>
+                <p style={{ maxWidth: "480px", margin: "0 auto 20px", fontSize: "13px", color: "#64748b", lineHeight: 1.6 }}>
+                  এখনও কোনো কাস্টম স্লাইড যুক্ত করা হয়নি। বর্তমানে হোমপেজে স্বয়ংক্রিয়ভাবে ফিচার্ড পণ্যগুলোর ছবি দেখানো হচ্ছে। নিজস্ব ব্যানার ও অফার টেক্সট দেখাতে নিচের বাটনে ক্লিক করুন।
+                </p>
+                <button
+                  type="button"
+                  onClick={openCreateSlideModal}
+                  className="admin-btn-primary"
+                  style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}
+                >
+                  <Plus size={16} /> প্রথম স্লাইড তৈরি করুন
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "16px" }}>
+                {heroSlides.map((slide, index) => (
+                  <div
+                    key={slide.id}
+                    className="admin-panel"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "20px",
+                      padding: "16px 20px",
+                      opacity: slide.is_active ? 1 : 0.65,
+                      borderLeft: slide.is_active ? "4px solid #10b981" : "4px solid #94a3b8",
+                      flexWrap: "wrap",
+                      position: "relative",
+                    }}
+                  >
+                    {/* Thumbnail */}
+                    <div style={{ width: "120px", height: "80px", borderRadius: "8px", overflow: "hidden", background: "#f8fafc", border: "1px solid #e2e8f0", flexShrink: 0, position: "relative" }}>
+                      {slide.image ? (
+                        <img
+                          src={slide.image}
+                          alt={slide.title || "Banner"}
+                          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                        />
+                      ) : (
+                        <div style={{ width: "100%", height: "100%", display: "grid", placeItems: "center", color: "#94a3b8" }}>
+                          <ImageIcon size={24} />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Information */}
+                    <div style={{ flex: "1 1 260px", minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px", flexWrap: "wrap" }}>
+                        <span style={{ fontSize: "11px", fontWeight: 700, padding: "2px 8px", borderRadius: "12px", background: "rgba(201, 164, 92, 0.15)", color: "#b45309" }}>
+                          {slide.eyebrow || "★ বিশেষ অফার"}
+                        </span>
+                        {slide.is_active ? (
+                          <span style={{ fontSize: "11px", fontWeight: 700, color: "#166534", background: "#dcfce7", padding: "2px 8px", borderRadius: "12px" }}>
+                            ✓ সক্রিয় (Active)
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: "11px", fontWeight: 700, color: "#475569", background: "#f1f5f9", padding: "2px 8px", borderRadius: "12px" }}>
+                            বন্ধ (Inactive)
+                          </span>
+                        )}
+                        <span style={{ fontSize: "11px", color: "#64748b" }}>
+                          ক্রম: #{slide.position}
+                        </span>
+                      </div>
+
+                      <h4 style={{ fontSize: "16px", fontWeight: 700, color: "#0f172a", margin: "0 0 4px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        {slide.title || (slide.product_name ? `পণ্য: ${slide.product_name}` : "ব্যানার স্লাইড")}
+                      </h4>
+
+                      {slide.subtitle && (
+                        <p style={{ fontSize: "12px", color: "#64748b", margin: "0 0 6px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          {slide.subtitle}
+                        </p>
+                      )}
+
+                      <div style={{ display: "flex", alignItems: "center", gap: "12px", fontSize: "12px", color: "#475569" }}>
+                        <span>বাটন: <b>{slide.button_text || "কেনাকাটা"}</b></span>
+                        <span>লিংক: <code>{slide.button_link || "#shop"}</code></span>
+                        {slide.product_name && (
+                          <span style={{ color: "#2563eb", fontWeight: 600 }}>
+                            🔗 {slide.product_name} (৳{slide.product_price})
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Ordering Buttons */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                      <button
+                        type="button"
+                        onClick={() => handleMoveSlide(slide, "up")}
+                        disabled={index === 0}
+                        style={{ padding: "4px 8px", background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "4px", cursor: index === 0 ? "not-allowed" : "pointer", opacity: index === 0 ? 0.4 : 1 }}
+                        title="উপরে নিন"
+                      >
+                        <ChevronUp size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleMoveSlide(slide, "down")}
+                        disabled={index === heroSlides.length - 1}
+                        style={{ padding: "4px 8px", background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "4px", cursor: index === heroSlides.length - 1 ? "not-allowed" : "pointer", opacity: index === heroSlides.length - 1 ? 0.4 : 1 }}
+                        title="নিচে নিন"
+                      >
+                        <ChevronDown size={14} />
+                      </button>
+                    </div>
+
+                    {/* Actions */}
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <button
+                        type="button"
+                        onClick={() => handleToggleSlideActive(slide)}
+                        style={{
+                          padding: "6px 12px",
+                          fontSize: "12px",
+                          fontWeight: 600,
+                          borderRadius: "6px",
+                          border: "1px solid",
+                          borderColor: slide.is_active ? "#fcd34d" : "#86efac",
+                          background: slide.is_active ? "#fef3c7" : "#f0fdf4",
+                          color: slide.is_active ? "#b45309" : "#166534",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {slide.is_active ? "নিষ্ক্রিয় করুন" : "সক্রিয় করুন"}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => openEditSlideModal(slide)}
+                        className="admin-btn-secondary"
+                        style={{ padding: "6px 12px", fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "4px" }}
+                      >
+                        <Edit3 size={13} /> এডিট
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteSlide(slide.id)}
+                        style={{ padding: "6px 10px", background: "#fee2e2", color: "#b91c1c", border: "1px solid #fca5a5", borderRadius: "6px", cursor: "pointer" }}
+                        title="মুছে ফেলুন"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
           </main>
         </div>
       </div>
@@ -2760,6 +3095,183 @@ export default function AdminDashboardPage() {
                   style={{ width: "auto", padding: "10px 24px", marginTop: 0 }}
                 >
                   Save Product
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Create / Edit Hero Slide Modal */}
+      {showSlideModal && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(15,23,42,0.5)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "16px", overflowY: "auto" }}>
+          <div className="admin-login-card" style={{ maxWidth: "600px", width: "100%", padding: "28px", maxHeight: "90vh", overflowY: "auto" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid #e2e8f0", paddingBottom: "12px", marginBottom: "20px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <SlidersHorizontal size={18} style={{ color: "#2563eb" }} />
+                <h3 style={{ fontSize: "18px", fontWeight: 800, color: "#0f172a", margin: 0 }}>
+                  {editingSlide ? "হিরো ব্যানার স্লাইড সম্পাদনা" : "নতুন হিরো ব্যানার স্লাইড তৈরি"}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowSlideModal(false)}
+                style={{ background: "none", border: "none", fontSize: "18px", color: "#64748b", cursor: "pointer" }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveSlide} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              {/* Image Picker */}
+              <div className="admin-form-group" style={{ margin: 0 }}>
+                <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155" }}>
+                  ব্যানার ছবি (Desktop Image) {editingSlide ? "(পরিবর্তন করতে চাইলে নির্বাচন করুন)" : "*"}
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={e => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setSlideImageFile(file);
+                      setSlideImagePreview(URL.createObjectURL(file));
+                    }
+                  }}
+                  className="admin-input-field"
+                  style={{ padding: "8px" }}
+                />
+                <small style={{ color: "#64748b", fontSize: "11px", marginTop: "4px", display: "block" }}>
+                  প্রস্তাবিত সাইজ: 1200x800 বা 800x1000 পিকচার (JPG, PNG, WebP)
+                </small>
+
+                {slideImagePreview && (
+                  <div style={{ marginTop: "10px", width: "100%", height: "160px", borderRadius: "8px", overflow: "hidden", border: "1px solid #e2e8f0", background: "#f8fafc" }}>
+                    <img src={slideImagePreview} alt="Preview" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  </div>
+                )}
+              </div>
+
+              {/* Title & Subtitle */}
+              <div className="admin-form-group" style={{ margin: 0 }}>
+                <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155" }}>শিরোনাম (Title)</label>
+                <input
+                  type="text"
+                  placeholder="যেমন: আপনার ঘরের সৌন্দর্য বাড়ান প্রিমিয়াম হোম ডেকোরে"
+                  value={slideForm.title}
+                  onChange={e => setSlideForm({ ...slideForm, title: e.target.value })}
+                  className="admin-input-field"
+                />
+              </div>
+
+              <div className="admin-form-group" style={{ margin: 0 }}>
+                <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155" }}>উপশিরোনাম / বিবরণ (Subtitle / Description)</label>
+                <textarea
+                  rows={2}
+                  placeholder="যেমন: অভিজ্ঞ কারিগরদের তৈরি বুকশেলফ, ওয়াল শেলফ ও ডেকোরেটিভ ফার্নিচারের বিশ্বস্ত অনলাইন শপ।"
+                  value={slideForm.subtitle}
+                  onChange={e => setSlideForm({ ...slideForm, subtitle: e.target.value })}
+                  className="admin-input-field"
+                  style={{ resize: "vertical" }}
+                />
+              </div>
+
+              {/* Eyebrow & Button */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                <div className="admin-form-group" style={{ margin: 0 }}>
+                  <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155" }}>ট্যাগ / অফার ব্যাজ</label>
+                  <input
+                    type="text"
+                    placeholder="যেমন: ★ বিশেষ অফার"
+                    value={slideForm.eyebrow}
+                    onChange={e => setSlideForm({ ...slideForm, eyebrow: e.target.value })}
+                    className="admin-input-field"
+                  />
+                </div>
+
+                <div className="admin-form-group" style={{ margin: 0 }}>
+                  <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155" }}>বাটন টেক্সট</label>
+                  <input
+                    type="text"
+                    placeholder="যেমন: কেনাকাটা শুরু করুন"
+                    value={slideForm.button_text}
+                    onChange={e => setSlideForm({ ...slideForm, button_text: e.target.value })}
+                    className="admin-input-field"
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                <div className="admin-form-group" style={{ margin: 0 }}>
+                  <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155" }}>বাটন লিংক (URL)</label>
+                  <input
+                    type="text"
+                    placeholder="#shop অথবা /offers অথবা /shop"
+                    value={slideForm.button_link}
+                    onChange={e => setSlideForm({ ...slideForm, button_link: e.target.value })}
+                    className="admin-input-field"
+                  />
+                </div>
+
+                <div className="admin-form-group" style={{ margin: 0 }}>
+                  <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155" }}>নির্দিষ্ট পণ্যের সাথে লিংক (ঐচ্ছিক)</label>
+                  <select
+                    value={slideForm.product}
+                    onChange={e => {
+                      const val = e.target.value;
+                      const selectedProd = products.find(p => String(p.id) === val);
+                      setSlideForm({
+                        ...slideForm,
+                        product: val ? Number(val) : "",
+                        button_link: selectedProd ? `/products/${selectedProd.slug}` : slideForm.button_link,
+                      });
+                    }}
+                    className="admin-input-field"
+                  >
+                    <option value="">-- কোনো পণ্য লিংক নেই --</option>
+                    {products.map(p => (
+                      <option key={p.id} value={p.id}>{p.name} (৳{p.price})</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", alignItems: "center" }}>
+                <div className="admin-form-group" style={{ margin: 0 }}>
+                  <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155" }}>ক্রম / পজিশন (Position)</label>
+                  <input
+                    type="number"
+                    value={slideForm.position}
+                    onChange={e => setSlideForm({ ...slideForm, position: parseInt(e.target.value) || 0 })}
+                    className="admin-input-field"
+                  />
+                </div>
+
+                <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "13px", color: "#1e293b", fontWeight: 600, marginTop: "18px" }}>
+                  <input
+                    type="checkbox"
+                    checked={slideForm.is_active}
+                    onChange={e => setSlideForm({ ...slideForm, is_active: e.target.checked })}
+                  />
+                  স্লাইডটি এখনই সক্রিয় (Active) রাখুন
+                </label>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", paddingTop: "14px", borderTop: "1px solid #e2e8f0" }}>
+                <button
+                  type="button"
+                  onClick={() => setShowSlideModal(false)}
+                  className="admin-header-link"
+                  style={{ padding: "8px 16px" }}
+                >
+                  বাতিল করুন
+                </button>
+                <button
+                  type="submit"
+                  disabled={slideSubmitting}
+                  className="admin-submit-btn"
+                  style={{ width: "auto", padding: "8px 24px", marginTop: 0 }}
+                >
+                  {slideSubmitting ? "সংরক্ষণ হচ্ছে..." : "সংরক্ষণ করুন"}
                 </button>
               </div>
             </form>

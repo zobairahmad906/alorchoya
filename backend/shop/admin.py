@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Category, Product, ProductImage, Order, OrderItem, DeliveryZone, Coupon, Review, AuditEvent, CustomerProfile, CustomerAddress, ProductImageAsset, ProductImageAssetLink
+from .models import Category, Product, ProductImage, Order, OrderItem, DeliveryZone, Coupon, Review, AuditEvent, CustomerProfile, CustomerAddress, ProductImageAsset, ProductImageAssetLink, HeroSlide
 
 class ProductImageInline(admin.TabularInline):
     model = ProductImage
@@ -83,4 +83,11 @@ class ProductImageAssetAdmin(admin.ModelAdmin):
 class ProductImageAssetLinkAdmin(admin.ModelAdmin):
     list_display = ("id", "asset", "product", "position", "created_at")
     list_filter = ("product",)
+
+@admin.register(HeroSlide)
+class HeroSlideAdmin(admin.ModelAdmin):
+    list_display = ("id", "title", "eyebrow", "position", "is_active", "created_at")
+    list_filter = ("is_active",)
+    list_editable = ("position", "is_active")
+    search_fields = ("title", "subtitle", "eyebrow")
 

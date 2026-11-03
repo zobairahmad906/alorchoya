@@ -2,7 +2,7 @@ import os
 from django.utils import timezone
 from django.db import transaction
 from rest_framework import serializers
-from .models import Category, Product, ProductVariant, ProductImage, Order, OrderItem, Cart, CartItem, DeliveryZone, Coupon, Review, CustomerProfile, CustomerAddress, ProductImageAsset, ProductImageAssetLink
+from .models import Category, Product, ProductVariant, ProductImage, Order, OrderItem, Cart, CartItem, DeliveryZone, Coupon, Review, CustomerProfile, CustomerAddress, ProductImageAsset, ProductImageAssetLink, HeroSlide
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -415,4 +415,44 @@ class AdminCouponSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id", "used_count"]
 
+class HeroSlideSerializer(serializers.ModelSerializer):
+    product_slug = serializers.CharField(source="product.slug", read_only=True)
+    product_name = serializers.CharField(source="product.name", read_only=True)
+    product_price = serializers.CharField(source="product.price", read_only=True)
+    product_discount_price = serializers.CharField(source="product.discount_price", read_only=True)
+
+    class Meta:
+        model = HeroSlide
+        fields = [
+            "id", "title", "subtitle", "eyebrow", "image", "mobile_image",
+            "button_text", "button_link", "product", "product_slug",
+            "product_name", "product_price", "product_discount_price",
+            "position", "is_active", "created_at", "updated_at"
+        ]
+        read_only_fields = ["id", "created_at", "updated_at"]
+        extra_kwargs = {
+            "image": {"required": False},
+            "mobile_image": {"required": False, "allow_null": True},
+        }
+
+    def _get_file_url(self, file_field):
+        if not file_field:
+            return None
+        try:
+            url = file_field.url
+        except Exception:
+            return None
+        if url.startswith("/"):
+            request = self.context.get("request")
+            return request.build_absolute_uri(url) if request else url
+        internal = os.getenv("MINIO_ENDPOINT", "minio:9000")
+        public = os.getenv("MINIO_PUBLIC_ENDPOINT", "localhost:9000")
+        scheme = "https" if public not in ("localhost:9000", "127.0.0.1:9000") else "http"
+        return url.replace(f"http://{internal}", f"{scheme}://{public}")
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data["image"] = self._get_file_url(instance.image)
+        data["mobile_image"] = self._get_file_url(instance.mobile_image)
+        return data
 

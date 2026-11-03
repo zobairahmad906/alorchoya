@@ -198,3 +198,23 @@ class ProductImageAssetLink(models.Model):
     def __str__(self):
         return f"{self.asset_id} -> {self.product.name}"
 
+class HeroSlide(models.Model):
+    title = models.CharField(max_length=200, blank=True, default="", help_text="হেডিং / শিরোনাম")
+    subtitle = models.TextField(blank=True, default="", help_text="উপশিরোনাম / বিবরণ")
+    eyebrow = models.CharField(max_length=100, blank=True, default="★ বিশেষ অফার", help_text="ট্যাগ বা ব্যাজ")
+    image = models.ImageField(upload_to="hero/%Y/%m/", help_text="স্লাইডের ছবি")
+    mobile_image = models.ImageField(upload_to="hero/mobile/%Y/%m/", blank=True, null=True, help_text="মোবাইলের জন্য ছবি (ঐচ্ছিক)")
+    button_text = models.CharField(max_length=80, blank=True, default="কেনাকাটা শুরু করুন", help_text="বাটন টেক্সট")
+    button_link = models.CharField(max_length=255, blank=True, default="#shop", help_text="বাটন লিংক")
+    product = models.ForeignKey(Product, null=True, blank=True, on_delete=models.SET_NULL, related_name="hero_slides", help_text="নির্দিষ্ট পণ্যের সাথে লিংক (ঐচ্ছিক)")
+    position = models.PositiveIntegerField(default=0, help_text="ক্রম / পজিশন")
+    is_active = models.BooleanField(default=True, db_index=True, help_text="সক্রিয় কি না")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["position", "-created_at"]
+
+    def __str__(self):
+        return self.title or f"Hero Slide #{self.id}"
+

@@ -27,6 +27,9 @@ urlpatterns = [
     
     # Admin API endpoints
     path("admin/login/", views.AdminLoginView.as_view()),
+    path("hero-slides/", views.PublicHeroSlideListView.as_view()),
+    path("admin/hero-slides/", views.AdminHeroSlideListCreateView.as_view()),
+    path("admin/hero-slides/<int:pk>/", views.AdminHeroSlideDetailView.as_view()),
     path("admin/dashboard/stats/", views.AdminDashboardStatsView.as_view()),
     path("admin/orders/", views.AdminOrderListDetailView.as_view()),
     path("admin/orders/<int:pk>/", views.AdminOrderListDetailView.as_view()),

@@ -3,59 +3,153 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import type { Product } from "./types";
+import type { Product, HeroSlide } from "./types";
 
 interface HeroSliderProps {
   products: Product[];
+  heroSlides?: HeroSlide[];
   eyebrow?: string;
   defaultTitle?: string;
   defaultLede?: string;
   shopButtonText?: string;
 }
 
+type UnifiedSlide = {
+  id: string;
+  eyebrow: string;
+  catTag?: string;
+  title: string;
+  desc: string;
+  image?: string;
+  hasPrice: boolean;
+  currentPrice?: string | null;
+  oldPrice?: string | null;
+  discountPercent?: number | null;
+  buttonText: string;
+  buttonLink: string;
+};
+
 export function HeroSlider({
   products,
+  heroSlides = [],
   eyebrow = "আভিজাত্য ও নান্দনিকতার মিলনমেলা",
   defaultTitle = "আপনার ঘরের সৌন্দর্য বাড়ান প্রিমিয়াম হোম ডেকোরে",
   defaultLede = "অভিজ্ঞ কারিগরদের তৈরি বুকশেলফ, ওয়াল শেলফ ও ডেকোরেটিভ ফার্নিচারের বিশ্বস্ত অনলাইন শপ।",
   shopButtonText = "কেনাকাটা শুরু করুন",
 }: HeroSliderProps) {
-  // Take at most 5 products
-  const sliderProducts = products.slice(0, 5);
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 640px)");
+    const update = () => setIsMobile(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+
+  const hasCustomSlides = Boolean(heroSlides && heroSlides.length > 0);
+
+  const slides: UnifiedSlide[] = hasCustomSlides
+    ? heroSlides.map((slide) => {
+        const hasDiscount = Boolean(
+          slide.product_discount_price &&
+          Number(slide.product_discount_price) > 0 &&
+          Number(slide.product_discount_price) < Number(slide.product_price)
+        );
+        const discountPct =
+          hasDiscount && slide.product_price
+            ? Math.round(
+                ((Number(slide.product_price) - Number(slide.product_discount_price)) /
+                  Number(slide.product_price)) *
+                  100
+              )
+            : null;
+
+        return {
+          id: `slide-${slide.id}`,
+          eyebrow: slide.eyebrow || eyebrow,
+          catTag: slide.product_name ? "প্রোডাক্ট অফার" : undefined,
+          title: slide.title || slide.product_name || defaultTitle,
+          desc: slide.subtitle || defaultLede,
+          image: isMobile && slide.mobile_image ? slide.mobile_image : slide.image,
+          hasPrice: Boolean(slide.product_price),
+          currentPrice: slide.product_discount_price || slide.product_price,
+          oldPrice: hasDiscount ? slide.product_price : null,
+          discountPercent: discountPct,
+          buttonText: slide.button_text || shopButtonText,
+          buttonLink:
+            slide.button_link ||
+            (slide.product_slug ? `/products/${slide.product_slug}` : "#shop"),
+        };
+      })
+    : products.slice(0, 5).map((p) => {
+        const hasDiscount = Boolean(
+          p.discount_price &&
+          Number(p.discount_price) > 0 &&
+          Number(p.discount_price) < Number(p.price)
+        );
+        const discountPct = hasDiscount
+          ? Math.round(
+              ((Number(p.price) - Number(p.discount_price)) / Number(p.price)) * 100
+            )
+          : null;
+        const source = p.images?.find((img) => img.is_primary) || p.images?.[0];
+        const imgUrl =
+          source?.card_image ||
+          (isMobile
+            ? source?.hero_mobile || source?.hero_desktop
+            : source?.hero_desktop || source?.hero_mobile) ||
+          source?.image;
+
+        return {
+          id: `prod-${p.id}`,
+          eyebrow: eyebrow,
+          catTag: p.category?.name || "হোম ডেকর",
+          title: p.name,
+          desc: p.description
+            ? p.description.slice(0, 120) + (p.description.length > 120 ? "..." : "")
+            : defaultLede,
+          image: imgUrl,
+          hasPrice: true,
+          currentPrice: p.discount_price || p.price,
+          oldPrice: hasDiscount ? p.price : null,
+          discountPercent: discountPct,
+          buttonText: "এখনই অর্ডার করুন →",
+          buttonLink: `/products/${p.slug}`,
+        };
+      });
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-  useEffect(() => { const media = window.matchMedia("(max-width: 640px)"); const update = () => setIsMobile(media.matches); update(); media.addEventListener("change", update); return () => media.removeEventListener("change", update); }, []);
-  const [outgoingProduct, setOutgoingProduct] = useState<Product | null>(null);
-  const previousProduct = useRef<Product | null>(null);
+  const [outgoingSlide, setOutgoingSlide] = useState<UnifiedSlide | null>(null);
+  const previousSlide = useRef<UnifiedSlide | null>(null);
 
   const nextSlide = useCallback(() => {
-    if (sliderProducts.length === 0) return;
-    setCurrentIndex((prev) => (prev + 1) % sliderProducts.length);
-  }, [sliderProducts.length]);
+    if (slides.length === 0) return;
+    setCurrentIndex((prev) => (prev + 1) % slides.length);
+  }, [slides.length]);
 
   const prevSlide = useCallback(() => {
-    if (sliderProducts.length === 0) return;
-    setCurrentIndex((prev) => (prev - 1 + sliderProducts.length) % sliderProducts.length);
-  }, [sliderProducts.length]);
+    if (slides.length === 0) return;
+    setCurrentIndex((prev) => (prev - 1 + slides.length) % slides.length);
+  }, [slides.length]);
 
-  // 2.5 seconds auto-slide
+  // 3 seconds auto-slide
   useEffect(() => {
-    if (isPaused || sliderProducts.length <= 1) return;
+    if (isPaused || slides.length <= 1) return;
     const interval = setInterval(() => {
       nextSlide();
-    }, 2500);
+    }, 3000);
     return () => clearInterval(interval);
-  }, [isPaused, sliderProducts.length, nextSlide]);
+  }, [isPaused, slides.length, nextSlide]);
 
   useEffect(() => {
-    setOutgoingProduct(previousProduct.current);
-    previousProduct.current = sliderProducts[currentIndex] || null;
-    const timer = window.setTimeout(() => setOutgoingProduct(null), 850);
+    setOutgoingSlide(previousSlide.current);
+    previousSlide.current = slides[currentIndex] || null;
+    const timer = window.setTimeout(() => setOutgoingSlide(null), 850);
     return () => window.clearTimeout(timer);
-  }, [currentIndex]);
+  }, [currentIndex, slides]);
 
-  if (sliderProducts.length === 0) {
+  if (slides.length === 0) {
     return (
       <section className="hero">
         <div className="wrap hero-grid">
@@ -71,7 +165,7 @@ export function HeroSlider({
           </div>
           <div className="hero-art">
             <div className="hero-shelf">
-              <i/><i/><i/><i/><i/><i/>
+              <i /><i /><i /><i /><i /><i />
             </div>
           </div>
         </div>
@@ -79,50 +173,54 @@ export function HeroSlider({
     );
   }
 
-  const activeProduct = sliderProducts[currentIndex];
-  const imageFor = (product: Product | null) => {
-    if (!product) return undefined;
-    const source = product.images?.find((img) => img.is_primary) || product.images?.[0];
-    // card_image is a normalised 4:5 frame (cream background), so every upload looks identical.
-    return source?.card_image || (isMobile ? source?.hero_mobile || source?.hero_desktop : source?.hero_desktop || source?.hero_mobile) || source?.image;
-  };
-  const primaryImg = imageFor(activeProduct);
-  const outgoingImg = imageFor(outgoingProduct);
+  const activeSlide = slides[currentIndex] || slides[0];
 
   return (
-    <section className="hero-slider-section" onMouseEnter={() => setIsPaused(true)} onMouseLeave={() => setIsPaused(false)}>
+    <section
+      className="hero-slider-section"
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+    >
       <div className="wrap hero-slider-container">
         <div className="hero-split hero-split-anim">
           <div className="hero-split-copy">
             <div className="hero-badge-row">
-              <span className="hero-badge">★ বিশেষ অফার</span>
-              <span className="hero-cat-tag">{activeProduct.category?.name || "হোম ডেকর"}</span>
-            </div>
-            <h1 className="hero-product-title">{activeProduct.name}</h1>
-            <p className="hero-product-desc">
-              {activeProduct.description
-                ? activeProduct.description.slice(0, 120) + (activeProduct.description.length > 120 ? "..." : "")
-                : defaultLede}
-            </p>
-            
-            <div className="hero-price-row">
-              {activeProduct.discount_price ? (
-                <>
-                  <span className="hero-current-price">৳{Number(activeProduct.discount_price).toLocaleString("bn-BD")}</span>
-                  <span className="hero-old-price">৳{Number(activeProduct.price).toLocaleString("bn-BD")}</span>
-                  <span className="hero-save-badge">
-                    {Math.round(((Number(activeProduct.price) - Number(activeProduct.discount_price)) / Number(activeProduct.price)) * 100)}% ছাড়
-                  </span>
-                </>
-              ) : (
-                <span className="hero-current-price">৳{Number(activeProduct.price).toLocaleString("bn-BD")}</span>
+              <span className="hero-badge">{activeSlide.eyebrow}</span>
+              {activeSlide.catTag && (
+                <span className="hero-cat-tag">{activeSlide.catTag}</span>
               )}
             </div>
+            <h1 className="hero-product-title">{activeSlide.title}</h1>
+            <p className="hero-product-desc">{activeSlide.desc}</p>
+
+            {activeSlide.hasPrice && activeSlide.currentPrice && (
+              <div className="hero-price-row">
+                <span className="hero-current-price">
+                  ৳{Number(activeSlide.currentPrice).toLocaleString("bn-BD")}
+                </span>
+                {activeSlide.oldPrice && (
+                  <span className="hero-old-price">
+                    ৳{Number(activeSlide.oldPrice).toLocaleString("bn-BD")}
+                  </span>
+                )}
+                {activeSlide.discountPercent ? (
+                  <span className="hero-save-badge">
+                    {activeSlide.discountPercent}% ছাড়
+                  </span>
+                ) : null}
+              </div>
+            )}
 
             <div className="cta-row">
-              <Link className="btn btn-primary hero-btn-buy" href={`/products/${activeProduct.slug}`}>
-                এখনই অর্ডার করুন →
-              </Link>
+              {activeSlide.buttonLink.startsWith("http") || activeSlide.buttonLink.startsWith("#") ? (
+                <a className="btn btn-primary hero-btn-buy" href={activeSlide.buttonLink}>
+                  {activeSlide.buttonText}
+                </a>
+              ) : (
+                <Link className="btn btn-primary hero-btn-buy" href={activeSlide.buttonLink}>
+                  {activeSlide.buttonText}
+                </Link>
+              )}
               <a className="btn btn-ghost" href="#shop">
                 সব পণ্য দেখুন
               </a>
@@ -130,28 +228,49 @@ export function HeroSlider({
           </div>
 
           <div className="hero-split-media">
-            {outgoingImg && <Image src={outgoingImg} alt="" width={800} height={1000} key={outgoingProduct?.id} className="hero-split-img hero-split-out" />}
-            {primaryImg ? (
-              <Image src={primaryImg} alt={activeProduct.name} width={800} height={1000} key={activeProduct.id} className="hero-split-img hero-split-in" priority />
+            {outgoingSlide?.image && (
+              <Image
+                src={outgoingSlide.image}
+                alt=""
+                width={800}
+                height={1000}
+                key={outgoingSlide.id}
+                className="hero-split-img hero-split-out"
+                unoptimized
+              />
+            )}
+            {activeSlide.image ? (
+              <Image
+                src={activeSlide.image}
+                alt={activeSlide.title}
+                width={800}
+                height={1000}
+                key={activeSlide.id}
+                className="hero-split-img hero-split-in"
+                priority
+                unoptimized
+              />
             ) : (
               <div className="hero-img-placeholder">
-                <div className="hero-shelf"><i/><i/><i/><i/><i/><i/></div>
+                <div className="hero-shelf">
+                  <i /><i /><i /><i /><i /><i />
+                </div>
               </div>
             )}
           </div>
         </div>
 
         {/* Controls and Indicators */}
-        {sliderProducts.length > 1 && (
+        {slides.length > 1 && (
           <div className="hero-controls-bar">
             <button onClick={prevSlide} className="hero-arrow-btn" aria-label="আগেরটি">
               ‹
             </button>
 
             <div className="hero-dots">
-              {sliderProducts.map((prod, idx) => (
+              {slides.map((s, idx) => (
                 <button
-                  key={prod.id}
+                  key={s.id}
                   onClick={() => setCurrentIndex(idx)}
                   className={`hero-dot ${idx === currentIndex ? "active" : ""}`}
                   aria-label={`স্লাইড ${idx + 1}`}

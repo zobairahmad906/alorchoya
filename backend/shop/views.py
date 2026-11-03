@@ -8,8 +8,8 @@ from django.db import connection
 from django.http import JsonResponse
 import json
 from django.shortcuts import get_object_or_404
-from .models import Category, Product, ProductVariant, ProductImage, Cart, CartItem, DeliveryZone, Order, OrderItem, CustomerProfile, CustomerAddress, Review, ProductImageAsset, ProductImageAssetLink, Coupon
-from .serializers import CategorySerializer, ProductSerializer, ProductImageSerializer, OrderSerializer, CartSerializer, CartItemSerializer, DeliveryZoneSerializer, OrderTrackingSerializer, ReviewSerializer, CustomerProfileSerializer, CustomerAddressSerializer, CustomerOrderSerializer, ProductImageAssetSerializer, ProductImageAssetLinkSerializer, AdminCouponSerializer
+from .models import Category, Product, ProductVariant, ProductImage, Cart, CartItem, DeliveryZone, Order, OrderItem, CustomerProfile, CustomerAddress, Review, ProductImageAsset, ProductImageAssetLink, Coupon, HeroSlide
+from .serializers import CategorySerializer, ProductSerializer, ProductImageSerializer, OrderSerializer, CartSerializer, CartItemSerializer, DeliveryZoneSerializer, OrderTrackingSerializer, ReviewSerializer, CustomerProfileSerializer, CustomerAddressSerializer, CustomerOrderSerializer, ProductImageAssetSerializer, ProductImageAssetLinkSerializer, AdminCouponSerializer, HeroSlideSerializer
 
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
@@ -1039,5 +1039,76 @@ class AdminProductImageManageView(APIView):
         except ProductImage.DoesNotExist:
             raise NotFound("Image not found")
         image.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+# ==================== HERO SLIDES APIS ====================
+class PublicHeroSlideListView(generics.ListAPIView):
+    serializer_class = HeroSlideSerializer
+    permission_classes = (permissions.AllowAny,)
+
+    def get_queryset(self):
+        return HeroSlide.objects.filter(is_active=True).select_related("product").order_by("position", "-created_at")
+
+
+class AdminHeroSlideListCreateView(APIView):
+    permission_classes = (IsAdminUser,)
+    parser_classes = (MultiPartParser, FormParser, JSONParser)
+
+    def get(self, request):
+        slides = HeroSlide.objects.all().select_related("product").order_by("position", "-created_at")
+        serializer = HeroSlideSerializer(slides, many=True, context={"request": request})
+        return Response(serializer.data)
+
+    def post(self, request):
+        data = request.data.copy()
+        if "product" in data and (data["product"] in ("", "null", "none", None)):
+            data["product"] = None
+
+        if "is_active" in data:
+            val = str(data["is_active"]).lower()
+            data["is_active"] = val in ("true", "1", "t", "yes")
+
+        serializer = HeroSlideSerializer(data=data, context={"request": request})
+        if serializer.is_valid():
+            slide = serializer.save()
+            return Response(HeroSlideSerializer(slide, context={"request": request}).data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class AdminHeroSlideDetailView(APIView):
+    permission_classes = (IsAdminUser,)
+    parser_classes = (MultiPartParser, FormParser, JSONParser)
+
+    def get_object(self, pk):
+        try:
+            return HeroSlide.objects.select_related("product").get(pk=pk)
+        except HeroSlide.DoesNotExist:
+            raise NotFound("Slide not found")
+
+    def get(self, request, pk):
+        slide = self.get_object(pk)
+        return Response(HeroSlideSerializer(slide, context={"request": request}).data)
+
+    def patch(self, request, pk):
+        slide = self.get_object(pk)
+        data = request.data.copy()
+        if "product" in data and (data["product"] in ("", "null", "none", None)):
+            data["product"] = None
+        if "is_active" in data:
+            val = str(data["is_active"]).lower()
+            data["is_active"] = val in ("true", "1", "t", "yes")
+
+        serializer = HeroSlideSerializer(slide, data=data, partial=True, context={"request": request})
+        if serializer.is_valid():
+            slide = serializer.save()
+            return Response(HeroSlideSerializer(slide, context={"request": request}).data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def put(self, request, pk):
+        return self.patch(request, pk)
+
+    def delete(self, request, pk):
+        slide = self.get_object(pk)
+        slide.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 

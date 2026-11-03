@@ -26,3 +26,24 @@ export type Product = {
 };
 
 export type CartItem = Product & { quantity: number };
+
+export type HeroSlide = {
+  id: number;
+  title: string;
+  subtitle: string;
+  eyebrow: string;
+  image: string;
+  mobile_image?: string | null;
+  button_text: string;
+  button_link: string;
+  product?: number | null;
+  product_slug?: string | null;
+  product_name?: string | null;
+  product_price?: string | null;
+  product_discount_price?: string | null;
+  position: number;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+};
+

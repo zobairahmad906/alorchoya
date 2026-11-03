@@ -1,12 +1,21 @@
 import { Header, ProductCatalog, CategoryFilterCards, ContactActions } from "./components";
 import { HeroSlider } from "./HeroSlider";
-import type { Product, Review } from "./types";
+import type { Product, Review, HeroSlide } from "./types";
 import { getTranslations } from "next-intl/server";
 
 const API = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 async function getProducts(): Promise<Product[]> {
   try {
     const response = await fetch(`${API}/products/`, { next: { revalidate: 30 } });
+    return response.ok ? response.json() : [];
+  } catch {
+    return [];
+  }
+}
+
+async function getHeroSlides(): Promise<HeroSlide[]> {
+  try {
+    const response = await fetch(`${API}/hero-slides/`, { next: { revalidate: 15 } });
     return response.ok ? response.json() : [];
   } catch {
     return [];
@@ -23,9 +32,10 @@ async function getFeaturedReviews(): Promise<Review[]> {
 }
 
 export default async function Home() {
-  const [products, featuredReviews] = await Promise.all([
+  const [products, featuredReviews, heroSlides] = await Promise.all([
     getProducts(),
     getFeaturedReviews(),
+    getHeroSlides(),
   ]);
   const allProds = products;
   const discountedProducts = allProds.filter((p) => Number(p.discount_price) > 0 && Number(p.discount_price) < Number(p.price));
@@ -72,6 +82,7 @@ export default async function Home() {
     <main>
       <HeroSlider
         products={sliderProducts}
+        heroSlides={heroSlides}
         eyebrow={t("eyebrow")}
         defaultTitle={t("title")}
         defaultLede={t("lede")}
