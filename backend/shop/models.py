@@ -1,4 +1,5 @@
 from django.db import models
+from decimal import Decimal
 import uuid
 
 class Category(models.Model):
@@ -85,7 +86,11 @@ class Order(models.Model):
     courier_booking_data = models.JSONField(blank=True, default=dict)
     created_at = models.DateTimeField(auto_now_add=True)
     @property
-    def total(self): return sum(item.quantity * item.unit_price for item in self.items.all()) + self.delivery_charge - self.discount_amount
+    def total(self):
+        subtotal = sum((item.quantity * item.unit_price for item in self.items.all()), Decimal("0.00"))
+        delivery_charge = Decimal(str(self.delivery_charge or 0))
+        discount_amount = Decimal(str(self.discount_amount or 0))
+        return subtotal + delivery_charge - discount_amount
 
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, related_name="items", on_delete=models.CASCADE)
