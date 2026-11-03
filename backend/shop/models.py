@@ -83,6 +83,7 @@ class Order(models.Model):
     consignment_id = models.CharField(max_length=100, blank=True, default="")
     tracking_code = models.CharField(max_length=100, blank=True, default="")
     courier_status = models.CharField(max_length=100, blank=True, default="")
+    courier_status_updated_at = models.DateTimeField(null=True, blank=True)
     courier_booking_data = models.JSONField(blank=True, default=dict)
     created_at = models.DateTimeField(auto_now_add=True)
     @property
@@ -247,6 +248,8 @@ class CourierConfig(models.Model):
     username = models.CharField(max_length=255, blank=True, default="")
     password = models.CharField(max_length=255, blank=True, default="")
     store_id = models.CharField(max_length=100, blank=True, default="")
+    webhook_secret = models.CharField(max_length=255, blank=True, default="")
+    webhook_integration_secret = models.CharField(max_length=255, blank=True, default="")
     access_token = models.TextField(blank=True, default="")
     token_expires_at = models.DateTimeField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)

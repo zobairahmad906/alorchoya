@@ -175,6 +175,8 @@ type Order = {
 
   courier_status?: string;
 
+  courier_status_updated_at?: string | null;
+
   courier_booking_data?: any;
 
 };
@@ -300,6 +302,10 @@ type CourierConfigItem = {
   password: string;
 
   store_id: string;
+
+  webhook_secret: string;
+
+  webhook_integration_secret: string;
 
   updated_at: string;
 
@@ -530,6 +536,10 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
     password: "",
 
     store_id: "",
+
+    webhook_secret: "",
+
+    webhook_integration_secret: "",
 
     is_sandbox: true,
 
@@ -777,6 +787,25 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
   };
 
+  const pathaoWebhookUrl = typeof window === "undefined"
+    ? ""
+    : `${window.location.origin}${getApiUrl("/courier/pathao/webhook/")}`;
+
+  const copyPathaoWebhookValue = async (value: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      toast.success(`${label} copied`);
+    } catch {
+      toast.error(`Could not copy ${label.toLowerCase()}`);
+    }
+  };
+
+  const generatePathaoWebhookSecret = () => {
+    const bytes = window.crypto.getRandomValues(new Uint8Array(32));
+    const secret = Array.from(bytes, byte => byte.toString(16).padStart(2, "0")).join("");
+    setPathaoForm(current => ({ ...current, webhook_secret: secret }));
+  };
+
   useEffect(() => {
 
     fetch(getApiUrl("/auth/csrf/"), { credentials: "include" }).then(response => response.json()).then(data => setCsrfToken(data.csrfToken || "")).catch(() => undefined);
@@ -784,6 +813,32 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
     fetchDashboardData();
 
   }, []);
+
+  useEffect(() => {
+    if (activeTab !== "orders" && activeTab !== "courier") return;
+
+    const refreshCourierStatuses = async () => {
+      try {
+        const [statsResponse, ordersResponse] = await Promise.all([
+          fetch(getApiUrl("/admin/dashboard/stats/"), { credentials: "include", cache: "no-store" }),
+          fetch(getApiUrl("/admin/orders/?dashboard_refresh=1"), { credentials: "include", cache: "no-store" }),
+        ]);
+        if (statsResponse.ok) setStats(await statsResponse.json());
+        if (ordersResponse.ok) {
+          const updatedOrders: Order[] = await ordersResponse.json();
+          setOrders(updatedOrders);
+          setSelectedOrder(current => current
+            ? updatedOrders.find(order => order.id === current.id) || current
+            : current);
+        }
+      } catch (error) {
+        console.warn("Background courier status refresh failed:", error);
+      }
+    };
+
+    const timer = window.setInterval(refreshCourierStatuses, 15000);
+    return () => window.clearInterval(timer);
+  }, [activeTab]);
 
   const fetchDashboardData = async () => {
 
@@ -938,6 +993,10 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
               password: pt.password || "",
 
               store_id: pt.store_id || "",
+
+              webhook_secret: pt.webhook_secret || "",
+
+              webhook_integration_secret: pt.webhook_integration_secret || "",
 
               is_sandbox: pt.is_sandbox ?? true,
 
@@ -4635,7 +4694,9 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
                           {trackingCheckedAt && trackingOrder?.id === selectedOrder.id
                             ? `Last checked ${trackingCheckedAt.toLocaleString()}`
-                            : "Showing last saved status. Track Parcel Live to refresh."}
+                            : selectedOrder.courier_status_updated_at
+                              ? `Courier updated ${new Date(selectedOrder.courier_status_updated_at).toLocaleString()}`
+                              : "Showing last saved status. Track Parcel Live to refresh."}
 
                         </div>
 
@@ -6099,6 +6160,40 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
                       />
 
+                    </div>
+
+                  </div>
+
+                  <div style={{ padding: "16px", border: "1px solid #bfdbfe", borderRadius: "12px", background: "#f8fbff", display: "flex", flexDirection: "column", gap: "12px" }}>
+
+                    <div>
+                      <div style={{ fontSize: "14px", fontWeight: 800, color: "#1e3a8a" }}>Pathao Webhook: automatic status updates</div>
+                      <div style={{ fontSize: "12px", color: "#475569", marginTop: "4px" }}>Save this form with a webhook secret first. In Pathao Developer API → Webhook Integration, enter this callback URL and the same secret. Copy Pathao's Integration Secret here, save this form again, then save the webhook in Pathao with all status events enabled.</div>
+                    </div>
+
+                    <div className="admin-form-group" style={{ margin: 0 }}>
+                      <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155" }}>Callback URL</label>
+                      <div style={{ display: "flex", gap: "8px" }}>
+                        <input type="url" readOnly value={pathaoWebhookUrl} className="admin-input-field" />
+                        <button type="button" className="admin-btn-secondary" onClick={() => copyPathaoWebhookValue(pathaoWebhookUrl, "Callback URL")} disabled={!pathaoWebhookUrl}>Copy</button>
+                      </div>
+                    </div>
+
+                    <div className="admin-form-group" style={{ margin: 0 }}>
+                      <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155" }}>Webhook Secret (use the same value in Pathao)</label>
+                      <div style={{ display: "flex", gap: "8px" }}>
+                        <input type="text" autoComplete="off" value={pathaoForm.webhook_secret} onChange={e => setPathaoForm({ ...pathaoForm, webhook_secret: e.target.value })} className="admin-input-field" placeholder="Generate a secure secret" />
+                        <button type="button" className="admin-btn-secondary" onClick={generatePathaoWebhookSecret}>Generate</button>
+                        <button type="button" className="admin-btn-secondary" onClick={() => copyPathaoWebhookValue(pathaoForm.webhook_secret, "Webhook secret")} disabled={!pathaoForm.webhook_secret}>Copy</button>
+                      </div>
+                    </div>
+
+                    <div className="admin-form-group" style={{ margin: 0 }}>
+                      <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155" }}>Pathao Integration Secret (shown in Pathao panel)</label>
+                      <div style={{ display: "flex", gap: "8px" }}>
+                        <input type="password" autoComplete="new-password" value={pathaoForm.webhook_integration_secret} onChange={e => setPathaoForm({ ...pathaoForm, webhook_integration_secret: e.target.value })} className="admin-input-field" placeholder="Paste the integration secret from Pathao" />
+                        <button type="button" className="admin-btn-secondary" onClick={() => copyPathaoWebhookValue(pathaoForm.webhook_integration_secret, "Integration secret")} disabled={!pathaoForm.webhook_integration_secret}>Copy</button>
+                      </div>
                     </div>
 
                   </div>

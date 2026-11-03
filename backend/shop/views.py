@@ -1,4 +1,6 @@
 import logging
+import hmac
+import re
 from rest_framework import generics, permissions, status
 from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
@@ -776,6 +778,7 @@ class AdminCourierBookView(APIView):
             order.consignment_id = str(result.get("consignment_id") or "")
             order.tracking_code = str(result.get("tracking_code") or result.get("consignment_id") or "")
             order.courier_status = result.get("status", "in_review")
+            order.courier_status_updated_at = timezone.now()
             order.courier_booking_data = result
             order.status = "courier_booked"
             order.save()
@@ -814,7 +817,8 @@ class AdminCourierTrackView(APIView):
                     client = PathaoCourierClient(config)
                     data = client.get_tracking(order.consignment_id)
                 order.courier_status = data.get("delivery_status", order.courier_status)
-                order.save(update_fields=["courier_status"])
+                order.courier_status_updated_at = timezone.now()
+                order.save(update_fields=["courier_status", "courier_status_updated_at"])
                 return Response(data)
             else:
                 return Response({
@@ -830,6 +834,67 @@ class AdminCourierTrackView(APIView):
                 })
         except Exception as e:
             return Response({"error": str(e)}, status=400)
+
+
+class PathaoWebhookView(APIView):
+    authentication_classes = []
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        # Keep webhooks working for parcels already booked if dispatch is disabled later.
+        config = CourierConfig.objects.filter(provider="pathao").first()
+        if not config or not config.webhook_secret:
+            return Response({"error": "Pathao webhook is not configured."}, status=503)
+
+        signature = request.headers.get("X-Pathao-Signature", "")
+        if not signature or not hmac.compare_digest(signature, config.webhook_secret):
+            return Response({"error": "Invalid Pathao webhook signature."}, status=401)
+
+        payload = request.data if isinstance(request.data, dict) else {}
+        event = str(payload.get("event") or "").strip()
+        response = Response({"received": True}, status=202)
+        if config.webhook_integration_secret:
+            response["X-Pathao-Merchant-Webhook-Integration-Secret"] = config.webhook_integration_secret
+
+        # Pathao sends this event while validating the callback URL.
+        if event == "webhook_integration":
+            return response
+
+        merchant_order_id = str(payload.get("merchant_order_id") or "").strip()
+        match = re.fullmatch(r"ALOR-(\d+)", merchant_order_id)
+        order = None
+        if match:
+            order = Order.objects.filter(pk=match.group(1), courier_provider="pathao").first()
+        if not order:
+            consignment_id = str(payload.get("consignment_id") or "").strip()
+            if consignment_id:
+                order = Order.objects.filter(consignment_id=consignment_id, courier_provider="pathao").first()
+        if not order:
+            logger.warning("Pathao webhook order not found (event=%s, merchant_order_id=%s)", event, merchant_order_id)
+            return Response({"error": "Order not found for this Pathao update."}, status=404)
+
+        courier_status = str(payload.get("order_status") or event or "").strip()
+        if not courier_status:
+            return Response({"error": "Pathao webhook has no order status or event."}, status=400)
+
+        order.courier_status = courier_status[:100]
+        order.courier_status_updated_at = timezone.now()
+        order.courier_booking_data = {
+            **(order.courier_booking_data if isinstance(order.courier_booking_data, dict) else {}),
+            "latest_webhook": {
+                "event": event,
+                "order_status": payload.get("order_status"),
+                "received_at": order.courier_status_updated_at.isoformat(),
+            },
+        }
+        update_fields = ["courier_status", "courier_status_updated_at", "courier_booking_data"]
+        if payload.get("consignment_id") and not order.consignment_id:
+            order.consignment_id = str(payload["consignment_id"])[:100]
+            order.tracking_code = order.consignment_id
+            update_fields.extend(["consignment_id", "tracking_code"])
+        order.save(update_fields=update_fields)
+        logger.info("Pathao webhook updated order %s to %s", order.id, order.courier_status)
+        return response
 
 
 class AdminProductListCreateView(APIView):

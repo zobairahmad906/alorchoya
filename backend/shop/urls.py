@@ -43,6 +43,7 @@ urlpatterns = [
     path("admin/courier/config/", views.AdminCourierConfigView.as_view()),
     path("admin/courier/book/", views.AdminCourierBookView.as_view()),
     path("admin/courier/track/<int:order_id>/", views.AdminCourierTrackView.as_view()),
+    path("courier/pathao/webhook/", views.PathaoWebhookView.as_view()),
     path("admin/products/", views.AdminProductListCreateView.as_view()),
     path("admin/products/<int:pk>/", views.AdminProductDetailView.as_view()),
     path("admin/products/images/<int:pk>/", views.AdminProductImageManageView.as_view()),
