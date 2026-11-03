@@ -42,7 +42,30 @@ export default async function Home() {
   const reviewsToDisplay = featuredReviews.length > 0 ? featuredReviews : fallbackReviews;
 
   const t = await getTranslations("home");
-  const categories = Array.from(new Map(allProds.map(product => [product.category.slug, product.category])).values());
+  const categoryMap = new Map<string, { name: string; slug: string; image?: string; count: number }>();
+  for (const product of allProds) {
+    const cat = product.category;
+    if (!cat || !cat.slug) continue;
+    const existing = categoryMap.get(cat.slug);
+    const primaryImage = product.images?.find(img => img.is_primary)?.card_image ||
+                         product.images?.find(img => img.is_primary)?.image ||
+                         product.images?.[0]?.card_image ||
+                         product.images?.[0]?.image;
+    if (existing) {
+      existing.count += 1;
+      if (!existing.image && primaryImage) {
+        existing.image = primaryImage;
+      }
+    } else {
+      categoryMap.set(cat.slug, {
+        name: cat.name,
+        slug: cat.slug,
+        image: primaryImage,
+        count: 1
+      });
+    }
+  }
+  const categories = Array.from(categoryMap.values());
   return <>
     <Header />
     {discountedProducts.length > 0 && <div className="announce">{t("announce", { count: discountedProducts.length, discount: maxDiscount })}</div>}
