@@ -4,6 +4,7 @@ from django.db import transaction
 from rest_framework import serializers
 from rest_framework.exceptions import APIException
 from .models import Category, Product, ProductVariant, ProductImage, Order, OrderItem, Cart, CartItem, DeliveryZone, Coupon, Review, CustomerProfile, CustomerAddress, ProductImageAsset, ProductImageAssetLink, HeroSlide, CourierConfig
+from .courier import PathaoCourierClient
 
 
 class CourierServiceUnavailable(APIException):
