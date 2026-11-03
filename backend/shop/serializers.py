@@ -2,7 +2,7 @@ import os
 from django.utils import timezone
 from django.db import transaction
 from rest_framework import serializers
-from .models import Category, Product, ProductVariant, ProductImage, Order, OrderItem, Cart, CartItem, DeliveryZone, Coupon, Review, CustomerProfile, CustomerAddress, ProductImageAsset, ProductImageAssetLink, HeroSlide
+from .models import Category, Product, ProductVariant, ProductImage, Order, OrderItem, Cart, CartItem, DeliveryZone, Coupon, Review, CustomerProfile, CustomerAddress, ProductImageAsset, ProductImageAssetLink, HeroSlide, CourierConfig
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -293,6 +293,11 @@ class CustomerOrderSerializer(serializers.ModelSerializer):
             "address",
             "delivery_charge",
             "discount_amount",
+            "courier_provider",
+            "consignment_id",
+            "tracking_code",
+            "courier_status",
+            "courier_booking_data",
             "created_at",
             "total",
             "items",
@@ -455,4 +460,15 @@ class HeroSlideSerializer(serializers.ModelSerializer):
         data["image"] = self._get_file_url(instance.image)
         data["mobile_image"] = self._get_file_url(instance.mobile_image)
         return data
+
+
+class CourierConfigSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CourierConfig
+        fields = [
+            "id", "provider", "is_active", "is_sandbox",
+            "api_key", "api_secret", "client_id", "client_secret",
+            "username", "password", "store_id", "updated_at"
+        ]
+
 

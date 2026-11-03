@@ -71,6 +71,11 @@ class Order(models.Model):
     coupon_code = models.CharField(max_length=40, blank=True)
     payment_method = models.CharField(max_length=12, choices=PAYMENT_CHOICES, default="cod")
     status = models.CharField(max_length=16, choices=STATUS_CHOICES, default="pending")
+    courier_provider = models.CharField(max_length=30, blank=True, default="")
+    consignment_id = models.CharField(max_length=100, blank=True, default="")
+    tracking_code = models.CharField(max_length=100, blank=True, default="")
+    courier_status = models.CharField(max_length=100, blank=True, default="")
+    courier_booking_data = models.JSONField(blank=True, default=dict)
     created_at = models.DateTimeField(auto_now_add=True)
     @property
     def total(self): return sum(item.quantity * item.unit_price for item in self.items.all()) + self.delivery_charge - self.discount_amount
@@ -217,4 +222,23 @@ class HeroSlide(models.Model):
 
     def __str__(self):
         return self.title or f"Hero Slide #{self.id}"
+
+
+class CourierConfig(models.Model):
+    provider = models.CharField(max_length=30, choices=[("steadfast", "SteadFast"), ("pathao", "Pathao")], unique=True)
+    is_active = models.BooleanField(default=False)
+    is_sandbox = models.BooleanField(default=True)
+    api_key = models.CharField(max_length=255, blank=True, default="")
+    api_secret = models.CharField(max_length=255, blank=True, default="")
+    client_id = models.CharField(max_length=255, blank=True, default="")
+    client_secret = models.CharField(max_length=255, blank=True, default="")
+    username = models.CharField(max_length=255, blank=True, default="")
+    password = models.CharField(max_length=255, blank=True, default="")
+    store_id = models.CharField(max_length=100, blank=True, default="")
+    access_token = models.TextField(blank=True, default="")
+    token_expires_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.provider.upper()} ({'Active' if self.is_active else 'Disabled'})"
 

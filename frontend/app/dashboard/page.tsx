@@ -41,6 +41,10 @@ import {
   Trash2,
   Copy,
   Edit2,
+  Edit3,
+  ChevronUp,
+  ChevronDown,
+  SlidersHorizontal,
   Check,
 } from "lucide-react";
 
@@ -78,6 +82,11 @@ type Order = {
   created_at: string;
   total: number;
   items: OrderItem[];
+  courier_provider?: string;
+  consignment_id?: string;
+  tracking_code?: string;
+  courier_status?: string;
+  courier_booking_data?: any;
 };
 
 type CustomerDirectoryItem = {
@@ -132,6 +141,41 @@ type CouponItem = {
   is_active: boolean;
 };
 
+type CourierConfigItem = {
+  id: number;
+  provider: "steadfast" | "pathao";
+  is_active: boolean;
+  is_sandbox: boolean;
+  api_key: string;
+  api_secret: string;
+  client_id: string;
+  client_secret: string;
+  username: string;
+  password: string;
+  store_id: string;
+  updated_at: string;
+};
+
+type HeroSlide = {
+  id: number;
+  title: string;
+  subtitle: string;
+  eyebrow: string;
+  image: string;
+  mobile_image?: string | null;
+  button_text: string;
+  button_link: string;
+  product?: number | null;
+  product_slug?: string;
+  product_name?: string;
+  product_price?: string;
+  product_discount_price?: string;
+  position: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
 type DashboardStats = {
   total_revenue: number;
   monthly_revenue: number;
@@ -150,7 +194,7 @@ type DashboardStats = {
 };
 
 export default function AdminDashboardPage() {
-  const [activeTab, setActiveTab] = useState<"overview" | "orders" | "products" | "coupons" | "gallery" | "customers" | "hero">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "orders" | "products" | "coupons" | "courier" | "hero" | "gallery" | "customers">("overview");
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -189,6 +233,64 @@ export default function AdminDashboardPage() {
     max_uses: "",
     expires_at: "",
     is_active: true
+  });
+
+  // Courier state
+  const [courierConfigs, setCourierConfigs] = useState<CourierConfigItem[]>([]);
+  const [selectedCourierTab, setSelectedCourierTab] = useState<"steadfast" | "pathao">("steadfast");
+  const [savingCourierConfig, setSavingCourierConfig] = useState(false);
+  const [steadfastForm, setSteadfastForm] = useState({
+    api_key: "",
+    api_secret: "",
+    is_sandbox: true,
+    is_active: false
+  });
+  const [pathaoForm, setPathaoForm] = useState({
+    client_id: "",
+    client_secret: "",
+    username: "",
+    password: "",
+    store_id: "",
+    is_sandbox: true,
+    is_active: false
+  });
+
+  // Courier Booking modal state
+  const [courierBookingModalOpen, setCourierBookingModalOpen] = useState(false);
+  const [bookingOrder, setBookingOrder] = useState<Order | null>(null);
+  const [bookingProvider, setBookingProvider] = useState<"steadfast" | "pathao">("steadfast");
+  const [bookingRecipientName, setBookingRecipientName] = useState("");
+  const [bookingRecipientPhone, setBookingRecipientPhone] = useState("");
+  const [bookingRecipientAddress, setBookingRecipientAddress] = useState("");
+  const [bookingCodAmount, setBookingCodAmount] = useState("");
+  const [bookingWeight, setBookingWeight] = useState("0.5");
+  const [bookingNote, setBookingNote] = useState("");
+  const [isSubmittingBooking, setIsSubmittingBooking] = useState(false);
+
+  // Courier Tracking modal state
+  const [courierTrackingModalOpen, setCourierTrackingModalOpen] = useState(false);
+  const [trackingOrder, setTrackingOrder] = useState<Order | null>(null);
+  const [trackingDetails, setTrackingDetails] = useState<any>(null);
+  const [loadingTracking, setLoadingTracking] = useState(false);
+
+  // Hero slides state
+  const [heroSlides, setHeroSlides] = useState<HeroSlide[]>([]);
+  const [editingSlide, setEditingSlide] = useState<HeroSlide | null>(null);
+  const [showSlideModal, setShowSlideModal] = useState(false);
+  const [slideSubmitting, setSlideSubmitting] = useState(false);
+  const [slideImageFile, setSlideImageFile] = useState<File | null>(null);
+  const [slideMobileImageFile, setSlideMobileImageFile] = useState<File | null>(null);
+  const [slideImagePreview, setSlideImagePreview] = useState("");
+  const [slideMobileImagePreview, setSlideMobileImagePreview] = useState("");
+  const [slideForm, setSlideForm] = useState({
+    title: "",
+    subtitle: "",
+    eyebrow: "★ বিশেষ অফার",
+    button_text: "কেনাকাটা শুরু করুন",
+    button_link: "#shop",
+    product: "" as string | number,
+    position: 0,
+    is_active: true,
   });
 
   // Product modal / editing state
@@ -344,11 +446,151 @@ export default function AdminDashboardPage() {
       } catch (cpErr) {
         console.error("Failed to load coupons:", cpErr);
       }
+
+      // Fetch Courier Configs
+      try {
+        const courierRes = await fetch(getApiUrl("/admin/courier/config/"), { credentials: "include" });
+        if (courierRes.ok) {
+          const cData = await courierRes.json();
+          setCourierConfigs(cData);
+          const st = cData.find((c: any) => c.provider === "steadfast");
+          if (st) {
+            setSteadfastForm({
+              api_key: st.api_key || "",
+              api_secret: st.api_secret || "",
+              is_sandbox: st.is_sandbox ?? true,
+              is_active: st.is_active ?? false,
+            });
+          }
+          const pt = cData.find((c: any) => c.provider === "pathao");
+          if (pt) {
+            setPathaoForm({
+              client_id: pt.client_id || "",
+              client_secret: pt.client_secret || "",
+              username: pt.username || "",
+              password: pt.password || "",
+              store_id: pt.store_id || "",
+              is_sandbox: pt.is_sandbox ?? true,
+              is_active: pt.is_active ?? false,
+            });
+          }
+        }
+      } catch (courErr) {
+        console.error("Failed to load courier config:", courErr);
+      }
+
+      // Fetch Hero Slides
+      try {
+        const heroRes = await fetch(getApiUrl("/admin/hero-slides/"), { credentials: "include" });
+        if (heroRes.ok) {
+          const heroData = await heroRes.json();
+          setHeroSlides(Array.isArray(heroData) ? heroData : heroData.results || []);
+        }
+      } catch (hErr) {
+        console.error("Failed to load hero slides:", hErr);
+      }
     } catch (err) {
       console.error(err);
       setError("Failed to load dashboard data. Please check server status.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveCourierConfig = async (provider: "steadfast" | "pathao") => {
+    setSavingCourierConfig(true);
+    try {
+      const payload = provider === "steadfast" ? { provider, ...steadfastForm } : { provider, ...pathaoForm };
+      const res = await fetch(getApiUrl("/admin/courier/config/"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(csrfToken ? { "X-CSRFToken": csrfToken } : {}) },
+        credentials: "include",
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        const saved = await res.json();
+        setCourierConfigs(prev => prev.map(c => c.provider === provider ? saved : c));
+        toast.success(`${provider === "steadfast" ? "SteadFast" : "Pathao"} settings saved successfully!`);
+      } else {
+        toast.error("Failed to save courier configuration");
+      }
+    } catch (e) {
+      toast.error("Network error saving courier configuration");
+    } finally {
+      setSavingCourierConfig(false);
+    }
+  };
+
+  const handleOpenBookingModal = (order: Order) => {
+    setBookingOrder(order);
+    setBookingRecipientName(order.customer_name);
+    setBookingRecipientPhone(order.phone || "");
+    setBookingRecipientAddress(order.address || "");
+    setBookingCodAmount(order.total.toString());
+    setBookingWeight("0.5");
+    setBookingNote(`Order #${order.id}`);
+    setCourierBookingModalOpen(true);
+  };
+
+  const handleSubmitBooking = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!bookingOrder) return;
+    setIsSubmittingBooking(true);
+    try {
+      const payload = {
+        order_id: bookingOrder.id,
+        provider: bookingProvider,
+        recipient_name: bookingRecipientName,
+        recipient_phone: bookingRecipientPhone,
+        recipient_address: bookingRecipientAddress,
+        cod_amount: parseFloat(bookingCodAmount) || bookingOrder.total,
+        weight: parseFloat(bookingWeight) || 0.5,
+        note: bookingNote
+      };
+      const res = await fetch(getApiUrl("/admin/courier/book/"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(csrfToken ? { "X-CSRFToken": csrfToken } : {}) },
+        credentials: "include",
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        toast.success(`Consignment booked with ${bookingProvider.toUpperCase()}! Tracking: ${data.tracking_code || data.consignment_id}`);
+        setCourierBookingModalOpen(false);
+        fetchDashboardData();
+        if (selectedOrder?.id === bookingOrder.id && data.order) {
+          setSelectedOrder(data.order);
+        }
+      } else {
+        toast.error(data.error || "Failed to book consignment.");
+      }
+    } catch (e) {
+      toast.error("Server error while dispatching consignment.");
+    } finally {
+      setIsSubmittingBooking(false);
+    }
+  };
+
+  const handleTrackCourier = async (order: Order) => {
+    setTrackingOrder(order);
+    setCourierTrackingModalOpen(true);
+    setLoadingTracking(true);
+    setTrackingDetails(null);
+    try {
+      const res = await fetch(getApiUrl(`/admin/courier/track/${order.id}/`), {
+        credentials: "include"
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setTrackingDetails(data);
+      } else {
+        const err = await res.json();
+        toast.error(err.error || "Failed to fetch tracking details");
+      }
+    } catch (e) {
+      toast.error("Network error fetching tracking info");
+    } finally {
+      setLoadingTracking(false);
     }
   };
 
@@ -1218,6 +1460,19 @@ export default function AdminDashboardPage() {
             </button>
 
             <button
+              onClick={() => { setActiveTab("courier"); setMobileSidebarOpen(false); }}
+              className={`admin-nav-item ${activeTab === "courier" ? "active" : ""}`}
+            >
+              <div className="admin-nav-item-content">
+                <Truck size={18} className="admin-nav-item-icon" />
+                <span>Courier Logistics</span>
+              </div>
+              <span className="admin-nav-badge">
+                {orders.filter(o => o.consignment_id).length}
+              </span>
+            </button>
+
+            <button
               onClick={() => { setActiveTab("gallery"); setMobileSidebarOpen(false); }}
               className={`admin-nav-item ${activeTab === "gallery" ? "active" : ""}`}
             >
@@ -1294,6 +1549,7 @@ export default function AdminDashboardPage() {
                 {activeTab === "products" && "Products & Inventory"}
                 {activeTab === "hero" && "হোম হিরো স্লাইডার ও ব্যানার ম্যানেজমেন্ট"}
                 {activeTab === "coupons" && "Promotions & Coupon Discounts"}
+                {activeTab === "courier" && "Courier & Delivery Logistics"}
                 {activeTab === "gallery" && "Central Image Gallery & Media Hub"}
                 {activeTab === "customers" && "Customer Directory"}
               </div>
@@ -1894,6 +2150,48 @@ export default function AdminDashboardPage() {
                               <span>{new Date(order.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}</span>
                               {order.phone && <span>• {order.phone}</span>}
                               <span>• {order.payment_method.toUpperCase()}</span>
+                              {order.consignment_id ? (
+                                <span
+                                  onClick={e => { e.stopPropagation(); handleTrackCourier(order); }}
+                                  style={{
+                                    background: "#f0fdf4",
+                                    color: "#166534",
+                                    border: "1px solid #bbf7d0",
+                                    padding: "1px 7px",
+                                    borderRadius: "6px",
+                                    fontSize: "11px",
+                                    fontWeight: 700,
+                                    cursor: "pointer",
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "4px"
+                                  }}
+                                  title="Click to track live courier status"
+                                >
+                                  <Truck size={12} />
+                                  {(order.courier_provider || "courier").toUpperCase()}: {order.tracking_code || order.consignment_id}
+                                </span>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={e => { e.stopPropagation(); handleOpenBookingModal(order); }}
+                                  style={{
+                                    background: "#eff6ff",
+                                    color: "#1d4ed8",
+                                    border: "1px solid #bfdbfe",
+                                    padding: "1px 7px",
+                                    borderRadius: "6px",
+                                    fontSize: "11px",
+                                    fontWeight: 700,
+                                    cursor: "pointer",
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "4px"
+                                  }}
+                                >
+                                  <Truck size={12} /> Book Courier
+                                </button>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -2060,6 +2358,60 @@ export default function AdminDashboardPage() {
                         </button>
                       ))}
                     </div>
+                  </div>
+
+                  {/* Courier Dispatch Card */}
+                  <div style={{ background: "#ffffff", padding: "14px", borderRadius: "16px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.02)" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
+                      <div style={{ fontSize: "11px", fontWeight: 800, textTransform: "uppercase", color: "#64748b", display: "flex", alignItems: "center", gap: "6px" }}>
+                        <Truck size={14} style={{ color: "#2563eb" }} /> Courier Consignment & Delivery
+                      </div>
+                      {selectedOrder.consignment_id && (
+                        <span className="admin-badge delivered" style={{ fontSize: "11px" }}>
+                          Booked ({selectedOrder.courier_provider})
+                        </span>
+                      )}
+                    </div>
+
+                    {selectedOrder.consignment_id ? (
+                      <div style={{ display: "flex", flexDirection: "column", gap: "8px", background: "#f8fafc", padding: "12px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "12px" }}>
+                          <span style={{ color: "#64748b" }}>Consignment ID:</span>
+                          <span style={{ fontWeight: 800, fontFamily: "monospace", color: "#0f172a" }}>{selectedOrder.consignment_id}</span>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "12px" }}>
+                          <span style={{ color: "#64748b" }}>Tracking Code:</span>
+                          <span style={{ fontWeight: 800, fontFamily: "monospace", color: "#2563eb" }}>{selectedOrder.tracking_code || selectedOrder.consignment_id}</span>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "12px" }}>
+                          <span style={{ color: "#64748b" }}>Courier Status:</span>
+                          <span style={{ fontWeight: 700, textTransform: "capitalize", color: "#166534" }}>{selectedOrder.courier_status || "In Review"}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleTrackCourier(selectedOrder)}
+                          className="admin-btn-primary"
+                          style={{ width: "100%", justifyContent: "center", marginTop: "4px", padding: "8px", fontSize: "12px" }}
+                        >
+                          <Truck size={14} /> Track Parcel Live
+                        </button>
+                      </div>
+                    ) : (
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", background: "#f0fdf4", padding: "12px", borderRadius: "12px", border: "1px solid #bbf7d0" }}>
+                        <div>
+                          <div style={{ fontSize: "13px", fontWeight: 800, color: "#166534" }}>Ready for Courier Booking</div>
+                          <div style={{ fontSize: "11px", color: "#15803d" }}>Dispatch to SteadFast or Pathao in 1-click</div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenBookingModal(selectedOrder)}
+                          className="admin-btn-primary"
+                          style={{ padding: "8px 16px", fontSize: "12px", background: "#16a34a", borderColor: "#16a34a" }}
+                        >
+                          <Truck size={14} /> Book Courier
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   {/* Customer & Payment Split Info Cards */}
@@ -2562,6 +2914,359 @@ export default function AdminDashboardPage() {
                 })}
               </div>
             )}
+          </div>
+        )}
+
+        {/* COURIER LOGISTICS TAB */}
+        {activeTab === "courier" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+            {/* Header */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
+              <div>
+                <h3 style={{ fontSize: "22px", fontWeight: 800, color: "var(--forest)", margin: 0 }}>Courier & Delivery Logistics</h3>
+                <p style={{ margin: "4px 0 0", fontSize: "12px", color: "var(--coffee)" }}>
+                  Configure automated dispatch with SteadFast & Pathao, generate consignments, and monitor real-time tracking.
+                </p>
+              </div>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("orders")}
+                  className="admin-btn-secondary"
+                  style={{ fontSize: "12px" }}
+                >
+                  <ShoppingCart size={14} /> View All Orders
+                </button>
+              </div>
+            </div>
+
+            {/* Courier KPI cards */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px" }}>
+              <div className="profit-stat-card green" style={{ padding: "18px" }}>
+                <div style={{ fontSize: "12px", fontWeight: 800, color: "#166534", textTransform: "uppercase" }}>Dispatched Shipments</div>
+                <div style={{ fontSize: "24px", fontWeight: 900, color: "#0f172a", marginTop: "4px" }}>
+                  {orders.filter(o => o.consignment_id).length}
+                </div>
+                <div style={{ fontSize: "11px", color: "#64748b", marginTop: "4px" }}>Booked with Courier Consignment</div>
+              </div>
+
+              <div className="profit-stat-card orange" style={{ padding: "18px" }}>
+                <div style={{ fontSize: "12px", fontWeight: 800, color: "#9a3412", textTransform: "uppercase" }}>Pending Dispatch</div>
+                <div style={{ fontSize: "24px", fontWeight: 900, color: "#0f172a", marginTop: "4px" }}>
+                  {orders.filter(o => !o.consignment_id && (o.status === "confirmed" || o.status === "processing")).length}
+                </div>
+                <div style={{ fontSize: "11px", color: "#64748b", marginTop: "4px" }}>Confirmed orders ready for booking</div>
+              </div>
+
+              <div className="profit-stat-card blue" style={{ padding: "18px" }}>
+                <div style={{ fontSize: "12px", fontWeight: 800, color: "#1e40af", textTransform: "uppercase" }}>Active Integrations</div>
+                <div style={{ fontSize: "16px", fontWeight: 800, color: "#0f172a", marginTop: "8px", display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                  <span className={`admin-badge ${steadfastForm.is_active ? "delivered" : "cancelled"}`}>
+                    SteadFast: {steadfastForm.is_active ? "Active" : "Disabled"}
+                  </span>
+                  <span className={`admin-badge ${pathaoForm.is_active ? "delivered" : "cancelled"}`}>
+                    Pathao: {pathaoForm.is_active ? "Active" : "Disabled"}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Courier Configuration Card with Tabs */}
+            <div className="profit-panel-card" style={{ padding: "24px" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid #f1f5f9", paddingBottom: "16px", marginBottom: "20px", flexWrap: "wrap", gap: "12px" }}>
+                <div>
+                  <h4 style={{ margin: 0, fontSize: "16px", fontWeight: 800, color: "#0f172a" }}>
+                    Courier API & Gateway Credentials
+                  </h4>
+                  <p style={{ margin: "2px 0 0", fontSize: "12px", color: "#64748b" }}>
+                    Enter your merchant API credentials provided by your courier account.
+                  </p>
+                </div>
+
+                {/* Sub tabs */}
+                <div style={{ display: "flex", background: "#f1f5f9", padding: "4px", borderRadius: "10px", gap: "4px" }}>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCourierTab("steadfast")}
+                    style={{
+                      border: "none",
+                      padding: "6px 16px",
+                      borderRadius: "8px",
+                      fontSize: "12px",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      background: selectedCourierTab === "steadfast" ? "#ffffff" : "transparent",
+                      color: selectedCourierTab === "steadfast" ? "#0f172a" : "#64748b",
+                      boxShadow: selectedCourierTab === "steadfast" ? "0 1px 3px rgba(0,0,0,0.1)" : "none"
+                    }}
+                  >
+                    SteadFast Courier
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCourierTab("pathao")}
+                    style={{
+                      border: "none",
+                      padding: "6px 16px",
+                      borderRadius: "8px",
+                      fontSize: "12px",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      background: selectedCourierTab === "pathao" ? "#ffffff" : "transparent",
+                      color: selectedCourierTab === "pathao" ? "#0f172a" : "#64748b",
+                      boxShadow: selectedCourierTab === "pathao" ? "0 1px 3px rgba(0,0,0,0.1)" : "none"
+                    }}
+                  >
+                    Pathao Courier
+                  </button>
+                </div>
+              </div>
+
+              {/* SteadFast Form */}
+              {selectedCourierTab === "steadfast" && (
+                <form
+                  onSubmit={e => { e.preventDefault(); handleSaveCourierConfig("steadfast"); }}
+                  style={{ display: "flex", flexDirection: "column", gap: "16px" }}
+                >
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                    <div className="admin-form-group" style={{ margin: 0 }}>
+                      <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155" }}>SteadFast API Key</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. your_steadfast_api_key"
+                        value={steadfastForm.api_key}
+                        onChange={e => setSteadfastForm({ ...steadfastForm, api_key: e.target.value })}
+                        className="admin-input-field"
+                      />
+                    </div>
+                    <div className="admin-form-group" style={{ margin: 0 }}>
+                      <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155" }}>SteadFast Secret Key</label>
+                      <input
+                        type="password"
+                        placeholder="e.g. your_steadfast_secret_key"
+                        value={steadfastForm.api_secret}
+                        onChange={e => setSteadfastForm({ ...steadfastForm, api_secret: e.target.value })}
+                        className="admin-input-field"
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", alignItems: "center", gap: "24px", paddingTop: "8px" }}>
+                    <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "13px", fontWeight: 600, color: "#334155" }}>
+                      <input
+                        type="checkbox"
+                        checked={steadfastForm.is_sandbox}
+                        onChange={e => setSteadfastForm({ ...steadfastForm, is_sandbox: e.target.checked })}
+                      />
+                      Sandbox / Test Mode
+                    </label>
+                    <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "13px", fontWeight: 700, color: steadfastForm.is_active ? "#166534" : "#64748b" }}>
+                      <input
+                        type="checkbox"
+                        checked={steadfastForm.is_active}
+                        onChange={e => setSteadfastForm({ ...steadfastForm, is_active: e.target.checked })}
+                      />
+                      Enable SteadFast for Order Dispatch
+                    </label>
+                  </div>
+
+                  <div style={{ display: "flex", justifyContent: "flex-end", borderTop: "1px solid #f1f5f9", paddingTop: "14px" }}>
+                    <button
+                      type="submit"
+                      disabled={savingCourierConfig}
+                      className="admin-submit-btn"
+                      style={{ width: "auto", padding: "10px 24px", marginTop: 0 }}
+                    >
+                      {savingCourierConfig ? "Saving..." : "Save SteadFast Settings"}
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {/* Pathao Form */}
+              {selectedCourierTab === "pathao" && (
+                <form
+                  onSubmit={e => { e.preventDefault(); handleSaveCourierConfig("pathao"); }}
+                  style={{ display: "flex", flexDirection: "column", gap: "16px" }}
+                >
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                    <div className="admin-form-group" style={{ margin: 0 }}>
+                      <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155" }}>Client ID</label>
+                      <input
+                        type="text"
+                        placeholder="Pathao API Client ID"
+                        value={pathaoForm.client_id}
+                        onChange={e => setPathaoForm({ ...pathaoForm, client_id: e.target.value })}
+                        className="admin-input-field"
+                      />
+                    </div>
+                    <div className="admin-form-group" style={{ margin: 0 }}>
+                      <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155" }}>Client Secret</label>
+                      <input
+                        type="password"
+                        placeholder="Pathao API Client Secret"
+                        value={pathaoForm.client_secret}
+                        onChange={e => setPathaoForm({ ...pathaoForm, client_secret: e.target.value })}
+                        className="admin-input-field"
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px" }}>
+                    <div className="admin-form-group" style={{ margin: 0 }}>
+                      <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155" }}>Merchant Email / Username</label>
+                      <input
+                        type="text"
+                        placeholder="Registered Pathao Email"
+                        value={pathaoForm.username}
+                        onChange={e => setPathaoForm({ ...pathaoForm, username: e.target.value })}
+                        className="admin-input-field"
+                      />
+                    </div>
+                    <div className="admin-form-group" style={{ margin: 0 }}>
+                      <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155" }}>Password</label>
+                      <input
+                        type="password"
+                        placeholder="Merchant Password"
+                        value={pathaoForm.password}
+                        onChange={e => setPathaoForm({ ...pathaoForm, password: e.target.value })}
+                        className="admin-input-field"
+                      />
+                    </div>
+                    <div className="admin-form-group" style={{ margin: 0 }}>
+                      <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155" }}>Default Store ID (Optional)</label>
+                      <input
+                        type="text"
+                        placeholder="Store ID"
+                        value={pathaoForm.store_id}
+                        onChange={e => setPathaoForm({ ...pathaoForm, store_id: e.target.value })}
+                        className="admin-input-field"
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", alignItems: "center", gap: "24px", paddingTop: "8px" }}>
+                    <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "13px", fontWeight: 600, color: "#334155" }}>
+                      <input
+                        type="checkbox"
+                        checked={pathaoForm.is_sandbox}
+                        onChange={e => setPathaoForm({ ...pathaoForm, is_sandbox: e.target.checked })}
+                      />
+                      Sandbox / Test Mode
+                    </label>
+                    <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "13px", fontWeight: 700, color: pathaoForm.is_active ? "#166534" : "#64748b" }}>
+                      <input
+                        type="checkbox"
+                        checked={pathaoForm.is_active}
+                        onChange={e => setPathaoForm({ ...pathaoForm, is_active: e.target.checked })}
+                      />
+                      Enable Pathao for Order Dispatch
+                    </label>
+                  </div>
+
+                  <div style={{ display: "flex", justifyContent: "flex-end", borderTop: "1px solid #f1f5f9", paddingTop: "14px" }}>
+                    <button
+                      type="submit"
+                      disabled={savingCourierConfig}
+                      className="admin-submit-btn"
+                      style={{ width: "auto", padding: "10px 24px", marginTop: 0 }}
+                    >
+                      {savingCourierConfig ? "Saving..." : "Save Pathao Settings"}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+
+            {/* Consignments Table & Dispatch Queue */}
+            <div className="profit-panel-card" style={{ padding: 0, overflow: "hidden" }}>
+              <div style={{ padding: "16px 20px", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div>
+                  <h4 style={{ margin: 0, fontSize: "16px", fontWeight: 800, color: "#0f172a" }}>
+                    Dispatched Consignments & Tracking Ledger
+                  </h4>
+                  <p style={{ margin: "2px 0 0", fontSize: "12px", color: "#64748b" }}>
+                    Real-time status of all booked orders
+                  </p>
+                </div>
+                <span className="admin-badge pending" style={{ fontSize: "12px" }}>
+                  {orders.filter(o => o.consignment_id).length} Active Consignments
+                </span>
+              </div>
+
+              <div style={{ overflowX: "auto" }}>
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Order ID</th>
+                      <th>Courier Provider</th>
+                      <th>Consignment ID</th>
+                      <th>Tracking Code</th>
+                      <th>Customer Details</th>
+                      <th>COD Amount</th>
+                      <th>Status</th>
+                      <th style={{ textAlign: "right" }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {orders.filter(o => o.consignment_id).length === 0 ? (
+                      <tr>
+                        <td colSpan={8} style={{ textAlign: "center", padding: "36px", color: "var(--coffee)" }}>
+                          No orders have been dispatched yet. Go to Orders tab to book consignments!
+                        </td>
+                      </tr>
+                    ) : (
+                      orders.filter(o => o.consignment_id).map(o => (
+                        <tr key={o.id}>
+                          <td style={{ fontWeight: 800, color: "#2563eb" }}>#{o.id}</td>
+                          <td>
+                            <span style={{
+                              fontWeight: 700,
+                              textTransform: "uppercase",
+                              fontSize: "11px",
+                              padding: "2px 8px",
+                              borderRadius: "6px",
+                              background: o.courier_provider === "steadfast" ? "#fef3c7" : "#e0e7ff",
+                              color: o.courier_provider === "steadfast" ? "#b45309" : "#4338ca",
+                              border: "1px solid",
+                              borderColor: o.courier_provider === "steadfast" ? "#fde68a" : "#c7d2fe"
+                            }}>
+                              {o.courier_provider || "SteadFast"}
+                            </span>
+                          </td>
+                          <td style={{ fontFamily: "monospace", fontWeight: 700, color: "#0f172a" }}>
+                            {o.consignment_id}
+                          </td>
+                          <td style={{ fontFamily: "monospace", fontWeight: 700, color: "#2563eb" }}>
+                            {o.tracking_code || o.consignment_id}
+                          </td>
+                          <td>
+                            <div style={{ fontWeight: 700, color: "#0f172a" }}>{o.customer_name}</div>
+                            <div style={{ fontSize: "11px", color: "#64748b" }}>{o.phone}</div>
+                          </td>
+                          <td style={{ fontWeight: 800, color: "#0f172a" }}>৳{o.total}</td>
+                          <td>
+                            <span className="admin-badge delivered" style={{ textTransform: "capitalize" }}>
+                              {o.courier_status || "In Review"}
+                            </span>
+                          </td>
+                          <td style={{ textAlign: "right" }}>
+                            <button
+                              type="button"
+                              onClick={() => handleTrackCourier(o)}
+                              className="admin-header-link"
+                              style={{ padding: "4px 12px", fontSize: "12px", color: "#2563eb", borderColor: "#93c5fd" }}
+                            >
+                              Track
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         )}
 
@@ -3401,6 +4106,243 @@ export default function AdminDashboardPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Courier Booking Modal */}
+      {courierBookingModalOpen && bookingOrder && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(15,23,42,0.45)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "16px" }}>
+          <div className="admin-login-card" style={{ maxWidth: "520px", width: "100%", padding: "28px", maxHeight: "90vh", overflowY: "auto" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid #e2e8f0", paddingBottom: "12px", marginBottom: "20px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <Truck size={20} style={{ color: "#2563eb" }} />
+                <h3 style={{ fontSize: "18px", fontWeight: 800, color: "#0f172a", margin: 0 }}>
+                  Book Courier Consignment
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCourierBookingModalOpen(false)}
+                style={{ background: "none", border: "none", fontSize: "18px", color: "#64748b", cursor: "pointer" }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitBooking} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              <div style={{ background: "#f8fafc", padding: "12px", borderRadius: "10px", border: "1px solid #e2e8f0", fontSize: "13px" }}>
+                <strong>Order #{bookingOrder.id}</strong> • Total Items: <strong>{bookingOrder.items?.length || 0}</strong> • Order Value: <strong>৳{bookingOrder.total}</strong>
+              </div>
+
+              {/* Provider Choice */}
+              <div className="admin-form-group" style={{ margin: 0 }}>
+                <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155" }}>Select Courier Provider</label>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginTop: "6px" }}>
+                  <button
+                    type="button"
+                    onClick={() => setBookingProvider("steadfast")}
+                    style={{
+                      padding: "10px",
+                      borderRadius: "10px",
+                      border: "2px solid",
+                      borderColor: bookingProvider === "steadfast" ? "#2563eb" : "#e2e8f0",
+                      background: bookingProvider === "steadfast" ? "#eff6ff" : "#ffffff",
+                      fontWeight: 800,
+                      color: bookingProvider === "steadfast" ? "#1d4ed8" : "#475569",
+                      cursor: "pointer"
+                    }}
+                  >
+                    SteadFast Courier
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBookingProvider("pathao")}
+                    style={{
+                      padding: "10px",
+                      borderRadius: "10px",
+                      border: "2px solid",
+                      borderColor: bookingProvider === "pathao" ? "#2563eb" : "#e2e8f0",
+                      background: bookingProvider === "pathao" ? "#eff6ff" : "#ffffff",
+                      fontWeight: 800,
+                      color: bookingProvider === "pathao" ? "#1d4ed8" : "#475569",
+                      cursor: "pointer"
+                    }}
+                  >
+                    Pathao Courier
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                <div className="admin-form-group" style={{ margin: 0 }}>
+                  <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155" }}>Recipient Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={bookingRecipientName}
+                    onChange={e => setBookingRecipientName(e.target.value)}
+                    className="admin-input-field"
+                  />
+                </div>
+                <div className="admin-form-group" style={{ margin: 0 }}>
+                  <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155" }}>Recipient Phone</label>
+                  <input
+                    type="text"
+                    required
+                    value={bookingRecipientPhone}
+                    onChange={e => setBookingRecipientPhone(e.target.value)}
+                    className="admin-input-field"
+                  />
+                </div>
+              </div>
+
+              <div className="admin-form-group" style={{ margin: 0 }}>
+                <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155" }}>Delivery Address</label>
+                <textarea
+                  required
+                  rows={2}
+                  value={bookingRecipientAddress}
+                  onChange={e => setBookingRecipientAddress(e.target.value)}
+                  className="admin-input-field"
+                />
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                <div className="admin-form-group" style={{ margin: 0 }}>
+                  <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155" }}>COD Amount to Collect (৳)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    value={bookingCodAmount}
+                    onChange={e => setBookingCodAmount(e.target.value)}
+                    className="admin-input-field"
+                  />
+                </div>
+                <div className="admin-form-group" style={{ margin: 0 }}>
+                  <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155" }}>Weight (kg)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    required
+                    value={bookingWeight}
+                    onChange={e => setBookingWeight(e.target.value)}
+                    className="admin-input-field"
+                  />
+                </div>
+              </div>
+
+              <div className="admin-form-group" style={{ margin: 0 }}>
+                <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155" }}>Instructions / Note</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Fragile, Handle with care"
+                  value={bookingNote}
+                  onChange={e => setBookingNote(e.target.value)}
+                  className="admin-input-field"
+                />
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", borderTop: "1px solid #f1f5f9", paddingTop: "14px" }}>
+                <button
+                  type="button"
+                  onClick={() => setCourierBookingModalOpen(false)}
+                  className="admin-header-link"
+                  style={{ padding: "8px 16px" }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingBooking}
+                  className="admin-submit-btn"
+                  style={{ width: "auto", padding: "8px 24px", marginTop: 0 }}
+                >
+                  {isSubmittingBooking ? "Dispatching..." : "Confirm & Book Consignment"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Courier Live Tracking Modal */}
+      {courierTrackingModalOpen && trackingOrder && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(15,23,42,0.45)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "16px" }}>
+          <div className="admin-login-card" style={{ maxWidth: "480px", width: "100%", padding: "28px" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid #e2e8f0", paddingBottom: "12px", marginBottom: "20px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <Truck size={20} style={{ color: "#2563eb" }} />
+                <div>
+                  <h3 style={{ fontSize: "18px", fontWeight: 800, color: "#0f172a", margin: 0 }}>
+                    Live Courier Tracking
+                  </h3>
+                  <div style={{ fontSize: "11px", color: "#64748b" }}>Order #{trackingOrder.id} • {(trackingOrder.courier_provider || "courier").toUpperCase()}</div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCourierTrackingModalOpen(false)}
+                style={{ background: "none", border: "none", fontSize: "18px", color: "#64748b", cursor: "pointer" }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {loadingTracking ? (
+              <div style={{ textAlign: "center", padding: "32px", color: "#64748b" }}>
+                <RefreshCw size={24} className="animate-spin" style={{ margin: "0 auto 10px" }} />
+                <div>Fetching live delivery status from courier...</div>
+              </div>
+            ) : trackingDetails ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                <div style={{ background: "#f8fafc", padding: "14px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
+                    <span style={{ fontSize: "11px", color: "#64748b", textTransform: "uppercase", fontWeight: 700 }}>Consignment ID</span>
+                    <span style={{ fontFamily: "monospace", fontWeight: 800, color: "#0f172a" }}>{trackingDetails.consignment_id}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
+                    <span style={{ fontSize: "11px", color: "#64748b", textTransform: "uppercase", fontWeight: 700 }}>Tracking Code</span>
+                    <span style={{ fontFamily: "monospace", fontWeight: 800, color: "#2563eb" }}>{trackingDetails.tracking_code || trackingDetails.consignment_id}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: "11px", color: "#64748b", textTransform: "uppercase", fontWeight: 700 }}>Delivery Status</span>
+                    <span className="admin-badge delivered" style={{ textTransform: "uppercase" }}>
+                      {trackingDetails.delivery_status || "In Review"}
+                    </span>
+                  </div>
+                </div>
+
+                {trackingDetails.events && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                    <div style={{ fontSize: "12px", fontWeight: 800, color: "#334155" }}>Delivery Timeline:</div>
+                    {trackingDetails.events.map((ev: any, idx: number) => (
+                      <div key={idx} style={{ display: "flex", alignItems: "flex-start", gap: "10px", fontSize: "12px" }}>
+                        <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#2563eb", marginTop: "4px", flexShrink: 0 }} />
+                        <div>
+                          <div style={{ fontWeight: 700, color: "#0f172a" }}>{ev.status_label}</div>
+                          <div style={{ fontSize: "11px", color: "#64748b" }}>{ev.time}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setCourierTrackingModalOpen(false)}
+                  className="admin-btn-secondary"
+                  style={{ width: "100%", justifyContent: "center", padding: "10px", marginTop: "8px" }}
+                >
+                  Close
+                </button>
+              </div>
+            ) : (
+              <div style={{ textAlign: "center", padding: "24px", color: "#ef4444" }}>
+                Unable to load tracking details.
+              </div>
+            )}
           </div>
         </div>
       )}

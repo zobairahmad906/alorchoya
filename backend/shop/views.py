@@ -8,8 +8,9 @@ from django.db import connection
 from django.http import JsonResponse
 import json
 from django.shortcuts import get_object_or_404
-from .models import Category, Product, ProductVariant, ProductImage, Cart, CartItem, DeliveryZone, Order, OrderItem, CustomerProfile, CustomerAddress, Review, ProductImageAsset, ProductImageAssetLink, Coupon, HeroSlide
-from .serializers import CategorySerializer, ProductSerializer, ProductImageSerializer, OrderSerializer, CartSerializer, CartItemSerializer, DeliveryZoneSerializer, OrderTrackingSerializer, ReviewSerializer, CustomerProfileSerializer, CustomerAddressSerializer, CustomerOrderSerializer, ProductImageAssetSerializer, ProductImageAssetLinkSerializer, AdminCouponSerializer, HeroSlideSerializer
+from .models import Category, Product, ProductVariant, ProductImage, Cart, CartItem, DeliveryZone, Order, OrderItem, CustomerProfile, CustomerAddress, Review, ProductImageAsset, ProductImageAssetLink, Coupon, HeroSlide, CourierConfig
+from .serializers import CategorySerializer, ProductSerializer, ProductImageSerializer, OrderSerializer, CartSerializer, CartItemSerializer, DeliveryZoneSerializer, OrderTrackingSerializer, ReviewSerializer, CustomerProfileSerializer, CustomerAddressSerializer, CustomerOrderSerializer, ProductImageAssetSerializer, ProductImageAssetLinkSerializer, AdminCouponSerializer, HeroSlideSerializer, CourierConfigSerializer
+from .courier import SteadFastCourierClient, PathaoCourierClient
 
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
@@ -532,6 +533,163 @@ class AdminCouponView(APIView):
         coupon = get_object_or_404(Coupon, pk=pk)
         coupon.delete()
         return Response({"success": True})
+
+
+class AdminCourierConfigView(APIView):
+    permission_classes = (IsAdminUser,)
+
+    def get(self, request):
+        configs = CourierConfig.objects.all()
+        providers = ["steadfast", "pathao"]
+        existing = {c.provider: c for c in configs}
+        result = []
+        for p in providers:
+            if p in existing:
+                result.append(existing[p])
+            else:
+                new_cfg = CourierConfig.objects.create(provider=p, is_active=False, is_sandbox=True)
+                result.append(new_cfg)
+        return Response(CourierConfigSerializer(result, many=True).data)
+
+    def post(self, request):
+        provider = request.data.get("provider")
+        if not provider or provider not in ("steadfast", "pathao"):
+            return Response({"error": "Valid provider ('steadfast' or 'pathao') is required"}, status=400)
+        config, _ = CourierConfig.objects.get_or_create(provider=provider)
+        serializer = CourierConfigSerializer(config, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=400)
+
+
+class AdminCourierBookView(APIView):
+    permission_classes = (IsAdminUser,)
+
+    def post(self, request):
+        order_id = request.data.get("order_id")
+        provider = request.data.get("provider", "steadfast")
+        if not order_id:
+            return Response({"error": "order_id is required"}, status=400)
+
+        order = get_object_or_404(Order, pk=order_id)
+        config = CourierConfig.objects.filter(provider=provider).first()
+
+        cod_amount = request.data.get("cod_amount")
+        if cod_amount is None:
+            cod_amount = float(order.total)
+        else:
+            try:
+                cod_amount = float(cod_amount)
+            except Exception:
+                cod_amount = float(order.total)
+
+        recipient_name = request.data.get("recipient_name") or order.customer_name
+        recipient_phone = request.data.get("recipient_phone") or order.phone
+        recipient_address = request.data.get("recipient_address") or order.address
+        note = request.data.get("note") or f"Order #{order.id}"
+
+        has_credentials = bool(config and config.is_active and (config.api_key or config.client_id))
+
+        try:
+            if has_credentials:
+                if provider == "steadfast":
+                    client = SteadFastCourierClient(config)
+                    payload = {
+                        "invoice": f"ALOR-{order.id}",
+                        "recipient_name": recipient_name,
+                        "recipient_phone": recipient_phone,
+                        "recipient_address": recipient_address,
+                        "cod_amount": cod_amount,
+                        "note": note
+                    }
+                    result = client.create_order(payload)
+                else:  # pathao
+                    client = PathaoCourierClient(config)
+                    payload = {
+                        "store_id": config.store_id or 1,
+                        "merchant_order_id": f"ALOR-{order.id}",
+                        "recipient_name": recipient_name,
+                        "recipient_phone": recipient_phone,
+                        "recipient_address": recipient_address,
+                        "amount_to_collect": int(cod_amount),
+                        "item_type": 1,
+                        "item_quantity": sum(it.quantity for it in order.items.all()) or 1,
+                        "item_weight": float(request.data.get("weight", 0.5)),
+                        "item_description": note,
+                    }
+                    result = client.create_order(payload)
+            else:
+                import random
+                cid = f"SIM-{provider[:3].upper()}-{random.randint(100000, 999999)}"
+                tr_code = f"TRK-{random.randint(1000000, 9999999)}"
+                result = {
+                    "success": True,
+                    "consignment_id": cid,
+                    "tracking_code": tr_code,
+                    "status": "in_review",
+                    "raw_response": {"simulation": True, "note": "Sandbox simulation mode"}
+                }
+
+            order.courier_provider = provider
+            order.consignment_id = str(result.get("consignment_id") or "")
+            order.tracking_code = str(result.get("tracking_code") or result.get("consignment_id") or "")
+            order.courier_status = result.get("status", "in_review")
+            order.courier_booking_data = result
+            if order.status == "pending":
+                order.status = "confirmed"
+            order.save()
+
+            return Response({
+                "success": True,
+                "order_id": order.id,
+                "provider": provider,
+                "consignment_id": order.consignment_id,
+                "tracking_code": order.tracking_code,
+                "courier_status": order.courier_status,
+                "order": CustomerOrderSerializer(order).data
+            })
+        except Exception as e:
+            logger.error(f"Courier booking error: {e}")
+            return Response({"error": str(e)}, status=400)
+
+
+class AdminCourierTrackView(APIView):
+    permission_classes = (IsAdminUser,)
+
+    def get(self, request, order_id):
+        order = get_object_or_404(Order, pk=order_id)
+        if not order.consignment_id:
+            return Response({"error": "This order does not have a courier consignment booked."}, status=400)
+
+        provider = order.courier_provider or "steadfast"
+        config = CourierConfig.objects.filter(provider=provider).first()
+
+        try:
+            if config and config.is_active and (config.api_key or config.client_id):
+                if provider == "steadfast":
+                    client = SteadFastCourierClient(config)
+                    data = client.get_tracking(order.consignment_id)
+                else:
+                    client = PathaoCourierClient(config)
+                    data = client.get_tracking(order.consignment_id)
+                order.courier_status = data.get("delivery_status", order.courier_status)
+                order.save(update_fields=["courier_status"])
+                return Response(data)
+            else:
+                return Response({
+                    "consignment_id": order.consignment_id,
+                    "tracking_code": order.tracking_code,
+                    "delivery_status": order.courier_status or "in_review",
+                    "provider": provider,
+                    "simulation": True,
+                    "events": [
+                        {"status_label": "Consignment Created & Assigned", "time": order.created_at.strftime("%b %d, %Y %I:%M %p")},
+                        {"status_label": "Ready for Courier Rider Pickup", "time": "In progress"}
+                    ]
+                })
+        except Exception as e:
+            return Response({"error": str(e)}, status=400)
 
 
 class AdminProductListCreateView(APIView):
