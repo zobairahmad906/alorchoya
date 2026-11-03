@@ -1447,6 +1447,19 @@ export default function AdminDashboardPage() {
             </button>
 
             <button
+              onClick={() => { setActiveTab("hero"); setMobileSidebarOpen(false); }}
+              className={`admin-nav-item ${activeTab === "hero" ? "active" : ""}`}
+            >
+              <div className="admin-nav-item-content">
+                <SlidersHorizontal size={18} className="admin-nav-item-icon" />
+                <span>Hero Banners</span>
+              </div>
+              <span className="admin-nav-badge success">
+                {heroSlides.length}
+              </span>
+            </button>
+
+            <button
               onClick={() => { setActiveTab("coupons"); setMobileSidebarOpen(false); }}
               className={`admin-nav-item ${activeTab === "coupons" ? "active" : ""}`}
             >
@@ -1599,6 +1612,13 @@ export default function AdminDashboardPage() {
                       className="admin-btn-primary"
                     >
                       <Plus size={15} /> Add Product
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("hero")}
+                      className="admin-btn-secondary"
+                    >
+                      <SlidersHorizontal size={14} /> Hero Banners
                     </button>
                     <button
                       type="button"
