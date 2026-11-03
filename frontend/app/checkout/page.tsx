@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Header } from "../components";
 import { useCart } from "../cart";
@@ -36,7 +36,11 @@ export default function CheckoutPage() {
   const [cityId, setCityId] = useState("");
   const [zoneId, setZoneId] = useState("");
   const [areaId, setAreaId] = useState("");
-  const [locationsLoading, setLocationsLoading] = useState(false);
+  const [citiesLoading, setCitiesLoading] = useState(true);
+  const [zonesLoading, setZonesLoading] = useState(false);
+  const [areasLoading, setAreasLoading] = useState(false);
+  const zonesRequest = useRef<AbortController | null>(null);
+  const areasRequest = useRef<AbortController | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [courierError, setCourierError] = useState("");
   const [deliveryCharge, setDeliveryCharge] = useState<number | null>(null);
@@ -72,14 +76,14 @@ export default function CheckoutPage() {
         const provider = providers[0]?.id || "";
         setCourierProvider(provider);
         if (!provider) throw new Error("Live delivery quotation is not configured yet. Please contact the store.");
-        setLocationsLoading(true);
+        setCitiesLoading(true);
         const cityResponse = await fetch(`${API}/checkout/couriers/${provider}/cities/`);
         const cityData = await cityResponse.json();
         if (!cityResponse.ok) throw new Error(cityData.error || "Could not load courier cities.");
         setCities(normalizeLocations(cityData.results || [], "cities"));
       })
       .catch(error => setCourierError(error instanceof Error ? error.message : "Could not connect to the courier."))
-      .finally(() => setLocationsLoading(false));
+      .finally(() => setCitiesLoading(false));
 
     // 3. Check Google login or errors
     const params = new URLSearchParams(window.location.search);
@@ -122,29 +126,39 @@ export default function CheckoutPage() {
   };
 
   const handleCityChange = async (value: string) => {
+    zonesRequest.current?.abort();
+    areasRequest.current?.abort();
+    setZonesLoading(false);
+    setAreasLoading(false);
     setCityId(value); setZoneId(""); setAreaId(""); setZones([]); setAreas([]); setDeliveryCharge(null); setQuoteLoading(false); setCourierError("");
     if (!value) return;
-    setLocationsLoading(true);
+    const controller = new AbortController();
+    zonesRequest.current = controller;
+    setZonesLoading(true);
     try {
-      const response = await fetch(`${API}/checkout/couriers/${courierProvider}/zones/?city_id=${encodeURIComponent(value)}`);
+      const response = await fetch(`${API}/checkout/couriers/${courierProvider}/zones/?city_id=${encodeURIComponent(value)}`, { signal: controller.signal });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Could not load zones.");
       setZones(normalizeLocations(data.results || [], "zones"));
-    } catch (error) { setCourierError(error instanceof Error ? error.message : "Could not load zones."); }
-    finally { setLocationsLoading(false); }
+    } catch (error) { if (!controller.signal.aborted) setCourierError(error instanceof Error ? error.message : "Could not load zones."); }
+    finally { if (!controller.signal.aborted) setZonesLoading(false); }
   };
 
   const handleZoneChange = async (value: string) => {
+    areasRequest.current?.abort();
+    setAreasLoading(false);
     setZoneId(value); setAreaId(""); setAreas([]); setDeliveryCharge(null); setQuoteLoading(false); setCourierError("");
     if (!value) return;
-    setLocationsLoading(true);
+    const controller = new AbortController();
+    areasRequest.current = controller;
+    setAreasLoading(true);
     try {
-      const response = await fetch(`${API}/checkout/couriers/${courierProvider}/areas/?zone_id=${encodeURIComponent(value)}`);
+      const response = await fetch(`${API}/checkout/couriers/${courierProvider}/areas/?zone_id=${encodeURIComponent(value)}`, { signal: controller.signal });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Could not load areas.");
       setAreas(normalizeLocations(data.results || [], "areas"));
-    } catch (error) { setCourierError(error instanceof Error ? error.message : "Could not load areas."); }
-    finally { setLocationsLoading(false); }
+    } catch (error) { if (!controller.signal.aborted) setCourierError(error instanceof Error ? error.message : "Could not load areas."); }
+    finally { if (!controller.signal.aborted) setAreasLoading(false); }
   };
 
   useEffect(() => {
@@ -506,22 +520,22 @@ export default function CheckoutPage() {
                     <div className="contact-inputs-grid" style={{ marginBottom: "18px" }}>
                       <div className="field-group">
                         <label>City *</label>
-                        <select required value={cityId} disabled={locationsLoading || !cities.length} onChange={e => handleCityChange(e.target.value)}>
-                          <option value="">{locationsLoading ? "Loading cities..." : "Choose city"}</option>
+                        <select required value={cityId} disabled={citiesLoading || !cities.length} aria-busy={citiesLoading} onChange={e => handleCityChange(e.target.value)}>
+                          <option value="">{citiesLoading ? "Loading cities..." : "Choose city"}</option>
                           {cities.map(option => <option key={option.id} value={option.id}>{option.name}</option>)}
                         </select>
                       </div>
                       <div className="field-group">
                         <label>Zone *</label>
-                        <select required value={zoneId} disabled={!cityId || locationsLoading || !zones.length} onChange={e => handleZoneChange(e.target.value)}>
-                          <option value="">{locationsLoading ? "Loading zones..." : "Choose zone"}</option>
+                        <select required value={zoneId} disabled={!cityId || zonesLoading || !zones.length} aria-busy={zonesLoading} onChange={e => handleZoneChange(e.target.value)}>
+                          <option value="">{zonesLoading ? "Loading zones..." : "Choose zone"}</option>
                           {zones.map(option => <option key={option.id} value={option.id}>{option.name}</option>)}
                         </select>
                       </div>
                       <div className="field-group">
                         <label>Area *</label>
-                        <select required value={areaId} disabled={!zoneId || locationsLoading || !areas.length} onChange={e => { setAreaId(e.target.value); setDeliveryCharge(null); }}>
-                          <option value="">{locationsLoading ? "Loading areas..." : "Choose area"}</option>
+                        <select required value={areaId} disabled={!zoneId || areasLoading || !areas.length} aria-busy={areasLoading} onChange={e => { setAreaId(e.target.value); setDeliveryCharge(null); }}>
+                          <option value="">{areasLoading ? "Loading areas..." : "Choose area"}</option>
                           {areas.map(option => <option key={option.id} value={option.id}>{option.name}</option>)}
                         </select>
                       </div>
