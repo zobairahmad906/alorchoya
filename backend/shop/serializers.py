@@ -135,15 +135,27 @@ class OrderSerializer(serializers.ModelSerializer):
     total = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     delivery_zone_id = serializers.PrimaryKeyRelatedField(queryset=DeliveryZone.objects.filter(is_active=True), source="delivery_zone", write_only=True, required=False, allow_null=True)
     coupon_code = serializers.CharField(write_only=True, required=False, allow_blank=True, max_length=40)
-    payment_method = serializers.ChoiceField(choices=Order.PAYMENT_CHOICES, default="cod")
+    payment_method = serializers.ChoiceField(choices=(("cod", "Cash on delivery"),), default="cod")
+    courier_provider = serializers.ChoiceField(choices=(("pathao", "Pathao"),))
+    courier_city_id = serializers.CharField(max_length=40)
+    courier_city_name = serializers.CharField(max_length=120, required=False, allow_blank=True)
+    courier_zone_id = serializers.CharField(max_length=40)
+    courier_zone_name = serializers.CharField(max_length=120, required=False, allow_blank=True)
+    courier_area_id = serializers.CharField(max_length=40)
+    courier_area_name = serializers.CharField(max_length=120, required=False, allow_blank=True)
     class Meta:
         model = Order
-        fields = ("id", "customer_name", "email", "phone", "address", "status", "items", "total", "created_at", "delivery_zone_id", "delivery_charge", "discount_amount", "coupon_code", "payment_method")
+        fields = ("id", "customer_name", "email", "phone", "address", "status", "items", "total", "created_at", "delivery_zone_id", "delivery_charge", "discount_amount", "coupon_code", "payment_method", "courier_provider", "courier_city_id", "courier_city_name", "courier_zone_id", "courier_zone_name", "courier_area_id", "courier_area_name")
         read_only_fields = ("status", "created_at", "delivery_charge", "discount_amount")
     def create(self, validated_data):
         item_data = validated_data.pop("items")
         coupon_code = validated_data.pop("coupon_code", "").strip().upper()
         delivery_zone = validated_data.get("delivery_zone")
+        location_ids = {
+            "courier_city_id": validated_data.get("courier_city_id", ""),
+            "courier_zone_id": validated_data.get("courier_zone_id", ""),
+            "courier_area_id": validated_data.get("courier_area_id", ""),
+        }
         with transaction.atomic():
             order = Order.objects.create(customer=self.context["request"].user if self.context.get("request") and self.context["request"].user.is_authenticated else None, **validated_data)
             subtotal = 0
@@ -159,6 +171,38 @@ class OrderSerializer(serializers.ModelSerializer):
                 subtotal += unit_price * row["quantity"]
                 product.stock -= row["quantity"]
                 product.save(update_fields=["stock"])
+            config = CourierConfig.objects.filter(provider="pathao", is_active=True).first()
+            if not config or not (config.client_id and config.client_secret and config.username and config.password and config.store_id):
+                raise serializers.ValidationError({"courier_provider": "Pathao live delivery is not currently available."})
+            if not all(value.isdigit() for value in location_ids.values()):
+                raise serializers.ValidationError({"address": "Choose a valid city, zone, and area."})
+            client = PathaoCourierClient(config)
+            def find_location(rows, location_id, id_keys, name_keys):
+                for row in rows:
+                    row_id = next((row.get(key) for key in id_keys if row.get(key) is not None), "")
+                    if str(row_id) == str(location_id):
+                        return str(next((row.get(key) for key in name_keys if row.get(key)), ""))
+                return None
+            city_name = find_location(client.get_cities(), location_ids["courier_city_id"], ("city_id", "id"), ("city_name", "name"))
+            zone_name = find_location(client.get_zones(location_ids["courier_city_id"]), location_ids["courier_zone_id"], ("zone_id", "id"), ("zone_name", "name"))
+            area_name = find_location(client.get_areas(location_ids["courier_zone_id"]), location_ids["courier_area_id"], ("area_id", "id"), ("area_name", "name"))
+            if not city_name or not zone_name or not area_name:
+                raise serializers.ValidationError({"address": "The selected courier location is no longer available. Please select it again."})
+            item_weight = sum(float(row["quantity"]) * float(Product.objects.get(pk=row["product_id"]).weight_kg or 0.5) for row in item_data)
+            try:
+                live_delivery_charge, _ = client.calculate_delivery_charge(
+                    location_ids["courier_city_id"], location_ids["courier_zone_id"], max(item_weight, 0.5)
+                )
+            except Exception as exc:
+                raise serializers.ValidationError({"delivery_charge": f"Could not confirm live delivery charge: {exc}"})
+
+            validated_data["courier_city_name"] = city_name
+            validated_data["courier_zone_name"] = zone_name
+            validated_data["courier_area_name"] = area_name
+            order.courier_city_name = city_name
+            order.courier_zone_name = zone_name
+            order.courier_area_name = area_name
+            order.courier_weight_kg = round(max(item_weight, 0.5), 3)
             discount = 0
             if coupon_code:
                 try:
@@ -175,10 +219,10 @@ class OrderSerializer(serializers.ModelSerializer):
                 discount = min(discount, subtotal)
                 coupon.used_count += 1
                 coupon.save(update_fields=["used_count"])
-            order.delivery_charge = delivery_zone.charge if delivery_zone else 0
+            order.delivery_charge = live_delivery_charge
             order.discount_amount = discount
             order.coupon_code = coupon_code
-            order.save(update_fields=["delivery_charge", "discount_amount", "coupon_code"])
+            order.save(update_fields=["delivery_charge", "discount_amount", "coupon_code", "courier_city_name", "courier_zone_name", "courier_area_name", "courier_weight_kg"])
 
             # Auto-save address & phone to user profile if user is authenticated
             user = self.context.get("request").user if self.context.get("request") and self.context["request"].user.is_authenticated else None
@@ -294,6 +338,13 @@ class CustomerOrderSerializer(serializers.ModelSerializer):
             "delivery_charge",
             "discount_amount",
             "courier_provider",
+            "courier_city_id",
+            "courier_city_name",
+            "courier_zone_id",
+            "courier_zone_name",
+            "courier_area_id",
+            "courier_area_name",
+            "courier_weight_kg",
             "consignment_id",
             "tracking_code",
             "courier_status",

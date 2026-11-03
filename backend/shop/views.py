@@ -51,6 +51,135 @@ class OrderCreate(generics.CreateAPIView):
     throttle_scope = "orders"
 
 
+def _active_pathao_client():
+    config = CourierConfig.objects.filter(provider="pathao", is_active=True).first()
+    if not config or not (config.client_id and config.client_secret and config.username and config.password):
+        raise ValueError("Pathao live checkout is not configured. Please contact the store.")
+    if not config.store_id:
+        raise ValueError("Pathao Store ID is missing. Please contact the store.")
+    return PathaoCourierClient(config)
+
+
+def _pathao_location_row(rows, location_id, id_keys, name_keys):
+    for row in rows:
+        if str(next((row.get(key) for key in id_keys if row.get(key) is not None), "")) == str(location_id):
+            name = next((row.get(key) for key in name_keys if row.get(key)), "")
+            return str(location_id), str(name)
+    raise ValueError("Selected delivery location is no longer available. Please choose it again.")
+
+
+class CheckoutCourierOptionsView(APIView):
+    permission_classes = (permissions.AllowAny,)
+
+    def get(self, request):
+        config = CourierConfig.objects.filter(provider="pathao", is_active=True).first()
+        is_ready = bool(config and config.client_id and config.client_secret and config.username and config.password and config.store_id)
+        return Response({"providers": ([{"id": "pathao", "name": "Pathao", "live_quote": True}] if is_ready else [])})
+
+
+class CheckoutCourierLocationsView(APIView):
+    permission_classes = (permissions.AllowAny,)
+
+    def get(self, request, provider, level):
+        if provider != "pathao" or level not in ("cities", "zones", "areas"):
+            return Response({"error": "This courier location lookup is not available."}, status=404)
+        try:
+            client = _active_pathao_client()
+            if level == "cities":
+                rows = client.get_cities()
+            elif level == "zones":
+                city_id = request.query_params.get("city_id", "")
+                if not city_id.isdigit(): raise ValueError("Choose a city first.")
+                rows = client.get_zones(city_id)
+            else:
+                zone_id = request.query_params.get("zone_id", "")
+                if not zone_id.isdigit(): raise ValueError("Choose a zone first.")
+                rows = client.get_areas(zone_id)
+            return Response({"results": rows})
+        except Exception as exc:
+            logger.warning("Checkout courier location lookup failed: %s", exc)
+            return Response({"error": str(exc)}, status=503)
+
+
+class CheckoutCourierQuoteView(APIView):
+    permission_classes = (permissions.AllowAny,)
+
+    def post(self, request):
+        try:
+            client = _active_pathao_client()
+            city_id = str(request.data.get("city_id", ""))
+            zone_id = str(request.data.get("zone_id", ""))
+            area_id = str(request.data.get("area_id", ""))
+            if not (city_id.isdigit() and zone_id.isdigit() and area_id.isdigit()):
+                raise ValueError("Choose a city, zone, and area to calculate delivery charge.")
+
+            city_id, city_name = _pathao_location_row(client.get_cities(), city_id, ("city_id", "id"), ("city_name", "name"))
+            zone_id, zone_name = _pathao_location_row(client.get_zones(city_id), zone_id, ("zone_id", "id"), ("zone_name", "name"))
+            area_id, area_name = _pathao_location_row(client.get_areas(zone_id), area_id, ("area_id", "id"), ("area_name", "name"))
+
+            item_rows = request.data.get("items", [])
+            if not isinstance(item_rows, list) or not item_rows:
+                raise ValueError("Your cart is empty.")
+            item_ids = [row.get("product_id") for row in item_rows if isinstance(row, dict)]
+            products = {product.id: product for product in Product.objects.filter(id__in=item_ids, is_active=True)}
+            weight = 0.0
+            for row in item_rows:
+                if not isinstance(row, dict): raise ValueError("Invalid cart item.")
+                try:
+                    product_id, quantity = int(row.get("product_id")), int(row.get("quantity"))
+                except (TypeError, ValueError):
+                    raise ValueError("Invalid cart item.")
+                if quantity < 1 or product_id not in products:
+                    raise ValueError("One or more products are unavailable.")
+                weight += float(products[product_id].weight_kg or 0.5) * quantity
+
+            charge, _ = client.calculate_delivery_charge(city_id, zone_id, max(weight, 0.5))
+            return Response({
+                "provider": "pathao", "city_id": city_id, "city_name": city_name,
+                "zone_id": zone_id, "zone_name": zone_name, "area_id": area_id,
+                "area_name": area_name, "weight_kg": round(max(weight, 0.5), 3),
+                "delivery_charge": charge,
+            })
+        except ValueError as exc:
+            return Response({"error": str(exc)}, status=400)
+        except Exception as exc:
+            logger.warning("Checkout courier price quote failed: %s", exc)
+            return Response({"error": str(exc)}, status=503)
+
+
+class CheckoutCouponValidateView(APIView):
+    permission_classes = (permissions.AllowAny,)
+
+    def post(self, request):
+        code = str(request.data.get("coupon_code", "")).strip().upper()
+        item_rows = request.data.get("items", [])
+        if not code or not isinstance(item_rows, list) or not item_rows:
+            return Response({"error": "Enter a coupon code and add products to your cart."}, status=400)
+        try:
+            from decimal import Decimal
+            coupon = Coupon.objects.get(code=code, is_active=True)
+            if coupon.expires_at and coupon.expires_at <= timezone.now():
+                return Response({"error": "This coupon has expired."}, status=400)
+            if coupon.max_uses is not None and coupon.used_count >= coupon.max_uses:
+                return Response({"error": "This coupon has reached its usage limit."}, status=400)
+            subtotal = Decimal("0")
+            for row in item_rows:
+                product = Product.objects.get(pk=int(row["product_id"]), is_active=True)
+                quantity = int(row["quantity"])
+                if quantity < 1 or product.stock < quantity:
+                    return Response({"error": "A cart item is unavailable."}, status=400)
+                subtotal += (product.discount_price or product.price) * quantity
+            if subtotal < coupon.min_order:
+                return Response({"error": f"This coupon requires a minimum order of ৳{coupon.min_order}."}, status=400)
+            discount = subtotal * coupon.value / 100 if coupon.discount_type == "percent" else coupon.value
+            discount = min(discount, subtotal)
+            return Response({"coupon_code": coupon.code, "discount_amount": round(float(discount), 2)})
+        except Coupon.DoesNotExist:
+            return Response({"error": "This coupon is invalid or inactive."}, status=400)
+        except (KeyError, TypeError, ValueError, Product.DoesNotExist):
+            return Response({"error": "The cart data could not be validated."}, status=400)
+
+
 class DeliveryZoneList(generics.ListAPIView):
     queryset = DeliveryZone.objects.filter(is_active=True).order_by("charge")
     serializer_class = DeliveryZoneSerializer
@@ -612,10 +741,13 @@ class AdminCourierBookView(APIView):
                         "recipient_name": recipient_name,
                         "recipient_phone": recipient_phone,
                         "recipient_address": recipient_address,
+                        "recipient_city": int(order.courier_city_id) if order.courier_city_id else None,
+                        "recipient_zone": int(order.courier_zone_id) if order.courier_zone_id else None,
+                        "recipient_area": int(order.courier_area_id) if order.courier_area_id else None,
                         "amount_to_collect": int(cod_amount),
                         "item_type": 1,
                         "item_quantity": sum(it.quantity for it in order.items.all()) or 1,
-                        "item_weight": float(request.data.get("weight", 0.5)),
+                        "item_weight": float(request.data.get("weight") or order.courier_weight_kg or 0.5),
                         "item_description": note,
                     }
                     result = client.create_order(payload)

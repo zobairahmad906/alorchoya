@@ -132,6 +132,80 @@ class PathaoCourierClient:
         err = data.get("message", "Authentication with Pathao failed.") if isinstance(data, dict) else f"HTTP {status_code}"
         raise Exception(err)
 
+    @staticmethod
+    def _location_rows(data):
+        rows = data.get("data", []) if isinstance(data, dict) else []
+        if isinstance(rows, dict):
+            rows = rows.get("data", [])
+        return rows if isinstance(rows, list) else []
+
+    def _get_location_list(self, path):
+        status_code, data = _http_request(
+            f"{self.base_url}/aladdin/api/v1/{path}",
+            headers=self.get_headers(),
+            timeout=15,
+        )
+        if status_code == 200 and isinstance(data, dict) and data.get("type", "success") != "error":
+            return self._location_rows(data)
+        message = data.get("message") if isinstance(data, dict) else str(data)
+        raise Exception(message or f"Pathao location request failed ({status_code}).")
+
+    def get_cities(self):
+        return self._get_location_list("countries/1/city-list")
+
+    def get_zones(self, city_id):
+        return self._get_location_list(f"cities/{city_id}/zone-list")
+
+    def get_areas(self, zone_id):
+        return self._get_location_list(f"zones/{zone_id}/area-list")
+
+    def calculate_delivery_charge(self, city_id, zone_id, item_weight):
+        if not self.config.store_id:
+            raise Exception("Pathao Store ID is required to calculate live delivery charge.")
+        payload = {
+            "store_id": self.config.store_id,
+            "item_type": 2,
+            "delivery_type": 48,
+            "item_weight": max(0.5, float(item_weight or 0.5)),
+            "recipient_city": int(city_id),
+            "recipient_zone": int(zone_id),
+        }
+        status_code, data = _http_request(
+            f"{self.base_url}/aladdin/api/v1/merchant/price-plan",
+            method="POST",
+            headers=self.get_headers(),
+            data=payload,
+            timeout=15,
+        )
+        if status_code != 200 or not isinstance(data, dict) or data.get("type") == "error":
+            message = data.get("message") if isinstance(data, dict) else str(data)
+            raise Exception(message or f"Pathao price request failed ({status_code}).")
+
+        candidates = ("delivery_fee", "delivery_charge", "charge", "price", "amount", "cost")
+        def find_amount(value):
+            if isinstance(value, dict):
+                for key in candidates:
+                    if key in value and isinstance(value[key], (int, float, str)):
+                        try:
+                            return float(value[key])
+                        except (TypeError, ValueError):
+                            pass
+                for child in value.values():
+                    amount = find_amount(child)
+                    if amount is not None:
+                        return amount
+            elif isinstance(value, list):
+                for child in value:
+                    amount = find_amount(child)
+                    if amount is not None:
+                        return amount
+            return None
+
+        amount = find_amount(data.get("data", data))
+        if amount is None:
+            raise Exception("Pathao returned a response without a delivery charge. Check the merchant price-plan response format.")
+        return round(amount, 2), data
+
     def create_order(self, order_data: dict):
         url = f"{self.base_url}/aladdin/api/v1/orders"
         status_code, data = _http_request(url, method="POST", headers=self.get_headers(), data=order_data, timeout=15)

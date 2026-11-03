@@ -4,15 +4,20 @@ import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { Header } from "../components";
 import { useCart } from "../cart";
-import { BANGLADESH_DISTRICTS, DistrictData } from "../data/bangladesh-locations";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
-type DeliveryZone = {
-  id: number;
-  name: string;
-  charge: string | number;
-};
+type CourierOption = { id: string; name: string; live_quote: boolean };
+type LocationOption = { id: string; name: string };
+
+function normalizeLocations(rows: Record<string, unknown>[], level: "cities" | "zones" | "areas"): LocationOption[] {
+  const idKeys = level === "cities" ? ["city_id", "id"] : level === "zones" ? ["zone_id", "id"] : ["area_id", "id"];
+  const nameKeys = level === "cities" ? ["city_name", "name"] : level === "zones" ? ["zone_name", "name"] : ["area_name", "name"];
+  return rows.map(row => ({
+    id: String(idKeys.map(key => row[key]).find(value => value !== undefined && value !== null) ?? ""),
+    name: String(nameKeys.map(key => row[key]).find(value => value) ?? ""),
+  })).filter(option => option.id && option.name);
+}
 
 export default function CheckoutPage() {
   const { items, total, clear } = useCart();
@@ -23,22 +28,25 @@ export default function CheckoutPage() {
   const [submitting, setSubmitting] = useState(false);
   const [userProfile, setUserProfile] = useState<{ name: string; email: string; avatar_url?: string } | null>(null);
 
-  // Location Selector State
-  const [selectedDistrict, setSelectedDistrict] = useState<string>("");
-  const [selectedUpazila, setSelectedUpazila] = useState<string>("");
-  const [streetAddress, setStreetAddress] = useState<string>("");
+  const [courierOptions, setCourierOptions] = useState<CourierOption[]>([]);
+  const [courierProvider, setCourierProvider] = useState("");
+  const [cities, setCities] = useState<LocationOption[]>([]);
+  const [zones, setZones] = useState<LocationOption[]>([]);
+  const [areas, setAreas] = useState<LocationOption[]>([]);
+  const [cityId, setCityId] = useState("");
+  const [zoneId, setZoneId] = useState("");
+  const [areaId, setAreaId] = useState("");
+  const [locationsLoading, setLocationsLoading] = useState(false);
+  const [quoteLoading, setQuoteLoading] = useState(false);
+  const [courierError, setCourierError] = useState("");
+  const [deliveryCharge, setDeliveryCharge] = useState<number | null>(null);
 
   // Form State
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [deliveryAddress, setDeliveryAddress] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"cod" | "bkash">("cod");
-
-  // Delivery Zones & Coupon State
-  const [deliveryZones, setDeliveryZones] = useState<DeliveryZone[]>([]);
-  const [selectedZoneId, setSelectedZoneId] = useState<number | null>(null);
-  const [deliveryCharge, setDeliveryCharge] = useState<number>(60); // default 60 (Inside Dhaka)
+  const paymentMethod = "cod" as const;
 
   const [couponCode, setCouponCode] = useState("");
   const [couponDiscount, setCouponDiscount] = useState<number>(0);
@@ -55,17 +63,23 @@ export default function CheckoutPage() {
       .then((data) => setCsrfToken(data.csrfToken || ""))
       .catch(() => undefined);
 
-    // 2. Fetch Delivery Zones
-    fetch(API + "/delivery-zones/")
-      .then((res) => res.json())
-      .then((data: DeliveryZone[]) => {
-        if (Array.isArray(data) && data.length > 0) {
-          setDeliveryZones(data);
-          setSelectedZoneId(data[0].id);
-          setDeliveryCharge(Number(data[0].charge));
-        }
+    fetch(API + "/checkout/couriers/")
+      .then(async res => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Live courier service is unavailable.");
+        const providers = Array.isArray(data.providers) ? data.providers as CourierOption[] : [];
+        setCourierOptions(providers);
+        const provider = providers[0]?.id || "";
+        setCourierProvider(provider);
+        if (!provider) throw new Error("Live delivery quotation is not configured yet. Please contact the store.");
+        setLocationsLoading(true);
+        const cityResponse = await fetch(`${API}/checkout/couriers/${provider}/cities/`);
+        const cityData = await cityResponse.json();
+        if (!cityResponse.ok) throw new Error(cityData.error || "Could not load courier cities.");
+        setCities(normalizeLocations(cityData.results || [], "cities"));
       })
-      .catch(() => undefined);
+      .catch(error => setCourierError(error instanceof Error ? error.message : "Could not connect to the courier."))
+      .finally(() => setLocationsLoading(false));
 
     // 3. Check Google login or errors
     const params = new URLSearchParams(window.location.search);
@@ -103,114 +117,72 @@ export default function CheckoutPage() {
     if (addr.recipient_name) setName(addr.recipient_name);
     if (addr.phone) setPhone(addr.phone);
     setDeliveryAddress(addr.address);
-
-    let foundDistrict = addr.district || "";
-    let foundUpazila = addr.upazila || "";
-
-    // If district field was not explicitly saved, extract/match from district list
-    if (!foundDistrict) {
-      const distMatch = BANGLADESH_DISTRICTS.find((d) =>
-        addr.address.toLowerCase().includes(d.district.split(" ")[0].toLowerCase())
-      );
-      if (distMatch) {
-        foundDistrict = distMatch.district;
-      }
-    }
-
-    // If upazila field was not explicitly saved, extract/match from upazila list of that district
-    if (foundDistrict && !foundUpazila) {
-      const distObj = BANGLADESH_DISTRICTS.find((d) => d.district === foundDistrict);
-      if (distObj) {
-        const upaMatch = distObj.upazilas.find((u) => addr.address.includes(u));
-        if (upaMatch) foundUpazila = upaMatch;
-      }
-    }
-
-    if (foundDistrict) {
-      setSelectedDistrict(foundDistrict);
-      if (foundUpazila) {
-        setSelectedUpazila(foundUpazila);
-      }
-      autoSetDeliveryZone(foundDistrict);
-    }
   };
 
-  const autoSetDeliveryZone = (districtName: string) => {
-    if (deliveryZones.length === 0) return;
-    const distData = BANGLADESH_DISTRICTS.find((d) => d.district === districtName);
-    const isDhakaMetro = Boolean(distData?.isDhaka);
-
-    if (isDhakaMetro) {
-      const dhakaZone = deliveryZones.find((z) => z.name.includes("ঢাকা") && !z.name.includes("বাইরে")) || deliveryZones[0];
-      if (dhakaZone) {
-        setSelectedZoneId(dhakaZone.id);
-        setDeliveryCharge(Number(dhakaZone.charge));
-      }
-    } else {
-      const outsideZone = deliveryZones.find((z) => z.name.includes("বাইরে")) || deliveryZones[deliveryZones.length - 1];
-      if (outsideZone) {
-        setSelectedZoneId(outsideZone.id);
-        setDeliveryCharge(Number(outsideZone.charge));
-      }
-    }
+  const handleCityChange = async (value: string) => {
+    setCityId(value); setZoneId(""); setAreaId(""); setZones([]); setAreas([]); setDeliveryCharge(null); setQuoteLoading(false); setCourierError("");
+    if (!value) return;
+    setLocationsLoading(true);
+    try {
+      const response = await fetch(`${API}/checkout/couriers/${courierProvider}/zones/?city_id=${encodeURIComponent(value)}`);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Could not load zones.");
+      setZones(normalizeLocations(data.results || [], "zones"));
+    } catch (error) { setCourierError(error instanceof Error ? error.message : "Could not load zones."); }
+    finally { setLocationsLoading(false); }
   };
 
-  const handleDistrictChange = (distName: string) => {
-    setSelectedDistrict(distName);
-    setSelectedUpazila("");
-    autoSetDeliveryZone(distName);
+  const handleZoneChange = async (value: string) => {
+    setZoneId(value); setAreaId(""); setAreas([]); setDeliveryCharge(null); setQuoteLoading(false); setCourierError("");
+    if (!value) return;
+    setLocationsLoading(true);
+    try {
+      const response = await fetch(`${API}/checkout/couriers/${courierProvider}/areas/?zone_id=${encodeURIComponent(value)}`);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Could not load areas.");
+      setAreas(normalizeLocations(data.results || [], "areas"));
+    } catch (error) { setCourierError(error instanceof Error ? error.message : "Could not load areas."); }
+    finally { setLocationsLoading(false); }
   };
 
-  const handleUpazilaChange = (upazilaName: string) => {
-    setSelectedUpazila(upazilaName);
-    if (!upazilaName || deliveryZones.length === 0) return;
+  useEffect(() => {
+    setDeliveryCharge(null);
+    if (!courierProvider || !cityId || !zoneId || !areaId || !items.length) { setQuoteLoading(false); return; }
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      setQuoteLoading(true); setCourierError("");
+      try {
+        const response = await fetch(`${API}/checkout/couriers/quote/`, {
+          method: "POST", headers: { "Content-Type": "application/json" }, signal: controller.signal,
+          body: JSON.stringify({ provider: courierProvider, city_id: cityId, zone_id: zoneId, area_id: areaId,
+            items: items.map(item => ({ product_id: item.id, quantity: item.quantity })) })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Could not calculate live delivery charge.");
+        setDeliveryCharge(Number(data.delivery_charge));
+      } catch (error) {
+        if (!controller.signal.aborted) setCourierError(error instanceof Error ? error.message : "Could not calculate live delivery charge.");
+      } finally { if (!controller.signal.aborted) setQuoteLoading(false); }
+    }, 300);
+    return () => { window.clearTimeout(timer); controller.abort(); };
+  }, [courierProvider, cityId, zoneId, areaId, items]);
 
-    // Check if the selected district and upazila is inside Dhaka City Corporation / Metro area
-    const distData = BANGLADESH_DISTRICTS.find((d) => d.district === selectedDistrict);
-    const isDhakaMetro = Boolean(distData?.isDhaka);
-
-    if (isDhakaMetro) {
-      const dhakaZone = deliveryZones.find((z) => z.name.includes("ঢাকা") && !z.name.includes("বাইরে")) || deliveryZones[0];
-      if (dhakaZone) {
-        setSelectedZoneId(dhakaZone.id);
-        setDeliveryCharge(Number(dhakaZone.charge));
-      }
-    } else {
-      const outsideZone = deliveryZones.find((z) => z.name.includes("বাইরে")) || deliveryZones[deliveryZones.length - 1];
-      if (outsideZone) {
-        setSelectedZoneId(outsideZone.id);
-        setDeliveryCharge(Number(outsideZone.charge));
-      }
-    }
-  };
-
-  const handleZoneChange = (zoneId: number) => {
-    setSelectedZoneId(zoneId);
-    const selected = deliveryZones.find((z) => z.id === zoneId);
-    if (selected) {
-      setDeliveryCharge(Number(selected.charge));
-    }
-  };
-
-  const handleApplyCoupon = (e: React.MouseEvent) => {
+  const handleApplyCoupon = async (e: React.MouseEvent) => {
     e.preventDefault();
     setCouponError("");
-    if (!couponCode.trim()) {
-      setCouponError("দয়া করে একটি কুপন কোড লিখুন।");
-      return;
-    }
-    // Demonstration frontend check for sample promo codes (e.g. WELCOME10, ALORCHOYA)
-    const code = couponCode.trim().toUpperCase();
-    if (code === "ALORCHOYA" || code === "WELCOME10") {
-      const discount = Math.round(total * 0.1); // 10% discount
-      setCouponDiscount(discount);
+    if (!couponCode.trim()) { setCouponError("Enter a coupon code."); return; }
+    try {
+      const response = await fetch(`${API}/checkout/coupons/validate/`, { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ coupon_code: couponCode, items: items.map(item => ({ product_id: item.id, quantity: item.quantity })) }) });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Coupon could not be applied.");
+      setCouponCode(data.coupon_code);
+      setCouponDiscount(Number(data.discount_amount));
       setCouponApplied(true);
-    } else {
-      setCouponError("ইনভ্যালিড কুপন কোড। ALORCHOYA কুপন ব্যবহার করে দেখতে পারেন।");
-    }
+    } catch (error) { setCouponError(error instanceof Error ? error.message : "Coupon could not be applied."); }
   };
 
-  const grandTotal = Math.max(0, total + deliveryCharge - couponDiscount);
+  const grandTotal = Math.max(0, total + (deliveryCharge || 0) - couponDiscount);
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -224,11 +196,13 @@ export default function CheckoutPage() {
     }
 
     try {
-      const fullAddressStr = [
-        streetAddress || deliveryAddress,
-        selectedUpazila ? `উপজেলা: ${selectedUpazila}` : "",
-        selectedDistrict ? `জেলা: ${selectedDistrict}` : ""
-      ].filter(Boolean).join(", ");
+      if (deliveryCharge === null || !cityId || !zoneId || !areaId) {
+        throw new Error("Choose a city, zone, and area and wait for the live delivery charge.");
+      }
+      const cityName = cities.find(option => option.id === cityId)?.name || "";
+      const zoneName = zones.find(option => option.id === zoneId)?.name || "";
+      const areaName = areas.find(option => option.id === areaId)?.name || "";
+      const fullAddressStr = [deliveryAddress, areaName, zoneName, cityName].filter(Boolean).join(", ");
 
       const res = await fetch(`${API}/orders/`, {
         method: "POST",
@@ -242,9 +216,15 @@ export default function CheckoutPage() {
           email: email,
           phone: phone,
           address: fullAddressStr,
-          delivery_zone_id: selectedZoneId,
           coupon_code: couponApplied ? couponCode : "",
           payment_method: paymentMethod,
+          courier_provider: courierProvider,
+          courier_city_id: cityId,
+          courier_city_name: cityName,
+          courier_zone_id: zoneId,
+          courier_zone_name: zoneName,
+          courier_area_id: areaId,
+          courier_area_name: areaName,
           items: items.map((item) => ({
             product_id: item.id,
             quantity: item.quantity
@@ -485,8 +465,9 @@ export default function CheckoutPage() {
                           <div
                             onClick={() => {
                               setSelectedAddressId(null);
-                              setSelectedDistrict("");
-                              setSelectedUpazila("");
+                              setCityId("");
+                              setZoneId("");
+                              setAreaId("");
                               setDeliveryAddress("");
                             }}
                             style={{
@@ -513,115 +494,43 @@ export default function CheckoutPage() {
                       </div>
                     )}
 
-                    {/* District & Upazila Selectors - Only show if no saved address is selected */}
-                    {!selectedAddressId && (
-                      <div className="contact-inputs-grid" style={{ marginBottom: "18px" }}>
-                        <div className="field-group">
-                          <label>জেলা নির্বাচন করুন *</label>
-                          <select
-                            required={!selectedAddressId}
-                            value={selectedDistrict}
-                            onChange={(e) => handleDistrictChange(e.target.value)}
-                            style={{
-                              padding: "12px 14px",
-                              borderRadius: "8px",
-                              border: "1px solid #cbd5e1",
-                              fontSize: "0.95rem",
-                              outline: "none",
-                              backgroundColor: "#ffffff",
-                              cursor: "pointer"
-                            }}
-                          >
-                            <option value="">-- জেলা বেছে নিন --</option>
-                            {BANGLADESH_DISTRICTS.map((item) => (
-                              <option key={item.district} value={item.district}>
-                                {item.district}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-
-                        <div className="field-group">
-                          <label>উপজেলা / থানা *</label>
-                          <select
-                            required={!selectedAddressId}
-                            disabled={!selectedDistrict}
-                            value={selectedUpazila}
-                            onChange={(e) => handleUpazilaChange(e.target.value)}
-                            style={{
-                              padding: "12px 14px",
-                              borderRadius: "8px",
-                              border: "1px solid #cbd5e1",
-                              fontSize: "0.95rem",
-                              outline: "none",
-                              backgroundColor: selectedDistrict ? "#ffffff" : "#f1f5f9",
-                              cursor: selectedDistrict ? "pointer" : "not-allowed"
-                            }}
-                          >
-                            <option value="">-- উপজেলা/থানা বেছে নিন --</option>
-                            {selectedDistrict &&
-                              BANGLADESH_DISTRICTS.find((d) => d.district === selectedDistrict)?.upazilas.map((upazila) => (
-                                <option key={upazila} value={upazila}>
-                                  {upazila}
-                                </option>
-                              ))}
-                          </select>
-                        </div>
+                    <div className="field-group" style={{ marginBottom: "18px" }}>
+                      <label>Delivery courier</label>
+                      <select value={courierProvider} disabled={courierOptions.length <= 1} onChange={e => { setCourierProvider(e.target.value); setCityId(""); setZoneId(""); setAreaId(""); setZones([]); setAreas([]); setDeliveryCharge(null); }}>
+                        <option value="">Choose courier</option>
+                        {courierOptions.map(option => <option key={option.id} value={option.id}>{option.name}</option>)}
+                      </select>
+                    </div>
+                    <div className="contact-inputs-grid" style={{ marginBottom: "18px" }}>
+                      <div className="field-group">
+                        <label>City *</label>
+                        <select required value={cityId} disabled={locationsLoading || !cities.length} onChange={e => handleCityChange(e.target.value)}>
+                          <option value="">{locationsLoading ? "Loading cities..." : "Choose city"}</option>
+                          {cities.map(option => <option key={option.id} value={option.id}>{option.name}</option>)}
+                        </select>
                       </div>
-                    )}
-
-                    {/* Delivery Zone Auto Detected Notification */}
-                    {deliveryZones.length > 0 && (
-                      <div className="zone-selector-wrapper">
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            marginBottom: "8px"
-                          }}
-                        >
-                          <label className="field-label">
-                            ডেলিভারি এরিয়া (স্বয়ংক্রিয়ভাবে সনাক্তকৃত)
-                          </label>
-                          {selectedDistrict && (
-                            <span style={{ fontSize: "0.8rem", color: "#10b981", fontWeight: 600 }}>
-                              ✓ {BANGLADESH_DISTRICTS.find((d) => d.district === selectedDistrict)?.isDhaka ? "ঢাকার ভেতরে ডেলিভারি" : "ঢাকার বাইরে ডেলিভারি"}
-                            </span>
-                          )}
-                        </div>
-                        <div className="zones-grid">
-                          {deliveryZones.map((zone) => {
-                            const isSelected = selectedZoneId === zone.id;
-                            return (
-                              <div
-                                key={zone.id}
-                                onClick={() => handleZoneChange(zone.id)}
-                                className={`zone-card ${isSelected ? "selected" : ""}`}
-                              >
-                                <span className="zone-name">{zone.name}</span>
-                                <span className="zone-charge">চার্জ: ৳{Number(zone.charge)}</span>
-                              </div>
-                            );
-                          })}
-                        </div>
+                      <div className="field-group">
+                        <label>Zone *</label>
+                        <select required value={zoneId} disabled={!cityId || locationsLoading || !zones.length} onChange={e => handleZoneChange(e.target.value)}>
+                          <option value="">{locationsLoading ? "Loading zones..." : "Choose zone"}</option>
+                          {zones.map(option => <option key={option.id} value={option.id}>{option.name}</option>)}
+                        </select>
                       </div>
-                    )}
+                      <div className="field-group">
+                        <label>Area *</label>
+                        <select required value={areaId} disabled={!zoneId || locationsLoading || !areas.length} onChange={e => { setAreaId(e.target.value); setDeliveryCharge(null); }}>
+                          <option value="">{locationsLoading ? "Loading areas..." : "Choose area"}</option>
+                          {areas.map(option => <option key={option.id} value={option.id}>{option.name}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                    {courierError && <div className="checkout-error-box" role="alert">{courierError}</div>}
+                    {quoteLoading && <p aria-live="polite">Checking live delivery charge...</p>}
+                    {deliveryCharge !== null && !quoteLoading && <p aria-live="polite">Live delivery charge: <strong>{deliveryCharge === null ? "?" : `BDT ${deliveryCharge.toLocaleString("bn-BD")}`}</strong></p>}
 
                     <div className="field-group">
-                      <label>বিস্তারিত ঠিকানা (গ্রাম / সড়ক / বাসা নম্বর / ল্যান্ডমার্ক) *</label>
-                      <textarea
-                        required
-                        rows={4}
-                        value={deliveryAddress}
-                        onChange={(e) => setDeliveryAddress(e.target.value)}
-                        placeholder={`উদাহরণ (ঢাকার শহর অঞ্চল):
-বাসা # ১২ (৩য় তলা), রোড # ৪, ব্লক # বি, মিরপুর-১০, ঢাকা।
-
-উদাহরণ (ঢাকার বাইরের গ্রাম/উপজেলা):
-মাতব্বর বাড়ি, উত্তর পাড়া (পুরাতন জামে মসজিদের পিছনে), গ্রাম: রামপুর, ডাকঘর: রামপুর বাজার-৩৮০০।`}
-                        style={{ lineHeight: "1.5", fontSize: "0.9rem" }}
-                      />
+                      <label>Detailed address (house, road, landmark) *</label>
+                      <textarea required rows={4} value={deliveryAddress} onChange={e => setDeliveryAddress(e.target.value)} placeholder="House, road, area, and a nearby landmark" style={{ lineHeight: "1.5", fontSize: "0.9rem" }} />
                     </div>
                   </div>
 
@@ -633,38 +542,19 @@ export default function CheckoutPage() {
                     </h2>
 
                     <div className="payment-methods-stack">
-                      <label className={`payment-option ${paymentMethod === "cod" ? "selected" : ""}`}>
-                        <input
-                          type="radio"
-                          name="payment"
-                          checked={paymentMethod === "cod"}
-                          onChange={() => setPaymentMethod("cod")}
-                        />
+                      <div className="payment-option selected">
                         <div>
-                          <strong>🚚 ক্যাশ অন ডেলিভারি (Cash on Delivery)</strong>
-                          <span>পণ্য হাতে পেয়ে দেখে টাকা পরিশোধ করুন।</span>
+                          <strong>Cash on Delivery (COD)</strong>
+                          <span>Pay when your order is delivered.</span>
                         </div>
-                      </label>
-
-                      <label className={`payment-option ${paymentMethod === "bkash" ? "selected" : ""}`}>
-                        <input
-                          type="radio"
-                          name="payment"
-                          checked={paymentMethod === "bkash"}
-                          onChange={() => setPaymentMethod("bkash")}
-                        />
-                        <div>
-                          <strong>📱 বিকাশ / অনলাইন পেমেন্ট (bKash Payment)</strong>
-                          <span>অর্ডারের পর প্রতিনিধি বিকাশ পেমেন্ট সুবিধা নিশ্চিত করবে।</span>
-                        </div>
-                      </label>
+                      </div>
                     </div>
                   </div>
 
                   {/* Submit Button */}
                   <button
                     type="submit"
-                    disabled={!items.length || submitting}
+                    disabled={!items.length || submitting || quoteLoading || deliveryCharge === null || !cityId || !zoneId || !areaId}
                     className="place-order-submit-btn"
                   >
                     {submitting
@@ -739,7 +629,7 @@ export default function CheckoutPage() {
                   </div>
                   <div className="cost-row">
                     <span>ডেলিভারি চার্জ</span>
-                    <strong>৳{deliveryCharge.toLocaleString("bn-BD")}</strong>
+                    <strong>{deliveryCharge === null ? "?" : `BDT ${deliveryCharge.toLocaleString("bn-BD")}`}</strong>
                   </div>
                   {couponDiscount > 0 && (
                     <div className="cost-row discount">
@@ -1030,7 +920,7 @@ export default function CheckoutPage() {
           font-weight: 600;
           color: #334155;
         }
-        .field-group input, .field-group textarea, .coupon-form-inline input {
+        .field-group input, .field-group textarea, .field-group select, .coupon-form-inline input {
           padding: 12px 14px;
           border-radius: 8px;
           border: 1px solid #cbd5e1;
