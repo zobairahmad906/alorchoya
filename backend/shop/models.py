@@ -249,7 +249,6 @@ class CourierConfig(models.Model):
     password = models.CharField(max_length=255, blank=True, default="")
     store_id = models.CharField(max_length=100, blank=True, default="")
     webhook_secret = models.CharField(max_length=255, blank=True, default="")
-    webhook_integration_secret = models.CharField(max_length=255, blank=True, default="")
     access_token = models.TextField(blank=True, default="")
     token_expires_at = models.DateTimeField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -532,8 +532,7 @@ class CourierConfigSerializer(serializers.ModelSerializer):
         fields = [
             "id", "provider", "is_active", "is_sandbox",
             "api_key", "api_secret", "client_id", "client_secret",
-            "username", "password", "store_id", "webhook_secret",
-            "webhook_integration_secret", "updated_at"
+            "username", "password", "store_id", "webhook_secret", "updated_at"
         ]
 
 

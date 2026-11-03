@@ -18,6 +18,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 
 logger = logging.getLogger(__name__)
+PATHAO_WEBHOOK_INTEGRATION_SECRET = "f3992ecc-59da-4cbe-a049-a13da2018d51"
 
 class CategoryList(generics.ListAPIView):
     queryset = Category.objects.all().order_by("name")
@@ -853,8 +854,7 @@ class PathaoWebhookView(APIView):
         payload = request.data if isinstance(request.data, dict) else {}
         event = str(payload.get("event") or "").strip()
         response = Response({"received": True}, status=202)
-        if config.webhook_integration_secret:
-            response["X-Pathao-Merchant-Webhook-Integration-Secret"] = config.webhook_integration_secret
+        response["X-Pathao-Merchant-Webhook-Integration-Secret"] = PATHAO_WEBHOOK_INTEGRATION_SECRET
 
         # Pathao sends this event while validating the callback URL.
         if event == "webhook_integration":

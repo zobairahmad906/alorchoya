@@ -6,7 +6,7 @@ import { MarkdownPreview } from "../markdown";
 
 import Link from "next/link";
 
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";
 
 import { Header } from "../components";
 
@@ -305,8 +305,6 @@ type CourierConfigItem = {
 
   webhook_secret: string;
 
-  webhook_integration_secret: string;
-
   updated_at: string;
 
 };
@@ -387,8 +385,6 @@ type DashboardTab = "overview" | "orders" | "products" | "coupons" | "courier" |
 
 export default function DashboardClient({ initialTab = "overview" }: { initialTab?: DashboardTab }) {
 
-  const router = useRouter();
-
   const pathname = usePathname();
 
   const getTabFromPath = (): DashboardTab => {
@@ -429,7 +425,9 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
     const path = tab === "overview" ? "/dashboard" : `/dashboard/${tab}`;
 
-    router.push(path);
+    if (typeof window !== "undefined" && window.location.pathname !== path) {
+      window.history.pushState(null, "", path);
+    }
 
   };
 
@@ -538,8 +536,6 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
     store_id: "",
 
     webhook_secret: "",
-
-    webhook_integration_secret: "",
 
     is_sandbox: true,
 
@@ -995,8 +991,6 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
               store_id: pt.store_id || "",
 
               webhook_secret: pt.webhook_secret || "",
-
-              webhook_integration_secret: pt.webhook_integration_secret || "",
 
               is_sandbox: pt.is_sandbox ?? true,
 
@@ -2772,7 +2766,7 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
             <Link
               href="/dashboard"
-              onClick={() => { setActiveTab("overview"); setMobileSidebarOpen(false); }}
+              onClick={event => { event.preventDefault(); navigateToTab("overview"); }}
 
               className={`admin-nav-item ${activeTab === "overview" ? "active" : ""}`}
 
@@ -2790,7 +2784,7 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
             <Link
               href="/dashboard/orders"
-              onClick={() => { setActiveTab("orders"); setMobileSidebarOpen(false); }}
+              onClick={event => { event.preventDefault(); navigateToTab("orders"); }}
 
               className={`admin-nav-item ${activeTab === "orders" ? "active" : ""}`}
 
@@ -2818,7 +2812,7 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
             <Link
               href="/dashboard/products"
-              onClick={() => { setActiveTab("products"); setMobileSidebarOpen(false); }}
+              onClick={event => { event.preventDefault(); navigateToTab("products"); }}
 
               className={`admin-nav-item ${activeTab === "products" ? "active" : ""}`}
 
@@ -2842,7 +2836,7 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
             <Link
               href="/dashboard/hero"
-              onClick={() => { setActiveTab("hero"); setMobileSidebarOpen(false); }}
+              onClick={event => { event.preventDefault(); navigateToTab("hero"); }}
 
               className={`admin-nav-item ${activeTab === "hero" ? "active" : ""}`}
 
@@ -2866,7 +2860,7 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
             <Link
               href="/dashboard/coupons"
-              onClick={() => { setActiveTab("coupons"); setMobileSidebarOpen(false); }}
+              onClick={event => { event.preventDefault(); navigateToTab("coupons"); }}
 
               className={`admin-nav-item ${activeTab === "coupons" ? "active" : ""}`}
 
@@ -2890,7 +2884,7 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
             <Link
               href="/dashboard/courier"
-              onClick={() => { setActiveTab("courier"); setMobileSidebarOpen(false); }}
+              onClick={event => { event.preventDefault(); navigateToTab("courier"); }}
 
               className={`admin-nav-item ${activeTab === "courier" ? "active" : ""}`}
 
@@ -2914,7 +2908,7 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
             <Link
               href="/dashboard/gallery"
-              onClick={() => { setActiveTab("gallery"); setMobileSidebarOpen(false); }}
+              onClick={event => { event.preventDefault(); navigateToTab("gallery"); }}
 
               className={`admin-nav-item ${activeTab === "gallery" ? "active" : ""}`}
 
@@ -2938,7 +2932,7 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
             <Link
               href="/dashboard/customers"
-              onClick={() => { setActiveTab("customers"); setMobileSidebarOpen(false); }}
+              onClick={event => { event.preventDefault(); navigateToTab("customers"); }}
 
               className={`admin-nav-item ${activeTab === "customers" ? "active" : ""}`}
 
@@ -6168,7 +6162,7 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
                     <div>
                       <div style={{ fontSize: "14px", fontWeight: 800, color: "#1e3a8a" }}>Pathao Webhook: automatic status updates</div>
-                      <div style={{ fontSize: "12px", color: "#475569", marginTop: "4px" }}>Save this form with a webhook secret first. In Pathao Developer API → Webhook Integration, enter this callback URL and the same secret. Copy Pathao's Integration Secret here, save this form again, then save the webhook in Pathao with all status events enabled.</div>
+                      <div style={{ fontSize: "12px", color: "#475569", marginTop: "4px" }}>Save this form with a webhook secret first. In Pathao Developer API → Webhook Integration, enter this callback URL and the same secret, then enable all status events. The required Pathao verification response header is returned automatically.</div>
                     </div>
 
                     <div className="admin-form-group" style={{ margin: 0 }}>
@@ -6188,13 +6182,7 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                       </div>
                     </div>
 
-                    <div className="admin-form-group" style={{ margin: 0 }}>
-                      <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155" }}>Pathao Integration Secret (shown in Pathao panel)</label>
-                      <div style={{ display: "flex", gap: "8px" }}>
-                        <input type="password" autoComplete="new-password" value={pathaoForm.webhook_integration_secret} onChange={e => setPathaoForm({ ...pathaoForm, webhook_integration_secret: e.target.value })} className="admin-input-field" placeholder="Paste the integration secret from Pathao" />
-                        <button type="button" className="admin-btn-secondary" onClick={() => copyPathaoWebhookValue(pathaoForm.webhook_integration_secret, "Integration secret")} disabled={!pathaoForm.webhook_integration_secret}>Copy</button>
-                      </div>
-                    </div>
+                    <div style={{ fontSize: "11px", color: "#64748b" }}>Pathao’s required integration verification header is generated by this endpoint; you do not need to enter it here.</div>
 
                   </div>
 
