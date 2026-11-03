@@ -2,7 +2,14 @@ import os
 from django.utils import timezone
 from django.db import transaction
 from rest_framework import serializers
+from rest_framework.exceptions import APIException
 from .models import Category, Product, ProductVariant, ProductImage, Order, OrderItem, Cart, CartItem, DeliveryZone, Coupon, Review, CustomerProfile, CustomerAddress, ProductImageAsset, ProductImageAssetLink, HeroSlide, CourierConfig
+
+
+class CourierServiceUnavailable(APIException):
+    status_code = 503
+    default_detail = "Courier service could not verify the delivery location or charge. Please try again."
+    default_code = "courier_unavailable"
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -172,7 +179,7 @@ class OrderSerializer(serializers.ModelSerializer):
                 product.stock -= row["quantity"]
                 product.save(update_fields=["stock"])
             config = CourierConfig.objects.filter(provider="pathao", is_active=True).first()
-            if not config or not (config.client_id and config.client_secret and config.username and config.password and config.store_id):
+            if not config or config.is_sandbox or not (config.client_id and config.client_secret and config.username and config.password and config.store_id):
                 raise serializers.ValidationError({"courier_provider": "Pathao live delivery is not currently available."})
             if not all(value.isdigit() for value in location_ids.values()):
                 raise serializers.ValidationError({"address": "Choose a valid city, zone, and area."})
@@ -183,9 +190,13 @@ class OrderSerializer(serializers.ModelSerializer):
                     if str(row_id) == str(location_id):
                         return str(next((row.get(key) for key in name_keys if row.get(key)), ""))
                 return None
-            city_name = find_location(client.get_cities(), location_ids["courier_city_id"], ("city_id", "id"), ("city_name", "name"))
-            zone_name = find_location(client.get_zones(location_ids["courier_city_id"]), location_ids["courier_zone_id"], ("zone_id", "id"), ("zone_name", "name"))
-            area_name = find_location(client.get_areas(location_ids["courier_zone_id"]), location_ids["courier_area_id"], ("area_id", "id"), ("area_name", "name"))
+            city_name = zone_name = area_name = None
+            try:
+                city_name = find_location(client.get_cities(), location_ids["courier_city_id"], ("city_id", "id"), ("city_name", "name"))
+                zone_name = find_location(client.get_zones(location_ids["courier_city_id"]), location_ids["courier_zone_id"], ("zone_id", "id"), ("zone_name", "name"))
+                area_name = find_location(client.get_areas(location_ids["courier_zone_id"]), location_ids["courier_area_id"], ("area_id", "id"), ("area_name", "name"))
+            except Exception:
+                raise CourierServiceUnavailable()
             if not city_name or not zone_name or not area_name:
                 raise serializers.ValidationError({"address": "The selected courier location is no longer available. Please select it again."})
             item_weight = sum(float(row["quantity"]) * float(Product.objects.get(pk=row["product_id"]).weight_kg or 0.5) for row in item_data)
@@ -193,8 +204,8 @@ class OrderSerializer(serializers.ModelSerializer):
                 live_delivery_charge, _ = client.calculate_delivery_charge(
                     location_ids["courier_city_id"], location_ids["courier_zone_id"], max(item_weight, 0.5)
                 )
-            except Exception as exc:
-                raise serializers.ValidationError({"delivery_charge": f"Could not confirm live delivery charge: {exc}"})
+            except Exception:
+                raise CourierServiceUnavailable()
 
             validated_data["courier_city_name"] = city_name
             validated_data["courier_zone_name"] = zone_name
