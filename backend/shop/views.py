@@ -7,8 +7,9 @@ from rest_framework.exceptions import NotFound
 from django.db import connection
 from django.http import JsonResponse
 import json
-from .models import Category, Product, ProductVariant, ProductImage, Cart, CartItem, DeliveryZone, Order, OrderItem, CustomerProfile, CustomerAddress, Review, ProductImageAsset, ProductImageAssetLink
-from .serializers import CategorySerializer, ProductSerializer, ProductImageSerializer, OrderSerializer, CartSerializer, CartItemSerializer, DeliveryZoneSerializer, OrderTrackingSerializer, ReviewSerializer, CustomerProfileSerializer, CustomerAddressSerializer, CustomerOrderSerializer, ProductImageAssetSerializer, ProductImageAssetLinkSerializer
+from django.shortcuts import get_object_or_404
+from .models import Category, Product, ProductVariant, ProductImage, Cart, CartItem, DeliveryZone, Order, OrderItem, CustomerProfile, CustomerAddress, Review, ProductImageAsset, ProductImageAssetLink, Coupon
+from .serializers import CategorySerializer, ProductSerializer, ProductImageSerializer, OrderSerializer, CartSerializer, CartItemSerializer, DeliveryZoneSerializer, OrderTrackingSerializer, ReviewSerializer, CustomerProfileSerializer, CustomerAddressSerializer, CustomerOrderSerializer, ProductImageAssetSerializer, ProductImageAssetLinkSerializer, AdminCouponSerializer
 
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
@@ -500,6 +501,37 @@ class AdminCustomerListView(APIView):
         customer_list = list(customers_map.values())
         customer_list.sort(key=lambda c: (c["total_spent"], c["total_orders"]), reverse=True)
         return Response(customer_list)
+
+
+class AdminCouponView(APIView):
+    permission_classes = (IsAdminUser,)
+
+    def get(self, request, pk=None):
+        if pk:
+            coupon = get_object_or_404(Coupon, pk=pk)
+            return Response(AdminCouponSerializer(coupon).data)
+        coupons = Coupon.objects.all().order_by("-id")
+        return Response(AdminCouponSerializer(coupons, many=True).data)
+
+    def post(self, request):
+        serializer = AdminCouponSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def patch(self, request, pk):
+        coupon = get_object_or_404(Coupon, pk=pk)
+        serializer = AdminCouponSerializer(coupon, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk):
+        coupon = get_object_or_404(Coupon, pk=pk)
+        coupon.delete()
+        return Response({"success": True})
 
 
 class AdminProductListCreateView(APIView):

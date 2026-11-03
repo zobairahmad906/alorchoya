@@ -31,6 +31,8 @@ urlpatterns = [
     path("admin/orders/", views.AdminOrderListDetailView.as_view()),
     path("admin/orders/<int:pk>/", views.AdminOrderListDetailView.as_view()),
     path("admin/customers/", views.AdminCustomerListView.as_view()),
+    path("admin/coupons/", views.AdminCouponView.as_view()),
+    path("admin/coupons/<int:pk>/", views.AdminCouponView.as_view()),
     path("admin/products/", views.AdminProductListCreateView.as_view()),
     path("admin/products/<int:pk>/", views.AdminProductDetailView.as_view()),
     path("admin/products/images/<int:pk>/", views.AdminProductImageManageView.as_view()),

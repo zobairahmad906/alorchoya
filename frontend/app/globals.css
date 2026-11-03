@@ -7825,4 +7825,103 @@ footer ul {
   color: #0f172a;
 }
 
+/* Promotions & Coupons Styling */
+.coupon-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.coupon-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.coupon-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.07);
+}
+
+.coupon-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.coupon-code-pill {
+  font-family: monospace;
+  font-size: 15px;
+  font-weight: 800;
+  background: #eff6ff;
+  color: #1d4ed8;
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px dashed #93c5fd;
+  letter-spacing: 1px;
+}
+
+.coupon-discount-val {
+  font-size: 22px;
+  font-weight: 900;
+  color: #0f172a;
+}
+
+.coupon-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #64748b;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 10px;
+}
+
+.customer-badge-vip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.customer-badge-loyal {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.customer-badge-new {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+
 

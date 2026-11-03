@@ -406,3 +406,13 @@ class ProductImageAssetSerializer(serializers.ModelSerializer):
             "embedding_version", "file_size", "dimensions", "created_at", "updated_at",
         ]
 
+class AdminCouponSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Coupon
+        fields = [
+            "id", "code", "discount_type", "value", "min_order",
+            "max_uses", "used_count", "expires_at", "is_active"
+        ]
+        read_only_fields = ["id", "used_count"]
+
+

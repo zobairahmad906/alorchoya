@@ -34,6 +34,14 @@ import {
   CheckCircle2,
   Receipt,
   RotateCcw,
+  Tag,
+  Download,
+  AlertTriangle,
+  Star,
+  Trash2,
+  Copy,
+  Edit2,
+  Check,
 } from "lucide-react";
 
 // Platform WhatsApp SVG icon
@@ -112,6 +120,18 @@ type Product = {
   variants?: { id?: number; attributes?: Record<string, string>; sku: string; price?: string; stock: number }[];
 };
 
+type CouponItem = {
+  id: number;
+  code: string;
+  discount_type: "percent" | "fixed";
+  value: string;
+  min_order: string;
+  max_uses: number | null;
+  used_count: number;
+  expires_at: string | null;
+  is_active: boolean;
+};
+
 type DashboardStats = {
   total_revenue: number;
   monthly_revenue: number;
@@ -130,7 +150,7 @@ type DashboardStats = {
 };
 
 export default function AdminDashboardPage() {
-  const [activeTab, setActiveTab] = useState<"overview" | "orders" | "products" | "gallery" | "customers">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "orders" | "products" | "coupons" | "gallery" | "customers">("overview");
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -149,6 +169,27 @@ export default function AdminDashboardPage() {
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [productSearch, setProductSearch] = useState("");
   const [productCategoryFilter, setProductCategoryFilter] = useState("");
+  const [lowStockFilter, setLowStockFilter] = useState(false);
+  const [quickEditProductId, setQuickEditProductId] = useState<number | null>(null);
+  const [quickPriceVal, setQuickPriceVal] = useState<string>("");
+  const [quickStockVal, setQuickStockVal] = useState<string>("");
+
+  // Customer search & state
+  const [customerSearch, setCustomerSearch] = useState<string>("");
+
+  // Coupons state
+  const [coupons, setCoupons] = useState<CouponItem[]>([]);
+  const [showCouponModal, setShowCouponModal] = useState(false);
+  const [couponSubmitting, setCouponSubmitting] = useState(false);
+  const [couponForm, setCouponForm] = useState({
+    code: "",
+    discount_type: "percent" as "percent" | "fixed",
+    value: "",
+    min_order: "0",
+    max_uses: "",
+    expires_at: "",
+    is_active: true
+  });
 
   // Product modal / editing state
   const [editingProduct, setEditingProduct] = useState<Partial<Product> | null>(null);
@@ -292,11 +333,178 @@ export default function AdminDashboardPage() {
       } catch (cErr) {
         console.error("Failed to load customer directory:", cErr);
       }
+
+      // Fetch Coupons
+      try {
+        const couponRes = await fetch(getApiUrl("/admin/coupons/"), { credentials: "include" });
+        if (couponRes.ok) {
+          const couponData = await couponRes.json();
+          setCoupons(couponData);
+        }
+      } catch (cpErr) {
+        console.error("Failed to load coupons:", cpErr);
+      }
     } catch (err) {
       console.error(err);
       setError("Failed to load dashboard data. Please check server status.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleExportOrdersCSV = () => {
+    if (!orders || orders.length === 0) {
+      toast.error("No orders to export");
+      return;
+    }
+    const headers = ["Order ID", "Date", "Customer Name", "Phone", "Email", "Address", "Items Count", "Delivery Fee", "Discount", "Total", "Status", "Payment Method"];
+    const rows = orders.map(o => [
+      o.id,
+      new Date(o.created_at).toISOString().split("T")[0],
+      `"${(o.customer_name || "").replace(/"/g, '""')}"`,
+      `"${o.phone || ""}"`,
+      `"${o.email || ""}"`,
+      `"${(o.address || "").replace(/"/g, '""')}"`,
+      o.items ? o.items.length : 0,
+      o.delivery_charge || 0,
+      o.discount_amount || 0,
+      o.total,
+      o.status,
+      o.payment_method || "COD"
+    ]);
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `orders_export_${new Date().toISOString().split("T")[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("Orders exported to CSV!");
+  };
+
+  const handleToggleProductFeatured = async (product: Product) => {
+    const newFeatured = !product.is_featured;
+    try {
+      const res = await fetch(getApiUrl(`/admin/products/${product.id}/`), {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...(csrfToken ? { "X-CSRFToken": csrfToken } : {}) },
+        credentials: "include",
+        body: JSON.stringify({ is_featured: newFeatured })
+      });
+      if (res.ok) {
+        setProducts(prev => prev.map(p => p.id === product.id ? { ...p, is_featured: newFeatured } : p));
+        toast.success(newFeatured ? "Marked as Featured!" : "Unmarked as Featured");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to update featured status");
+    }
+  };
+
+  const handleQuickSavePriceStock = async (productId: number) => {
+    try {
+      const payload: any = {};
+      if (quickPriceVal !== "") payload.price = parseFloat(quickPriceVal);
+      if (quickStockVal !== "") payload.stock = parseInt(quickStockVal, 10);
+      const res = await fetch(getApiUrl(`/admin/products/${productId}/`), {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...(csrfToken ? { "X-CSRFToken": csrfToken } : {}) },
+        credentials: "include",
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setProducts(prev => prev.map(p => p.id === productId ? { ...p, price: updated.price, stock: updated.stock } : p));
+        setQuickEditProductId(null);
+        toast.success("Price & stock updated!");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to update price & stock");
+    }
+  };
+
+  const handleToggleCouponActive = async (coupon: CouponItem) => {
+    try {
+      const res = await fetch(getApiUrl(`/admin/coupons/${coupon.id}/`), {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...(csrfToken ? { "X-CSRFToken": csrfToken } : {}) },
+        credentials: "include",
+        body: JSON.stringify({ is_active: !coupon.is_active })
+      });
+      if (res.ok) {
+        setCoupons(prev => prev.map(c => c.id === coupon.id ? { ...c, is_active: !coupon.is_active } : c));
+        toast.success(`Coupon ${!coupon.is_active ? "activated" : "deactivated"}`);
+      }
+    } catch (e) {
+      toast.error("Failed to update coupon status");
+    }
+  };
+
+  const handleDeleteCoupon = async (couponId: number) => {
+    if (!confirm("Are you sure you want to delete this coupon?")) return;
+    try {
+      const res = await fetch(getApiUrl(`/admin/coupons/${couponId}/`), {
+        method: "DELETE",
+        headers: { ...(csrfToken ? { "X-CSRFToken": csrfToken } : {}) },
+        credentials: "include"
+      });
+      if (res.ok) {
+        setCoupons(prev => prev.filter(c => c.id !== couponId));
+        toast.success("Coupon deleted successfully");
+      }
+    } catch (e) {
+      toast.error("Failed to delete coupon");
+    }
+  };
+
+  const handleCreateCoupon = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!couponForm.code.trim() || !couponForm.value) {
+      toast.error("Code and discount value are required");
+      return;
+    }
+    setCouponSubmitting(true);
+    try {
+      const payload: any = {
+        code: couponForm.code.trim().toUpperCase(),
+        discount_type: couponForm.discount_type,
+        value: parseFloat(couponForm.value),
+        min_order: parseFloat(couponForm.min_order) || 0,
+        is_active: couponForm.is_active,
+      };
+      if (couponForm.max_uses) payload.max_uses = parseInt(couponForm.max_uses, 10);
+      if (couponForm.expires_at) payload.expires_at = new Date(couponForm.expires_at).toISOString();
+
+      const res = await fetch(getApiUrl("/admin/coupons/"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(csrfToken ? { "X-CSRFToken": csrfToken } : {}) },
+        credentials: "include",
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        const created = await res.json();
+        setCoupons(prev => [created, ...prev]);
+        setShowCouponModal(false);
+        setCouponForm({
+          code: "",
+          discount_type: "percent",
+          value: "",
+          min_order: "0",
+          max_uses: "",
+          expires_at: "",
+          is_active: true
+        });
+        toast.success("Coupon created successfully!");
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        toast.error(errData.code ? `Error: ${errData.code[0]}` : "Failed to create coupon");
+      }
+    } catch (e) {
+      toast.error("Network error while creating coupon");
+    } finally {
+      setCouponSubmitting(false);
     }
   };
 
@@ -653,11 +861,24 @@ export default function AdminDashboardPage() {
     const matchesSearch =
       !productSearch ||
       p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
-      p.slug.toLowerCase().includes(productSearch.toLowerCase());
+      p.slug.toLowerCase().includes(productSearch.toLowerCase()) ||
+      (p.base_sku && p.base_sku.toLowerCase().includes(productSearch.toLowerCase()));
     const matchesCat =
       !productCategoryFilter ||
       (p.category?.id && p.category.id.toString() === productCategoryFilter);
-    return matchesSearch && matchesCat;
+    const matchesLowStock = !lowStockFilter || p.stock <= 5;
+    return matchesSearch && matchesCat && matchesLowStock;
+  });
+
+  const filteredCustomers = customersList.filter(c => {
+    if (!customerSearch) return true;
+    const q = customerSearch.toLowerCase();
+    return (
+      (c.customer_name && c.customer_name.toLowerCase().includes(q)) ||
+      (c.phone && c.phone.toLowerCase().includes(q)) ||
+      (c.email && c.email.toLowerCase().includes(q)) ||
+      (c.address && c.address.toLowerCase().includes(q))
+    );
   });
 
   const handlePrintInvoice = (order: Order) => {
@@ -834,6 +1055,19 @@ export default function AdminDashboardPage() {
             </button>
 
             <button
+              onClick={() => { setActiveTab("coupons"); setMobileSidebarOpen(false); }}
+              className={`admin-nav-item ${activeTab === "coupons" ? "active" : ""}`}
+            >
+              <div className="admin-nav-item-content">
+                <Tag size={18} className="admin-nav-item-icon" />
+                <span>Coupons & Deals</span>
+              </div>
+              <span className="admin-nav-badge">
+                {coupons.length}
+              </span>
+            </button>
+
+            <button
               onClick={() => { setActiveTab("gallery"); setMobileSidebarOpen(false); }}
               className={`admin-nav-item ${activeTab === "gallery" ? "active" : ""}`}
             >
@@ -908,6 +1142,7 @@ export default function AdminDashboardPage() {
                 {activeTab === "overview" && "Dashboard Overview"}
                 {activeTab === "orders" && "Orders & Fulfillment"}
                 {activeTab === "products" && "Products & Inventory"}
+                {activeTab === "coupons" && "Promotions & Coupon Discounts"}
                 {activeTab === "gallery" && "Central Image Gallery & Media Hub"}
                 {activeTab === "customers" && "Customer Directory"}
               </div>
@@ -1354,6 +1589,26 @@ export default function AdminDashboardPage() {
                     <Square size={14} />
                   )}
                   Select All ({filteredOrders.length})
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleExportOrdersCSV}
+                  className="admin-btn-secondary"
+                  style={{
+                    fontSize: "12px",
+                    background: "#f0fdf4",
+                    borderColor: "#bbf7d0",
+                    color: "#166534",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    fontWeight: 600
+                  }}
+                  title="Download all orders in CSV format"
+                >
+                  <Download size={14} />
+                  Export CSV
                 </button>
               </div>
             </div>
@@ -1831,23 +2086,44 @@ export default function AdminDashboardPage() {
             <div className="admin-panel" style={{ padding: "16px", display: "flex", flexWrap: "wrap", alignItems: "center", gap: "12px" }}>
               <input
                 type="text"
-                placeholder="Search by product name or slug..."
+                placeholder="Search by product name, SKU, or slug..."
                 value={productSearch}
                 onChange={e => setProductSearch(e.target.value)}
                 className="admin-input-field"
-                style={{ flex: 1, minWidth: "220px" }}
+                style={{ flex: 1, minWidth: "220px", margin: 0 }}
               />
               <select
                 value={productCategoryFilter}
                 onChange={e => setProductCategoryFilter(e.target.value)}
                 className="admin-input-field"
-                style={{ width: "auto" }}
+                style={{ width: "auto", margin: 0 }}
               >
                 <option value="">All Categories</option>
                 {categories.map(c => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
+
+              <button
+                type="button"
+                onClick={() => setLowStockFilter(prev => !prev)}
+                className="admin-btn-secondary"
+                style={{
+                  fontSize: "12px",
+                  padding: "8px 14px",
+                  background: lowStockFilter ? "#fef2f2" : "#f8fafc",
+                  borderColor: lowStockFilter ? "#ef4444" : "#e2e8f0",
+                  color: lowStockFilter ? "#b91c1c" : "#475569",
+                  fontWeight: lowStockFilter ? 800 : 600,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px"
+                }}
+              >
+                <AlertTriangle size={14} style={{ color: lowStockFilter ? "#ef4444" : "#f59e0b" }} />
+                Low Stock (≤5)
+              </button>
+
               <span className="admin-badge pending" style={{ fontSize: "12px", marginLeft: "auto" }}>
                 {filteredProducts.length} Products Found
               </span>
@@ -1864,6 +2140,7 @@ export default function AdminDashboardPage() {
                       <th>Price</th>
                       <th>Discount</th>
                       <th>Stock</th>
+                      <th>Featured</th>
                       <th>Status</th>
                       <th style={{ textAlign: "right" }}>Action</th>
                     </tr>
@@ -1871,7 +2148,7 @@ export default function AdminDashboardPage() {
                   <tbody>
                     {filteredProducts.length === 0 ? (
                       <tr>
-                        <td colSpan={7} style={{ textAlign: "center", padding: "32px", color: "var(--coffee)" }}>
+                        <td colSpan={9} style={{ textAlign: "center", padding: "32px", color: "var(--coffee)" }}>
                           No products found.
                         </td>
                       </tr>
@@ -1900,7 +2177,51 @@ export default function AdminDashboardPage() {
                             {product.base_sku || "-"}
                           </td>
                           <td style={{ color: "var(--ink)" }}>{product.category?.name || "N/A"}</td>
-                          <td style={{ fontWeight: 700, color: "var(--forest)" }}>৳{product.price}</td>
+                          <td>
+                            {quickEditProductId === product.id ? (
+                              <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                                <span style={{ fontSize: "11px", fontWeight: 700 }}>৳</span>
+                                <input
+                                  type="number"
+                                  value={quickPriceVal}
+                                  onChange={e => setQuickPriceVal(e.target.value)}
+                                  style={{ width: "68px", padding: "3px 6px", fontSize: "12px", border: "1.5px solid #2563eb", borderRadius: "6px" }}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => handleQuickSavePriceStock(product.id)}
+                                  style={{ background: "#2563eb", color: "#fff", border: "none", borderRadius: "4px", padding: "4px 6px", cursor: "pointer" }}
+                                  title="Save Price"
+                                >
+                                  <Check size={12} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setQuickEditProductId(null)}
+                                  style={{ background: "#f1f5f9", color: "#64748b", border: "none", borderRadius: "4px", padding: "4px 6px", cursor: "pointer" }}
+                                  title="Cancel"
+                                >
+                                  <X size={12} />
+                                </button>
+                              </div>
+                            ) : (
+                              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                <span style={{ fontWeight: 700, color: "var(--forest)" }}>৳{product.price}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setQuickEditProductId(product.id);
+                                    setQuickPriceVal(product.price);
+                                    setQuickStockVal(product.stock.toString());
+                                  }}
+                                  style={{ background: "transparent", border: "none", cursor: "pointer", color: "#94a3b8", padding: "2px" }}
+                                  title="Quick Edit Price"
+                                >
+                                  <Edit2 size={12} />
+                                </button>
+                              </div>
+                            )}
+                          </td>
                           <td style={{ color: "var(--emerald)", fontWeight: 700 }}>{product.discount_price ? `৳${product.discount_price}` : "-"}</td>
                           <td>
                             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
@@ -1920,6 +2241,30 @@ export default function AdminDashboardPage() {
                                 +
                               </button>
                             </div>
+                          </td>
+                          <td>
+                            <button
+                              type="button"
+                              onClick={() => handleToggleProductFeatured(product)}
+                              style={{
+                                background: product.is_featured ? "#fef3c7" : "#f8fafc",
+                                color: product.is_featured ? "#b45309" : "#94a3b8",
+                                border: "1px solid",
+                                borderColor: product.is_featured ? "#fde68a" : "#e2e8f0",
+                                padding: "4px 8px",
+                                borderRadius: "8px",
+                                fontSize: "11px",
+                                fontWeight: 700,
+                                cursor: "pointer",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "4px"
+                              }}
+                              title="Toggle Featured on Storefront"
+                            >
+                              <Star size={12} fill={product.is_featured ? "#b45309" : "none"} />
+                              {product.is_featured ? "Featured" : "Standard"}
+                            </button>
                           </td>
                           <td>
                             <button
@@ -1957,12 +2302,153 @@ export default function AdminDashboardPage() {
           )
         )}
 
-        {/* CUSTOMERS TAB */}
+        {/* COUPONS & DEALS TAB */}
+        {activeTab === "coupons" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
+              <div>
+                <h3 style={{ fontSize: "22px", fontWeight: 800, color: "var(--forest)", margin: 0 }}>Promotions & Coupon Discounts</h3>
+                <p style={{ margin: "4px 0 0", fontSize: "12px", color: "var(--coffee)" }}>
+                  Create voucher codes, percentage discounts, and track usage counts.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCouponModal(true)}
+                className="admin-submit-btn"
+                style={{ width: "auto", padding: "10px 20px", marginTop: 0 }}
+              >
+                + Create Promo Code
+              </button>
+            </div>
+
+            {coupons.length === 0 ? (
+              <div className="profit-panel-card" style={{ textAlign: "center", padding: "48px 20px" }}>
+                <Tag size={40} style={{ color: "#94a3b8", margin: "0 auto 12px" }} />
+                <h4 style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>No active coupons found</h4>
+                <p style={{ fontSize: "13px", color: "#64748b", margin: "6px 0 16px" }}>
+                  Create your first promotional discount code to reward shoppers.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowCouponModal(true)}
+                  className="admin-btn-primary"
+                >
+                  Create Promo Code
+                </button>
+              </div>
+            ) : (
+              <div className="coupon-grid">
+                {coupons.map(cp => {
+                  const isExpired = cp.expires_at && new Date(cp.expires_at) < new Date();
+                  return (
+                    <div key={cp.id} className="coupon-card">
+                      <div className="coupon-card-header">
+                        <span className="coupon-code-pill">{cp.code}</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(cp.code);
+                              toast.success(`Copied "${cp.code}"`);
+                            }}
+                            className="admin-btn-secondary"
+                            style={{ padding: "4px 8px", fontSize: "11px" }}
+                            title="Copy Code"
+                          >
+                            <Copy size={12} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteCoupon(cp.id)}
+                            className="admin-btn-secondary"
+                            style={{ padding: "4px 8px", fontSize: "11px", color: "#ef4444" }}
+                            title="Delete Coupon"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="coupon-discount-val">
+                          {cp.discount_type === "percent" ? `${cp.value}% OFF` : `৳${cp.value} OFF`}
+                        </div>
+                        <div style={{ fontSize: "12px", color: "#64748b", marginTop: "2px" }}>
+                          {parseFloat(cp.min_order) > 0 ? `Minimum order: ৳${cp.min_order}` : "No minimum spend required"}
+                        </div>
+                      </div>
+
+                      <div className="coupon-meta-row">
+                        <span>Used: <strong>{cp.used_count}</strong> {cp.max_uses ? `/ ${cp.max_uses}` : "times"}</span>
+                        <span>
+                          {cp.expires_at ? (
+                            <span style={{ color: isExpired ? "#ef4444" : "#64748b" }}>
+                              {isExpired ? "Expired: " : "Expires: "}
+                              {new Date(cp.expires_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                            </span>
+                          ) : (
+                            "No expiration"
+                          )}
+                        </span>
+                      </div>
+
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: "4px" }}>
+                        <span style={{ fontSize: "12px", fontWeight: 600, color: cp.is_active && !isExpired ? "#166534" : "#991b1b" }}>
+                          {isExpired ? "Expired" : cp.is_active ? "● Active" : "○ Inactive"}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleToggleCouponActive(cp)}
+                          className={`admin-badge ${cp.is_active ? "delivered" : "cancelled"}`}
+                          style={{ border: "none", cursor: "pointer", fontSize: "11px" }}
+                        >
+                          {cp.is_active ? "Deactivate" : "Activate"}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* CUSTOMERS TAB (CRM & Directory) */}
         {activeTab === "customers" && (
           <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-            <div className="admin-panel" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <h3 style={{ fontSize: "22px", fontWeight: 800, color: "var(--forest)", margin: 0 }}>👥 Customer Directory & History</h3>
-              <span className="admin-badge pending" style={{ fontSize: "13px" }}>{customersList.length} Customer Profiles</span>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
+              <div>
+                <h3 style={{ fontSize: "22px", fontWeight: 800, color: "var(--forest)", margin: 0 }}>Customer Directory & CRM</h3>
+                <p style={{ margin: "4px 0 0", fontSize: "12px", color: "var(--coffee)" }}>
+                  Verified customer profiles, lifetime spend, order history, and direct communication.
+                </p>
+              </div>
+              <span className="admin-badge pending" style={{ fontSize: "13px" }}>
+                {filteredCustomers.length} Customer Profiles
+              </span>
+            </div>
+
+            {/* Customer Search Filter Bar */}
+            <div className="admin-panel" style={{ padding: "16px", display: "flex", flexWrap: "wrap", alignItems: "center", gap: "12px" }}>
+              <input
+                type="text"
+                placeholder="Search customers by name, phone, email, or address..."
+                value={customerSearch}
+                onChange={e => setCustomerSearch(e.target.value)}
+                className="admin-input-field"
+                style={{ flex: 1, minWidth: "260px", margin: 0 }}
+              />
+              {customerSearch && (
+                <button
+                  type="button"
+                  onClick={() => setCustomerSearch("")}
+                  className="admin-btn-secondary"
+                  style={{ padding: "8px 12px", fontSize: "12px" }}
+                >
+                  Clear
+                </button>
+              )}
             </div>
 
             <div className="admin-panel" style={{ padding: 0, overflow: "hidden" }}>
@@ -1970,114 +2456,149 @@ export default function AdminDashboardPage() {
                 <table className="admin-table">
                   <thead>
                     <tr>
-                      <th>Customer</th>
-                      <th>Contact Info</th>
-                      <th>Address / Location</th>
-                      <th>Purchased Products</th>
-                      <th>Total Orders</th>
-                      <th>Total Spent</th>
-                      <th>Last Order Date</th>
+                      <th>Customer Profile</th>
+                      <th>Contact & Actions</th>
+                      <th>Delivery Location</th>
+                      <th>Purchased Items</th>
+                      <th>Orders Count</th>
+                      <th>Lifetime Spent</th>
+                      <th>Last Active</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {customersList.length === 0 ? (
+                    {filteredCustomers.length === 0 ? (
                       <tr>
                         <td colSpan={7} style={{ textAlign: "center", padding: "32px", color: "var(--coffee)" }}>
-                          No customer records found.
+                          No customer records found matching your search.
                         </td>
                       </tr>
                     ) : (
-                      customersList.map((c, idx) => (
-                        <tr key={c.id || idx}>
-                          <td>
-                            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                              {c.avatar_url ? (
-                                <img
-                                  src={c.avatar_url}
-                                  alt={c.profile_name || c.customer_name}
-                                  style={{ width: "38px", height: "38px", borderRadius: "50%", objectFit: "cover", border: "1.5px solid #2563eb", flexShrink: 0 }}
-                                />
-                              ) : (
-                                <div style={{
-                                  width: "38px",
-                                  height: "38px",
-                                  borderRadius: "50%",
-                                  background: "#eff6ff",
-                                  color: "#1d4ed8",
-                                  fontWeight: 800,
-                                  fontSize: "14px",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                  border: "1px solid #bfdbfe",
-                                  flexShrink: 0
-                                }}>
-                                  {(c.profile_name || c.customer_name || "C").charAt(0).toUpperCase()}
-                                </div>
-                              )}
-                              <div>
-                                <div style={{ fontWeight: 700, color: "var(--forest)" }}>{c.customer_name}</div>
-                                {c.profile_name && c.profile_name !== c.customer_name && (
-                                  <div style={{ fontSize: "11px", color: "var(--coffee)" }}>👤 {c.profile_name}</div>
-                                )}
-                                {c.username && (
-                                  <div style={{ fontSize: "11px", color: "#2563eb" }}>@{c.username}</div>
-                                )}
-                              </div>
-                            </div>
-                          </td>
-                          <td>
-                            <div style={{ fontSize: "12px", color: "var(--ink)", fontWeight: 600 }}>{c.phone || "—"}</div>
-                            {c.email && <div style={{ fontSize: "11px", color: "var(--coffee)" }}>{c.email}</div>}
-                          </td>
-                          <td style={{ color: "var(--ink)", fontSize: "12px", maxWidth: "200px" }}>{c.address}</td>
-                          <td>
-                            <div style={{ display: "flex", alignItems: "center", gap: "5px", flexWrap: "wrap", maxWidth: "160px" }}>
-                              {(c.purchased_products || []).slice(0, 4).map((p, pIdx) => (
-                                <div
-                                  key={pIdx}
-                                  title={p.name}
-                                  style={{
-                                    width: "28px",
-                                    height: "28px",
-                                    borderRadius: "6px",
-                                    overflow: "hidden",
-                                    border: "1px solid #e2e8f0",
-                                    background: "#f8fafc",
+                      filteredCustomers.map((c, idx) => {
+                        const isVip = c.total_spent >= 5000 || c.total_orders >= 3;
+                        const isLoyal = !isVip && c.total_orders >= 2;
+
+                        return (
+                          <tr key={c.id || idx}>
+                            <td>
+                              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                                {c.avatar_url ? (
+                                  <img
+                                    src={c.avatar_url}
+                                    alt={c.profile_name || c.customer_name}
+                                    style={{ width: "38px", height: "38px", borderRadius: "50%", objectFit: "cover", border: "1.5px solid #2563eb", flexShrink: 0 }}
+                                  />
+                                ) : (
+                                  <div style={{
+                                    width: "38px",
+                                    height: "38px",
+                                    borderRadius: "50%",
+                                    background: "#eff6ff",
+                                    color: "#1d4ed8",
+                                    fontWeight: 800,
+                                    fontSize: "14px",
                                     display: "flex",
                                     alignItems: "center",
                                     justifyContent: "center",
+                                    border: "1px solid #bfdbfe",
                                     flexShrink: 0
-                                  }}
-                                >
-                                  {p.image ? (
-                                    <img src={p.image} alt={p.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                                  ) : (
-                                    <Package size={14} style={{ color: "#94a3b8" }} />
+                                  }}>
+                                    {(c.profile_name || c.customer_name || "C").charAt(0).toUpperCase()}
+                                  </div>
+                                )}
+                                <div>
+                                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                    <span style={{ fontWeight: 700, color: "var(--forest)" }}>{c.customer_name}</span>
+                                    {isVip && (
+                                      <span className="customer-badge-vip">★ VIP</span>
+                                    )}
+                                    {isLoyal && (
+                                      <span className="customer-badge-loyal">Returning</span>
+                                    )}
+                                  </div>
+                                  {c.profile_name && c.profile_name !== c.customer_name && (
+                                    <div style={{ fontSize: "11px", color: "var(--coffee)" }}>👤 {c.profile_name}</div>
+                                  )}
+                                  {c.username && (
+                                    <div style={{ fontSize: "11px", color: "#2563eb" }}>@{c.username}</div>
                                   )}
                                 </div>
-                              ))}
-                              {(c.purchased_products || []).length > 4 && (
-                                <span style={{ fontSize: "11px", fontWeight: 700, color: "#64748b", background: "#f1f5f9", padding: "1px 5px", borderRadius: "6px" }}>
-                                  +{c.purchased_products.length - 4}
-                                </span>
+                              </div>
+                            </td>
+                            <td>
+                              <div style={{ fontSize: "12px", color: "var(--ink)", fontWeight: 600 }}>{c.phone || "—"}</div>
+                              {c.email && <div style={{ fontSize: "11px", color: "var(--coffee)" }}>{c.email}</div>}
+                              {c.phone && (
+                                <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "6px" }}>
+                                  <a
+                                    href={`https://wa.me/${c.phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(`Assalamu Alaikum ${c.customer_name}, greetings from Alorchoya!`)}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="btn-whatsapp"
+                                    style={{ padding: "3px 8px", fontSize: "11px", borderRadius: "6px" }}
+                                    title="Open WhatsApp chat"
+                                  >
+                                    <WhatsAppIcon /> WA
+                                  </a>
+                                  <a
+                                    href={`tel:${c.phone}`}
+                                    className="btn-call"
+                                    style={{ padding: "3px 8px", fontSize: "11px", borderRadius: "6px" }}
+                                    title="Call Customer"
+                                  >
+                                    <Phone size={11} /> Call
+                                  </a>
+                                </div>
                               )}
-                              {(!c.purchased_products || c.purchased_products.length === 0) && (
-                                <span style={{ color: "var(--coffee)", fontSize: "12px" }}>—</span>
-                              )}
-                            </div>
-                          </td>
-                          <td style={{ fontWeight: 700 }}>
-                            <span className="admin-badge delivered" style={{ background: "rgba(16,185,129,0.1)", color: "var(--forest)" }}>
-                              {c.total_orders} Orders
-                            </span>
-                          </td>
-                          <td style={{ fontWeight: 800, color: "var(--emerald)" }}>৳{c.total_spent}</td>
-                          <td style={{ color: "var(--coffee)", fontSize: "12px" }}>
-                            {c.last_order_date ? new Date(c.last_order_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—"}
-                          </td>
-                        </tr>
-                      ))
+                            </td>
+                            <td style={{ color: "var(--ink)", fontSize: "12px", maxWidth: "200px" }}>{c.address}</td>
+                            <td>
+                              <div style={{ display: "flex", alignItems: "center", gap: "5px", flexWrap: "wrap", maxWidth: "160px" }}>
+                                {(c.purchased_products || []).slice(0, 4).map((p, pIdx) => (
+                                  <div
+                                    key={pIdx}
+                                    title={p.name}
+                                    style={{
+                                      width: "28px",
+                                      height: "28px",
+                                      borderRadius: "6px",
+                                      overflow: "hidden",
+                                      border: "1px solid #e2e8f0",
+                                      background: "#f8fafc",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      flexShrink: 0
+                                    }}
+                                  >
+                                    {p.image ? (
+                                      <img src={p.image} alt={p.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                    ) : (
+                                      <Package size={14} style={{ color: "#94a3b8" }} />
+                                    )}
+                                  </div>
+                                ))}
+                                {(c.purchased_products || []).length > 4 && (
+                                  <span style={{ fontSize: "11px", fontWeight: 700, color: "#64748b", background: "#f1f5f9", padding: "1px 5px", borderRadius: "6px" }}>
+                                    +{c.purchased_products.length - 4}
+                                  </span>
+                                )}
+                                {(!c.purchased_products || c.purchased_products.length === 0) && (
+                                  <span style={{ color: "var(--coffee)", fontSize: "12px" }}>—</span>
+                                )}
+                              </div>
+                            </td>
+                            <td style={{ fontWeight: 700 }}>
+                              <span className="admin-badge delivered" style={{ background: "rgba(16,185,129,0.1)", color: "var(--forest)" }}>
+                                {c.total_orders} Orders
+                              </span>
+                            </td>
+                            <td style={{ fontWeight: 800, color: "var(--emerald)" }}>৳{c.total_spent}</td>
+                            <td style={{ color: "var(--coffee)", fontSize: "12px" }}>
+                              {c.last_order_date ? new Date(c.last_order_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—"}
+                            </td>
+                          </tr>
+                        );
+                      })
                     )}
                   </tbody>
                 </table>
@@ -2239,6 +2760,132 @@ export default function AdminDashboardPage() {
                   style={{ width: "auto", padding: "10px 24px", marginTop: 0 }}
                 >
                   Save Product
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Create Coupon Modal */}
+      {showCouponModal && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(15,23,42,0.4)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "16px" }}>
+          <div className="admin-login-card" style={{ maxWidth: "480px", width: "100%", padding: "28px" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid #e2e8f0", paddingBottom: "12px", marginBottom: "20px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <Tag size={18} style={{ color: "#2563eb" }} />
+                <h3 style={{ fontSize: "18px", fontWeight: 800, color: "#0f172a", margin: 0 }}>Create Promo Coupon</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCouponModal(false)}
+                style={{ background: "none", border: "none", fontSize: "18px", color: "#64748b", cursor: "pointer" }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateCoupon} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              <div className="admin-form-group" style={{ margin: 0 }}>
+                <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155" }}>Coupon Code</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. SUMMER20, ALORCHOYA"
+                  value={couponForm.code}
+                  onChange={e => setCouponForm({ ...couponForm, code: e.target.value.toUpperCase() })}
+                  className="admin-input-field"
+                  style={{ textTransform: "uppercase", letterSpacing: "1px", fontWeight: 700 }}
+                />
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                <div className="admin-form-group" style={{ margin: 0 }}>
+                  <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155" }}>Discount Type</label>
+                  <select
+                    value={couponForm.discount_type}
+                    onChange={e => setCouponForm({ ...couponForm, discount_type: e.target.value as "percent" | "fixed" })}
+                    className="admin-input-field"
+                  >
+                    <option value="percent">Percentage (%)</option>
+                    <option value="fixed">Fixed Amount (৳)</option>
+                  </select>
+                </div>
+
+                <div className="admin-form-group" style={{ margin: 0 }}>
+                  <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155" }}>
+                    {couponForm.discount_type === "percent" ? "Percentage Off (%)" : "Fixed Amount (৳)"}
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    placeholder={couponForm.discount_type === "percent" ? "e.g. 15" : "e.g. 100"}
+                    value={couponForm.value}
+                    onChange={e => setCouponForm({ ...couponForm, value: e.target.value })}
+                    className="admin-input-field"
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                <div className="admin-form-group" style={{ margin: 0 }}>
+                  <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155" }}>Min Order (৳)</label>
+                  <input
+                    type="number"
+                    placeholder="0"
+                    value={couponForm.min_order}
+                    onChange={e => setCouponForm({ ...couponForm, min_order: e.target.value })}
+                    className="admin-input-field"
+                  />
+                </div>
+
+                <div className="admin-form-group" style={{ margin: 0 }}>
+                  <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155" }}>Max Uses (Optional)</label>
+                  <input
+                    type="number"
+                    placeholder="Unlimited"
+                    value={couponForm.max_uses}
+                    onChange={e => setCouponForm({ ...couponForm, max_uses: e.target.value })}
+                    className="admin-input-field"
+                  />
+                </div>
+              </div>
+
+              <div className="admin-form-group" style={{ margin: 0 }}>
+                <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155" }}>Expiration Date (Optional)</label>
+                <input
+                  type="date"
+                  value={couponForm.expires_at}
+                  onChange={e => setCouponForm({ ...couponForm, expires_at: e.target.value })}
+                  className="admin-input-field"
+                />
+              </div>
+
+              <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "13px", color: "#1e293b", fontWeight: 600 }}>
+                <input
+                  type="checkbox"
+                  checked={couponForm.is_active}
+                  onChange={e => setCouponForm({ ...couponForm, is_active: e.target.checked })}
+                />
+                Active immediately upon creation
+              </label>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", paddingTop: "14px", borderTop: "1px solid #e2e8f0" }}>
+                <button
+                  type="button"
+                  onClick={() => setShowCouponModal(false)}
+                  className="admin-header-link"
+                  style={{ padding: "8px 16px" }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={couponSubmitting}
+                  className="admin-submit-btn"
+                  style={{ width: "auto", padding: "8px 20px", marginTop: 0 }}
+                >
+                  {couponSubmitting ? "Creating..." : "Save Coupon"}
                 </button>
               </div>
             </form>
