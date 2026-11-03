@@ -60,7 +60,7 @@ class ProductImage(models.Model):
 
 class Order(models.Model):
     customer = models.ForeignKey("auth.User", null=True, blank=True, on_delete=models.SET_NULL, related_name="customer_orders")
-    STATUS_CHOICES = [("pending", "Pending"), ("confirmed", "Confirmed"), ("processing", "Processing"), ("paid", "Paid"), ("shipped", "Shipped"), ("delivered", "Delivered"), ("cancelled", "Cancelled")]
+    STATUS_CHOICES = [("pending", "Pending"), ("confirmed", "Confirmed"), ("courier_booked", "Booked to Courier"), ("processing", "Processing"), ("paid", "Paid"), ("shipped", "Shipped"), ("delivered", "Delivered"), ("cancelled", "Cancelled")]
     PAYMENT_CHOICES = [("cod", "Cash on delivery"), ("online", "Online payment")]
     customer_name = models.CharField(max_length=120)
     email = models.EmailField()

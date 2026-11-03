@@ -771,8 +771,7 @@ class AdminCourierBookView(APIView):
             order.tracking_code = str(result.get("tracking_code") or result.get("consignment_id") or "")
             order.courier_status = result.get("status", "in_review")
             order.courier_booking_data = result
-            if order.status == "pending":
-                order.status = "confirmed"
+            order.status = "courier_booked"
             order.save()
 
             return Response({

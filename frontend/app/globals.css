@@ -5824,6 +5824,19 @@ footer ul {
   border: 1px solid rgba(185, 130, 85, 0.3);
 }
 
+.admin-badge.courier_booked {
+  background: rgba(37, 99, 235, 0.12);
+  color: #1d4ed8;
+  border: 1px solid rgba(37, 99, 235, 0.25);
+}
+
+.courier-status-badge {
+  background: #f0f9ff;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+  text-transform: capitalize;
+}
+
 .admin-badge.delivered {
   background: rgba(46, 107, 87, 0.15);
   color: var(--emerald);

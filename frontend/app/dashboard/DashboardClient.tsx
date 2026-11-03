@@ -563,6 +563,8 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
   const [trackingDetails, setTrackingDetails] = useState<any>(null);
 
+  const [trackingCheckedAt, setTrackingCheckedAt] = useState<Date | null>(null);
+
   const [loadingTracking, setLoadingTracking] = useState(false);
 
   // Hero slides state
@@ -1137,6 +1139,8 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
     setTrackingDetails(null);
 
+    setTrackingCheckedAt(null);
+
     try {
 
       const res = await fetch(getApiUrl(`/admin/courier/track/${order.id}/`), {
@@ -1150,6 +1154,18 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
         const data = await res.json();
 
         setTrackingDetails(data);
+
+        const updatedOrder = { ...order, courier_status: data.delivery_status || order.courier_status };
+
+        const checkedAt = new Date();
+
+        setTrackingCheckedAt(checkedAt);
+
+        setOrders(current => current.map(item => item.id === order.id ? updatedOrder : item));
+
+        setSelectedOrder(current => current?.id === order.id ? updatedOrder : current);
+
+        setTrackingOrder(updatedOrder);
 
       } else {
 
@@ -3613,6 +3629,8 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
                 { id: "confirmed", label: "Confirmed", count: orders.filter(o => o.status === "confirmed").length },
 
+                { id: "courier_booked", label: "Booked to Courier", count: orders.filter(o => o.status === "courier_booked").length },
+
                 { id: "processing", label: "Processing", count: orders.filter(o => o.status === "processing").length },
 
                 { id: "shipped", label: "Shipped", count: orders.filter(o => o.status === "shipped").length },
@@ -4299,6 +4317,16 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
                             </span>
 
+                            {order.consignment_id && (
+
+                              <span className="admin-badge courier-status-badge" title={`Latest ${order.courier_provider || "courier"} status`}>
+
+                                {(order.courier_provider || "Courier").toUpperCase()}: {order.courier_status || "Booked"}
+
+                              </span>
+
+                            )}
+
                           </div>
 
                         </div>
@@ -4519,7 +4547,7 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
                     <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
 
-                      {["pending", "confirmed", "processing", "shipped", "delivered", "cancelled"].map(st => (
+                      {["pending", "confirmed", "courier_booked", "processing", "shipped", "delivered", "cancelled"].map(st => (
 
                         <button
 
@@ -4535,7 +4563,7 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
                         >
 
-                          {st}
+                          {st === "courier_booked" ? "Booked to Courier" : st.replaceAll("_", " ")}
 
                         </button>
 
@@ -4591,9 +4619,17 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "12px" }}>
 
-                          <span style={{ color: "#64748b" }}>Courier Status:</span>
+                          <span style={{ color: "#64748b" }}>{(selectedOrder.courier_provider || "Courier").toUpperCase()} status:</span>
 
-                          <span style={{ fontWeight: 700, textTransform: "capitalize", color: "#166534" }}>{selectedOrder.courier_status || "In Review"}</span>
+                          <span style={{ fontWeight: 700, textTransform: "capitalize", color: "#166534" }}>{selectedOrder.courier_status || "Booked; refresh tracking for latest status"}</span>
+
+                        </div>
+
+                        <div style={{ fontSize: "11px", color: "#64748b" }}>
+
+                          {trackingCheckedAt && trackingOrder?.id === selectedOrder.id
+                            ? `Last checked ${trackingCheckedAt.toLocaleString()}`
+                            : "Showing last saved status. Track Parcel Live to refresh."}
 
                         </div>
 
@@ -8277,15 +8313,23 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
 
-                    <span style={{ fontSize: "11px", color: "#64748b", textTransform: "uppercase", fontWeight: 700 }}>Delivery Status</span>
+                    <span style={{ fontSize: "11px", color: "#64748b", textTransform: "uppercase", fontWeight: 700 }}>{(trackingDetails.provider || trackingOrder?.courier_provider || "Courier").toUpperCase()} Status</span>
 
-                    <span className="admin-badge delivered" style={{ textTransform: "uppercase" }}>
+                    <span className="admin-badge courier-status-badge" style={{ textTransform: "capitalize" }}>
 
                       {trackingDetails.delivery_status || "In Review"}
 
                     </span>
 
                   </div>
+
+                  {trackingCheckedAt && (
+
+                    <div style={{ marginTop: "8px", textAlign: "right", fontSize: "11px", color: "#64748b" }}>
+                      Live status checked {trackingCheckedAt.toLocaleString()}
+                    </div>
+
+                  )}
 
                 </div>
 
