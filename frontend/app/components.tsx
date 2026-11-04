@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useCart } from "./cart";
 import type { Product } from "./types";
@@ -252,6 +252,7 @@ export function Header() {
 }
 
 export function ProductCard({ product }: { product: Product }) {
+  const router = useRouter();
   const { add } = useCart();
   const t = useTranslations("shop");
   const primaryImage = product.images.find(x => x.is_primary) || product.images[0];
@@ -260,8 +261,29 @@ export function ProductCard({ product }: { product: Product }) {
   const currentPrice = product.discount_price || product.price;
   const imageCount = product.images ? product.images.length : 0;
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.closest("button") || target.closest(".prod-actions")) {
+      return;
+    }
+    router.push(`/products/${product.slug}`);
+  };
+
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!product.stock) return;
+    add(product, true);
+  };
+
+  const handleOrderNow = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!product.stock) return;
+    add(product, false);
+    router.push("/checkout");
+  };
+
   return (
-    <article className="prod-card">
+    <article className="prod-card" onClick={handleCardClick} style={{ cursor: "pointer" }}>
       <Link href={`/products/${product.slug}`} className="prod-img">
         {image ? (
           <img src={image} alt={product.name} loading="lazy" />
@@ -284,10 +306,18 @@ export function ProductCard({ product }: { product: Product }) {
           <span className="now">{formatPrice(currentPrice)}</span>
           {product.discount_price && <span className="old">{formatPrice(product.price)}</span>}
         </div>
-        <div className="prod-actions">
-          <Link className="btn btn-ghost" href={`/products/${product.slug}`}>{t("view")}</Link>
-          <button className="btn btn-primary" onClick={() => add(product)} disabled={!product.stock}>
+        <div className="prod-actions" onClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            className="btn btn-ghost btn-add-cart"
+            onClick={handleAddToCart}
+            disabled={!product.stock}
+            title={product.stock ? (t("addToCart") || "কার্টে যোগ") : t("outOfStock")}
+          >
             {product.stock ? t("addToCart") : t("outOfStock")}
+          </button>
+          <button type="button" className="btn btn-primary btn-order-now" onClick={handleOrderNow} disabled={!product.stock} title={product.stock ? (t("orderNow") || "অর্ডার করুন") : t("outOfStock")}>
+            {product.stock ? t("orderNow") : t("outOfStock")}
           </button>
         </div>
       </div>

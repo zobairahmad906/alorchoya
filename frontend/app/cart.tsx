@@ -4,7 +4,7 @@ import type { CartItem, Product } from "./types";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
-type CartContextType = { items: CartItem[]; count: number; total: number; add: (product: Product) => void; remove: (id: number) => void; change: (id: number, quantity: number) => void; clear: () => void };
+type CartContextType = { items: CartItem[]; count: number; total: number; add: (product: Product, showPopup?: boolean) => void; remove: (id: number) => void; change: (id: number, quantity: number) => void; clear: () => void };
 const CartContext = createContext<CartContextType | null>(null);
 type ServerCartItem = { product: Product; quantity: number };
 
@@ -49,7 +49,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     void Promise.all(items.map(item => fetch(`${API}/carts/${cartToken}/items/`, { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ product_id: item.id, quantity: item.quantity }) }).catch(() => undefined)));
   }, [items, hydrated, cartToken]);
 
-  const add = (product: Product) => {
+  const add = (product: Product, showPopup: boolean = true) => {
     let addedQty = 1;
     setItems(old => {
       const found = old.find(x => x.id === product.id);
@@ -59,7 +59,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       }
       return [...old, { ...product, quantity: 1 }];
     });
-    setPopupItem({ product, quantity: addedQty });
+    if (showPopup) {
+      setPopupItem({ product, quantity: addedQty });
+    }
   };
 
   const remove = (id: number) => setItems(old => old.filter(x => x.id !== id));
