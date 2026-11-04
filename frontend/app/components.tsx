@@ -4,7 +4,16 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useCart } from "./cart";
 import type { Product } from "./types";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+
+function SearchIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="11" cy="11" r="7" />
+      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </svg>
+  );
+}
 
 function formatPrice(value: string | number) {
   return `৳${Number(value).toLocaleString("bn-BD")}`;
@@ -73,6 +82,7 @@ export function Header() {
   const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [loadingSearch, setLoadingSearch] = useState(false);
   const [account, setAccount] = useState<{ authenticated: boolean; name?: string; profile?: { avatar_url?: string } } | null>(null);
+  const locale = useLocale();
   const t = useTranslations("nav");
 
   useEffect(() => {
@@ -97,8 +107,9 @@ export function Header() {
     return () => clearTimeout(timer);
   }, [query]);
 
-  const switchLanguage = () => {
-    document.cookie = "NEXT_LOCALE=" + (document.documentElement.lang === "bn" ? "en" : "bn") + "; path=/; max-age=31536000";
+  const setLanguage = (newLocale: "bn" | "en") => {
+    if (locale === newLocale) return;
+    document.cookie = "NEXT_LOCALE=" + newLocale + "; path=/; max-age=31536000";
     window.location.reload();
   };
 
@@ -226,7 +237,15 @@ export function Header() {
                 )}
               </div>
             ) : (
-              <button className="icon-btn search-trigger" onClick={() => setSearchOpen(true)} aria-label="Search">⌕</button>
+              <button
+                type="button"
+                className="icon-btn search-trigger"
+                onClick={() => setSearchOpen(true)}
+                aria-label={t("searchPlaceholder") || "Search"}
+                title={t("searchPlaceholder") || "পণ্য খুঁজুন"}
+              >
+                <SearchIcon size={20} />
+              </button>
             )}
             {account?.authenticated ? (
               <>
@@ -240,7 +259,25 @@ export function Header() {
             ) : (
               <Link className="account-link" href="/account">Sign up</Link>
             )}
-            <button className="lang-switch" onClick={switchLanguage}>{t("language")}</button>
+            <div className="lang-switch-group" role="group" aria-label="Language selection">
+              <button
+                type="button"
+                className={`lang-pill-btn ${locale === "bn" ? "active" : ""}`}
+                onClick={() => setLanguage("bn")}
+                title="বাংলা ভাষা"
+              >
+                <span className="lang-full">বাংলা</span>
+                <span className="lang-short">বাং</span>
+              </button>
+              <button
+                type="button"
+                className={`lang-pill-btn ${locale === "en" ? "active" : ""}`}
+                onClick={() => setLanguage("en")}
+                title="English"
+              >
+                EN
+              </button>
+            </div>
             <Link className="cart-nav" href="/cart" aria-label={t("cart")}>
               <CartIcon /> <span>{count}</span>
             </Link>
@@ -369,7 +406,12 @@ export function ProductCatalog({ products, initialCategory = "all" }: { products
     drag.current = null;
   };
   return <>
-    <div className="catalog-search-visible"><span>⌕</span><input value={query} onChange={event => update(setQuery, event.target.value)} placeholder={t("searchPlaceholder")} aria-label={t("searchProducts")} /></div>
+    {query.trim() && (
+      <div className="catalog-active-query-badge">
+        <span>অনুসন্ধান ফলাফল: <strong>&ldquo;{query}&rdquo;</strong></span>
+        <button type="button" onClick={() => update(setQuery, "")} aria-label="মুছে ফেলুন">✕</button>
+      </div>
+    )}
     <button className="filter-fab" style={{ right: position.right, bottom: position.bottom }} onPointerDown={event => { drag.current = { id: event.pointerId, x: event.clientX, y: event.clientY, right: position.right, bottom: position.bottom }; event.currentTarget.setPointerCapture(event.pointerId); }} onPointerMove={moveTools} onPointerUp={stopTools} onClick={() => setToolsOpen(open => !open)} aria-label="ফিল্টার টুলস"><ToolsIcon /><span>{activeFilters || "Tools"}</span></button>
     {toolsOpen && <div className="catalog-tools-panel" style={{ right: position.right, bottom: position.bottom + 60 }} role="dialog" aria-label="ফিল্টার ও সাজানো">
       <div className="catalog-tools-head"><div><strong>ফিল্টার ও সাজানো</strong><small>{activeFilters ? `${activeFilters}টি filter সক্রিয়` : "ফিল্টার ১ দিন পর reset হবে"}</small></div><button type="button" onClick={() => setToolsOpen(false)} aria-label="বন্ধ করুন">×</button></div>

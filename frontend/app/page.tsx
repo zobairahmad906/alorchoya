@@ -89,7 +89,7 @@ export default async function Home() {
         shopButtonText={t("shop")}
       />
       <section id="categories"><div className="wrap"><div className="section-head"><h2>{t("categoryTitle")}</h2></div><CategoryFilterCards categories={categories} /></div></section>
-      <section id="shop" className="products-section"><div className="wrap"><div className="section-head"><h2>{t("popular")}</h2><p>{t("popularText")}</p></div><ProductCatalog products={allProds} /></div></section>
+      <section id="shop" className="products-section"><div className="wrap"><ProductCatalog products={allProds} /></div></section>
 
       <section className="reviews">
         <div className="wrap">
