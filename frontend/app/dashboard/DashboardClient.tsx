@@ -91,10 +91,21 @@ import {
   ChevronDown,
 
   SlidersHorizontal,
-
   Check,
-
+  Info,
 } from "lucide-react";
+
+function MetricTooltip({ text }: { text: string }) {
+  return (
+    <span className="stat-tooltip-wrapper" onClick={(e) => e.stopPropagation()}>
+      <span className="stat-info-btn" aria-label="Information">
+        <Info size={10} />
+      </span>
+      <span className="stat-tooltip-box">{text}</span>
+    </span>
+  );
+}
+
 
 // Platform WhatsApp SVG icon
 
@@ -3171,14 +3182,20 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                   </div>
                   <div className="profit-stat-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))" }}>
                     {/* Card 1: Total Revenue */}
-                    <div className="profit-stat-card green">
+                    <div
+                      className="profit-stat-card green"
+                      title="বাতিলকৃত অর্ডার বাদে সম্পন্ন ও প্রসেসিং হওয়া সকল অর্ডারের মোট বিক্রয় মূল্য। এতে ডেলিভারি চার্জ ও ডিসকাউন্ট সমন্বয় করা রয়েছে।"
+                    >
                       <div className="profit-stat-inner">
                         <div className="profit-glow-orb" style={{ background: "#10b981" }} />
                         <div className="profit-icon-box green">
                           <TrendingUp size={22} />
                         </div>
                         <div>
-                          <div className="profit-title">মোট বিক্রয় (Total Revenue)</div>
+                          <div className="profit-title" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                            <span>মোট বিক্রয় (Total Revenue)</span>
+                            <MetricTooltip text="বাতিলকৃত অর্ডার বাদে সম্পন্ন ও প্রসেসিং হওয়া সকল অর্ডারের মোট বিক্রয় মূল্য। এতে ডেলিভারি চার্জ ও ডিসকাউন্ট সমন্বয় করা রয়েছে।" />
+                          </div>
                           <div className="profit-val">৳{stats.total_revenue.toLocaleString()}</div>
                           <div className="profit-sub">
                             গত ৩০ দিন: ৳{stats.monthly_revenue.toLocaleString()}
@@ -3188,14 +3205,20 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                     </div>
 
                     {/* Card 2: Gross Realized Profit */}
-                    <div className="profit-stat-card indigo">
+                    <div
+                      className="profit-stat-card indigo"
+                      title="গ্রাহকদের সফল অর্ডার থেকে পণ্যগুলোর পাইকারি বা ক্রয়মূল্য (Cost Price) বাদ দিয়ে অর্জিত নিট গ্রস প্রফিট। সাথে প্রফিট মার্জিন (%) ও প্রতি অর্ডারে গড় লাভ প্রদর্শিত।"
+                    >
                       <div className="profit-stat-inner">
                         <div className="profit-glow-orb" style={{ background: "#6366f1" }} />
                         <div className="profit-icon-box indigo">
                           <Wallet size={22} />
                         </div>
                         <div>
-                          <div className="profit-title">মোট অর্জিত লাভ (Gross Profit)</div>
+                          <div className="profit-title" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                            <span>মোট অর্জিত লাভ (Gross Profit)</span>
+                            <MetricTooltip text="গ্রাহকদের সফল অর্ডার থেকে পণ্যগুলোর পাইকারি বা ক্রয়মূল্য (Cost Price) বাদ দিয়ে অর্জিত নিট গ্রস প্রফিট। সাথে প্রফিট মার্জিন (%) ও প্রতি অর্ডারে গড় লাভ প্রদর্শিত।" />
+                          </div>
                           <div className="profit-val">৳{(stats.gross_profit ?? 0).toLocaleString()}</div>
                           <div className="profit-sub">
                             মার্জিন: <span style={{ color: "#4f46e5", fontWeight: 800 }}>{(stats.profit_margin_percent ?? 0).toFixed(1)}%</span> | গড় লাভ: ৳{stats.avg_profit_per_order ?? 0}
@@ -3205,14 +3228,20 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                     </div>
 
                     {/* Card 3: Average Order Value */}
-                    <div className="profit-stat-card blue">
+                    <div
+                      className="profit-stat-card blue"
+                      title="প্রতিটি সফল বা ভ্যালিড চেকআউটে একজন ক্রেতা গড়ে কত টাকার কেনাকাটা করেছেন তার হিসাব (মোট রেভিনিউ ÷ মোট ভ্যালিড অর্ডার)।"
+                    >
                       <div className="profit-stat-inner">
                         <div className="profit-glow-orb" style={{ background: "#3b82f6" }} />
                         <div className="profit-icon-box blue">
                           <Receipt size={22} />
                         </div>
                         <div>
-                          <div className="profit-title">গড় অর্ডার মূল্য (AOV)</div>
+                          <div className="profit-title" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                            <span>গড় অর্ডার মূল্য (AOV)</span>
+                            <MetricTooltip text="প্রতিটি সফল বা ভ্যালিড চেকআউটে একজন ক্রেতা গড়ে কত টাকার কেনাকাটা করেছেন তার হিসাব (মোট রেভিনিউ ÷ মোট ভ্যালিড অর্ডার)।" />
+                          </div>
                           <div className="profit-val">৳{stats.avg_order_value || 0}</div>
                           <div className="profit-sub">
                             প্রতি সফল চেকআউটে গ্রাহকের গড় ব্যয়
@@ -3222,14 +3251,20 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                     </div>
 
                     {/* Card 4: Total Orders & Completion */}
-                    <div className="profit-stat-card purple">
+                    <div
+                      className="profit-stat-card purple"
+                      title="স্টোরের শুরু থেকে এ পর্যন্ত মোট কতটি অর্ডার এসেছে, এবং তার মধ্যে কতটি সফলভাবে ডেলিভারি হয়েছে ও কতটি পেন্ডিং রয়েছে।"
+                    >
                       <div className="profit-stat-inner">
                         <div className="profit-glow-orb" style={{ background: "#a855f7" }} />
                         <div className="profit-icon-box purple">
                           <ShoppingCart size={22} />
                         </div>
                         <div>
-                          <div className="profit-title">মোট অর্ডার সংখ্যা (Total Orders)</div>
+                          <div className="profit-title" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                            <span>মোট অর্ডার সংখ্যা (Total Orders)</span>
+                            <MetricTooltip text="স্টোরের শুরু থেকে এ পর্যন্ত মোট কতটি অর্ডার এসেছে, এবং তার মধ্যে কতটি সফলভাবে ডেলিভারি হয়েছে ও কতটি পেন্ডিং রয়েছে।" />
+                          </div>
                           <div className="profit-val">{stats.total_orders}</div>
                           <div className="profit-sub">
                             ডেলিভার্ড: <b style={{ color: "#059669" }}>{stats.delivered_orders}</b> | পেন্ডিং: <b style={{ color: "#d97706" }}>{stats.pending_orders}</b>
@@ -3249,14 +3284,20 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                   </div>
                   <div className="profit-stat-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))" }}>
                     {/* Card 5: Retail Stock Valuation */}
-                    <div className="profit-stat-card teal">
+                    <div
+                      className="profit-stat-card teal"
+                      title="গোডাউন বা স্টোরে থাকা সকল সক্রিয় প্রোডাক্টের বর্তমান রিটেইল বিক্রয় মূল্যের যোগফল (ডিসকাউন্ট মূল্য থাকলে সেটি কার্যকর ধরা হয়েছে)।"
+                    >
                       <div className="profit-stat-inner">
                         <div className="profit-glow-orb" style={{ background: "#0d9488" }} />
                         <div className="profit-icon-box teal">
                           <Boxes size={22} />
                         </div>
                         <div>
-                          <div className="profit-title">স্টক বিক্রয় মূল্য (Retail Value)</div>
+                          <div className="profit-title" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                            <span>স্টক বিক্রয় মূল্য (Retail Value)</span>
+                            <MetricTooltip text="গোডাউন বা স্টোরে থাকা সকল সক্রিয় প্রোডাক্টের বর্তমান রিটেইল বিক্রয় মূল্যের যোগফল (ডিসকাউন্ট মূল্য থাকলে সেটি কার্যকর ধরা হয়েছে)।" />
+                          </div>
                           <div className="profit-val">৳{(stats.retail_stock_valuation ?? 0).toLocaleString()}</div>
                           <div className="profit-sub">
                             মোট মজুদ: <b>{stats.total_stock_units ?? 0} পিস</b> পণ্য
@@ -3266,14 +3307,20 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                     </div>
 
                     {/* Card 6: Cost Stock Valuation */}
-                    <div className="profit-stat-card orange">
+                    <div
+                      className="profit-stat-card orange"
+                      title="মজুদকৃত সকল পণ্য সংগ্রহ করতে মোট কত টাকা খরচ বা মূলধন বিনিয়োগ করা হয়েছিল (Cost Price × Stock) তার হিসাব।"
+                    >
                       <div className="profit-stat-inner">
                         <div className="profit-glow-orb" style={{ background: "#f59e0b" }} />
                         <div className="profit-icon-box orange">
                           <Tag size={22} />
                         </div>
                         <div>
-                          <div className="profit-title">স্টক ক্রয় মূল্য / ইনভেস্টমেন্ট</div>
+                          <div className="profit-title" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                            <span>স্টক ক্রয় মূল্য / ইনভেস্টমেন্ট</span>
+                            <MetricTooltip text="মজুদকৃত সকল পণ্য সংগ্রহ করতে মোট কত টাকা খরচ বা মূলধন বিনিয়োগ করা হয়েছিল (Cost Price × Stock) তার হিসাব।" />
+                          </div>
                           <div className="profit-val">৳{(stats.cost_stock_valuation ?? 0).toLocaleString()}</div>
                           <div className="profit-sub">
                             গোডাউনে আটকে থাকা মোট মূলধন
@@ -3283,14 +3330,20 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                     </div>
 
                     {/* Card 7: Potential Stock Profit */}
-                    <div className="profit-stat-card green">
+                    <div
+                      className="profit-stat-card green"
+                      title="গোডাউনে থাকা সকল স্টক পণ্য সফলভাবে বিক্রি হলে সম্ভাব্য মোট কত টাকা নিট লাভ অর্জিত হবে (স্টক বিক্রয় মূল্য − স্টক ক্রয় মূল্য)।"
+                    >
                       <div className="profit-stat-inner">
                         <div className="profit-glow-orb" style={{ background: "#10b981" }} />
                         <div className="profit-icon-box green">
                           <Award size={22} />
                         </div>
                         <div>
-                          <div className="profit-title">সম্ভাব্য স্টক লাভ (Potential Profit)</div>
+                          <div className="profit-title" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                            <span>সম্ভাব্য স্টক লাভ (Potential Profit)</span>
+                            <MetricTooltip text="গোডাউনে থাকা সকল স্টক পণ্য সফলভাবে বিক্রি হলে সম্ভাব্য মোট কত টাকা নিট লাভ অর্জিত হবে (স্টক বিক্রয় মূল্য − স্টক ক্রয় মূল্য)।" />
+                          </div>
                           <div className="profit-val">৳{(stats.potential_stock_profit ?? 0).toLocaleString()}</div>
                           <div className="profit-sub">
                             সব স্টক বিক্রি হলে অর্জিতব্য লাভ
@@ -3300,14 +3353,20 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                     </div>
 
                     {/* Card 8: Catalog Average Price & Items */}
-                    <div className="profit-stat-card blue">
+                    <div
+                      className="profit-stat-card blue"
+                      title="ক্যাটালগে অন্তর্ভুক্ত সকল পণ্যের গড় বিক্রয়মূল্য এবং স্টোরের মোট ইনভেন্টরি পণ্যের বৈচিত্র্য।"
+                    >
                       <div className="profit-stat-inner">
                         <div className="profit-glow-orb" style={{ background: "#3b82f6" }} />
                         <div className="profit-icon-box blue">
                           <Package size={22} />
                         </div>
                         <div>
-                          <div className="profit-title">গড় প্রোডাক্ট মূল্য (Avg Price)</div>
+                          <div className="profit-title" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                            <span>গড় প্রোডাক্ট মূল্য (Avg Price)</span>
+                            <MetricTooltip text="ক্যাটালগে অন্তর্ভুক্ত সকল পণ্যের গড় বিক্রয়মূল্য এবং স্টোরের মোট ইনভেন্টরি পণ্যের বৈচিত্র্য।" />
+                          </div>
                           <div className="profit-val">৳{stats.avg_product_price || 0}</div>
                           <div className="profit-sub">
                             ক্যাটালগে মোট {stats.total_products}টি আইটেম সক্রিয়
@@ -3327,9 +3386,10 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                         <h3 className="profit-panel-title">
                           <TrendingUp size={20} style={{ color: "#4f46e5" }} />
                           Sales & Profit Velocity (বিক্রয় ও লাভ বিশ্লেষণ)
+                          <MetricTooltip text="গত ৭ বা ১৪ দিনের দৈনিক মোট বিক্রয় এবং ক্রয়মূল্য বাদ দিয়ে অর্জিত নিট লাভের তুলনামূলক চিত্র।" />
                         </h3>
                         <p className="profit-panel-sub">
-                          দৈনিক রেভিনিউ, নিট লাভ এবং অর্ডারের গতিবিধি
+                          দৈনিক রেভিনিউ, নিট লাভ এবং অর্ডারের গতিবিধি (বারের ওপর কার্সার রাখুন)
                         </p>
                       </div>
 
@@ -3340,6 +3400,7 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                           <button
                             type="button"
                             onClick={() => setOverviewChartMetric("dual")}
+                            title="প্রতিদিনের মোট বিক্রয় রেভিনিউ (নীল বার) এবং নিট লাভ (সবুজ বার) পাশাপাশি তুলনা করে দেখুন"
                             style={{
                               border: "none",
                               background: overviewChartMetric === "dual" ? "#ffffff" : "transparent",
@@ -3358,6 +3419,7 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                           <button
                             type="button"
                             onClick={() => setOverviewChartMetric("orders")}
+                            title="প্রতিদিন কতটি সফল অর্ডার সম্পন্ন হয়েছে তার ভলিউম গ্রাফ দেখুন"
                             style={{
                               border: "none",
                               background: overviewChartMetric === "orders" ? "#ffffff" : "transparent",
@@ -3380,6 +3442,7 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                           <button
                             type="button"
                             onClick={() => setOverviewChartDays(7)}
+                            title="গত ৭ দিনের দৈনন্দিন পারফরম্যান্স দেখুন"
                             style={{
                               border: "none",
                               background: overviewChartDays === 7 ? "#ffffff" : "transparent",
@@ -3398,6 +3461,7 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                           <button
                             type="button"
                             onClick={() => setOverviewChartDays(14)}
+                            title="গত ১৪ দিনের দৈনন্দিন পারফরম্যান্স দেখুন"
                             style={{
                               border: "none",
                               background: overviewChartDays === 14 ? "#ffffff" : "transparent",
@@ -3421,17 +3485,17 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                     <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "8px", fontSize: "12px", fontWeight: 700 }}>
                       {overviewChartMetric === "dual" ? (
                         <>
-                          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "6px" }} title="দৈনিক মোট বিক্রয়কৃত টাকার অংক">
                             <span style={{ width: "12px", height: "12px", borderRadius: "3px", background: "linear-gradient(180deg, #6366f1, #3b82f6)", display: "inline-block" }} />
                             <span style={{ color: "#475569" }}>বিক্রয় রেভিনিউ (Revenue)</span>
                           </div>
-                          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "6px" }} title="দৈনিক বিক্রয় থেকে পণ্যের ক্রয়মূল্য বাদ দিয়ে অর্জিত নিট লাভ">
                             <span style={{ width: "12px", height: "12px", borderRadius: "3px", background: "linear-gradient(180deg, #10b981, #059669)", display: "inline-block" }} />
                             <span style={{ color: "#475569" }}>অর্জিত লাভ (Gross Profit)</span>
                           </div>
                         </>
                       ) : (
-                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }} title="প্রতিদিন সফলভাবে সম্পন্ন হওয়া মোট অর্ডার সংখ্যা">
                           <span style={{ width: "12px", height: "12px", borderRadius: "3px", background: "linear-gradient(180deg, #8b5cf6, #6366f1)", display: "inline-block" }} />
                           <span style={{ color: "#475569" }}>সম্পন্ন অর্ডার সংখ্যা (Orders)</span>
                         </div>
@@ -3444,9 +3508,10 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                         const revPercent = Math.max((day.revenue / maxChartVal) * 100, 4);
                         const profPercent = Math.max(((day.profit || 0) / maxChartVal) * 100, (day.profit || 0) > 0 ? 4 : 0);
                         const orderPercent = Math.max((day.orders / maxOrders) * 100, day.orders > 0 ? 6 : 2);
+                        const hoverTitle = `তারিখ: ${day.date}\nবিক্রয় রেভিনিউ: ৳${day.revenue.toLocaleString()}\nঅর্জিত নিট লাভ: ৳${(day.profit || 0).toLocaleString()}\nঅর্ডার সংখ্যা: ${day.orders}টি\nমোট বিক্রীত: ${day.items_sold || 0} পিস`;
 
                         return (
-                          <div key={idx} className="profit-bar-col" title={`${day.date}\nবিক্রয়: ৳${day.revenue}\nলাভ: ৳${day.profit || 0}\nঅর্ডার: ${day.orders}`}>
+                          <div key={idx} className="profit-bar-col" title={hoverTitle} style={{ cursor: "pointer" }}>
                             {overviewChartMetric === "dual" ? (
                               <div style={{ display: "flex", alignItems: "flex-end", gap: "4px", width: "100%", height: "100%" }}>
                                 {/* Revenue Bar */}
@@ -3459,6 +3524,7 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                                     boxShadow: "0 2px 6px rgba(99, 102, 241, 0.2)",
                                     transition: "all 0.3s ease"
                                   }}
+                                  title={`বিক্রয়: ৳${day.revenue.toLocaleString()}`}
                                 />
                                 {/* Profit Bar */}
                                 <div
@@ -3470,6 +3536,7 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                                     boxShadow: "0 2px 6px rgba(16, 185, 129, 0.2)",
                                     transition: "all 0.3s ease"
                                   }}
+                                  title={`লাভ: ৳${(day.profit || 0).toLocaleString()}`}
                                 />
                               </div>
                             ) : (
@@ -3482,6 +3549,7 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                                   boxShadow: "0 2px 6px rgba(139, 92, 246, 0.2)",
                                   transition: "all 0.3s ease"
                                 }}
+                                title={`অর্ডার: ${day.orders}টি`}
                               />
                             )}
 
@@ -3496,19 +3564,31 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
                     {/* Chart Summary Badges */}
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "10px", marginTop: "24px", paddingTop: "14px", borderTop: "1px solid #f1f5f9" }}>
-                      <div style={{ background: "#f8fafc", padding: "10px 14px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+                      <div
+                        style={{ background: "#f8fafc", padding: "10px 14px", borderRadius: "12px", border: "1px solid #e2e8f0", cursor: "help" }}
+                        title="নির্বাচিত সময়সীমার মধ্যে সম্পন্ন ও প্রসেসিং সকল অর্ডারের মোট বিক্রয় মূল্য"
+                      >
                         <span style={{ fontSize: "11px", fontWeight: 800, color: "#64748b", textTransform: "uppercase" }}>নির্বাচিত রেভিনিউ</span>
                         <div style={{ fontSize: "16px", fontWeight: 900, color: "#1e293b", marginTop: "2px" }}>৳{periodRevenue.toLocaleString()}</div>
                       </div>
-                      <div style={{ background: "#ecfdf5", padding: "10px 14px", borderRadius: "12px", border: "1px solid #a7f3d0" }}>
+                      <div
+                        style={{ background: "#ecfdf5", padding: "10px 14px", borderRadius: "12px", border: "1px solid #a7f3d0", cursor: "help" }}
+                        title="নির্বাচিত সময়সীমার অর্ডারে পণ্যের ক্রয়মূল্য বাদ দিয়ে অর্জিত নিট মুনাফা"
+                      >
                         <span style={{ fontSize: "11px", fontWeight: 800, color: "#065f46", textTransform: "uppercase" }}>নির্বাচিত লাভ</span>
                         <div style={{ fontSize: "16px", fontWeight: 900, color: "#047857", marginTop: "2px" }}>৳{periodProfit.toLocaleString()}</div>
                       </div>
-                      <div style={{ background: "#f5f3ff", padding: "10px 14px", borderRadius: "12px", border: "1px solid #ddd6fe" }}>
+                      <div
+                        style={{ background: "#f5f3ff", padding: "10px 14px", borderRadius: "12px", border: "1px solid #ddd6fe", cursor: "help" }}
+                        title="নির্বাচিত সময়সীমার মধ্যে গ্রাহকদের দেওয়া মোট অর্ডারের সংখ্যা"
+                      >
                         <span style={{ fontSize: "11px", fontWeight: 800, color: "#5b21b6", textTransform: "uppercase" }}>মোট অর্ডার</span>
                         <div style={{ fontSize: "16px", fontWeight: 900, color: "#6d28d9", marginTop: "2px" }}>{periodOrders} টি</div>
                       </div>
-                      <div style={{ background: "#eff6ff", padding: "10px 14px", borderRadius: "12px", border: "1px solid #bfdbfe" }}>
+                      <div
+                        style={{ background: "#eff6ff", padding: "10px 14px", borderRadius: "12px", border: "1px solid #bfdbfe", cursor: "help" }}
+                        title="নির্বাচিত সময়সীমার মধ্যে সকল অর্ডারে সর্বমোট যত পিস পণ্য বিক্রি হয়েছে"
+                      >
                         <span style={{ fontSize: "11px", fontWeight: 800, color: "#1e40af", textTransform: "uppercase" }}>মোট বিক্রীত ইউনিট</span>
                         <div style={{ fontSize: "16px", fontWeight: 900, color: "#1d4ed8", marginTop: "2px" }}>{periodItemsSold} পিস</div>
                       </div>
@@ -3521,6 +3601,7 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                       <h3 className="profit-panel-title">
                         <Award size={20} style={{ color: "#f59e0b" }} />
                         শীর্ষ বিক্রিত প্রোডাক্ট (Top Selling)
+                        <MetricTooltip text="স্টোরে সবচেয়ে বেশি বিক্রি হওয়া শীর্ষ ৫টি পণ্যের তালিকা ও মোট বিক্রয় রেভিনিউ।" />
                       </h3>
                       <p className="profit-panel-sub">
                         সবচেয়ে বেশি বিক্রিত পণ্যের লাইভ পারফরম্যান্স
@@ -3530,7 +3611,11 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                     {stats.top_products && stats.top_products.length > 0 ? (
                       <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                         {stats.top_products.map((item, idx) => (
-                          <div key={idx} className="profit-top-product-item">
+                          <div
+                            key={idx}
+                            className="profit-top-product-item"
+                            title={`প্রোডাক্ট: ${item.name}\nমোট বিক্রি: ${item.sold} পিস\nবিক্রয় রেভিনিউ: ৳${(item.revenue || 0).toLocaleString()}`}
+                          >
                             <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0 }}>
                               <span style={{
                                 width: "26px",
@@ -3580,9 +3665,10 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                       <h3 className="profit-panel-title">
                         <Boxes size={20} style={{ color: "#0d9488" }} />
                         ক্যাটাগরি অনুযায়ী স্টক ও বিক্রয় বিশ্লেষণ (Category Breakdown)
+                        <MetricTooltip text="প্রতিটি ক্যাটাগরির অন্তর্ভুক্ত পণ্যের সংখ্যা, মজুদকৃত স্টকের মোট বাজারমূল্য, মূলধন বিনিয়োগ এবং এ পর্যন্ত অর্জিত মোট বিক্রয় রেভিনিউ।" />
                       </h3>
                       <p className="profit-panel-sub">
-                        প্রতিটি ক্যাটাগরির বর্তমান স্টক মূল্য, ইনভেস্টমেন্ট ও মোট বিক্রয়
+                        প্রতিটি ক্যাটাগরির বর্তমান স্টক মূল্য, ইনভেস্টমেন্ট ও মোট বিক্রয় (কার্সার রাখুন)
                       </p>
                     </div>
 
@@ -3590,8 +3676,13 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                       <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
                         {stats.category_breakdown.map((cat, idx) => {
                           const stockPercent = Math.min(Math.round((cat.stock_value / totalCatalogStockVal) * 100), 100);
+                          const catHover = `ক্যাটাগরি: ${cat.name}\nমোট প্রোডাক্ট: ${cat.product_count}টি\nমজুদ স্টক: ${cat.stock} পিস\nবর্তমান স্টক মূল্য: ৳${cat.stock_value.toLocaleString()}\nমূলধন খরচ: ৳${(cat.cost_value || 0).toLocaleString()}\nমোট বিক্রি: ${cat.sold} পিস\nমোট বিক্রয় রেভিনিউ: ৳${cat.revenue.toLocaleString()}`;
                           return (
-                            <div key={idx} style={{ background: "#f8fafc", borderRadius: "14px", padding: "14px", border: "1px solid #e2e8f0" }}>
+                            <div
+                              key={idx}
+                              style={{ background: "#f8fafc", borderRadius: "14px", padding: "14px", border: "1px solid #e2e8f0", cursor: "pointer", transition: "all 0.15s ease" }}
+                              title={catHover}
+                            >
                               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
                                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                                   <span style={{ fontWeight: 800, fontSize: "14px", color: "#0f172a" }}>{cat.name}</span>
@@ -3631,9 +3722,10 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                       <h3 className="profit-panel-title">
                         <Tag size={20} style={{ color: "#ea580c" }} />
                         প্রোডাক্ট প্রাইস রেঞ্জ ডিস্ট্রিবিউশন (Price Tiers)
+                        <MetricTooltip text="পণ্যের বিক্রয়মূল্য অনুযায়ী বিভিন্ন মূল্যের রেঞ্জে কতগুলো আইটেম এবং গোডাউনে কত পিস স্টক মজুদ রয়েছে তার চিত্র।" />
                       </h3>
                       <p className="profit-panel-sub">
-                        মূল্য পরিসীমা অনুযায়ী পণ্য ও স্টকের বন্টন
+                        মূল্য পরিসীমা অনুযায়ী পণ্য ও স্টকের বন্টন (কার্সার রাখুন)
                       </p>
                     </div>
 
@@ -3641,8 +3733,13 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                       <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                         {stats.price_tiers.map((tier, idx) => {
                           const tierProdPercent = stats.total_products > 0 ? Math.round((tier.count / stats.total_products) * 100) : 0;
+                          const tierHover = `প্রাইস রেঞ্জ: ৳ ${tier.label}\nএই মূল্যের প্রোডাক্ট সংখ্যা: ${tier.count}টি\nমোট মজুদ স্টক: ${tier.total_stock} পিস ইউনিট\nক্যাটালগ শেয়ার: ${tierProdPercent}%`;
                           return (
-                            <div key={idx} style={{ background: "#f8fafc", borderRadius: "12px", padding: "12px 14px", border: "1px solid #e2e8f0" }}>
+                            <div
+                              key={idx}
+                              style={{ background: "#f8fafc", borderRadius: "12px", padding: "12px 14px", border: "1px solid #e2e8f0", cursor: "pointer", transition: "all 0.15s ease" }}
+                              title={tierHover}
+                            >
                               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
                                 <span style={{ fontWeight: 800, fontSize: "13px", color: "#1e293b" }}>৳ {tier.label}</span>
                                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -3671,6 +3768,7 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                     <h3 className="profit-panel-title" style={{ fontSize: "15px" }}>
                       <ShoppingCart size={18} style={{ color: "#6366f1" }} />
                       অর্ডার স্ট্যাটাস পাইপলাইন (Order Status Ledger)
+                      <MetricTooltip text="প্রতিটি স্ট্যাটাসে থাকা অর্ডারের সংখ্যা। যেকোনো বাটনে ক্লিক করলে সেই স্ট্যাটাসের ফিল্টার সরাসরি ওপেন হবে।" />
                     </h3>
                     <span style={{ fontSize: "12px", color: "#64748b", fontWeight: 600 }}>
                       যেকোনো স্ট্যাটাসে ক্লিক করে সরাসরি ফিল্টার দেখুন
@@ -3679,13 +3777,13 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
                     {[
-                      { status: "all", label: "মোট অর্ডার", count: stats.total_orders, color: "#0f172a", bg: "#f1f5f9" },
-                      { status: "pending", label: "পেন্ডিং", count: stats.pending_orders, color: "#b45309", bg: "#fef3c7" },
-                      { status: "confirmed", label: "কনফার্মড", count: stats.order_status_counts?.confirmed || 0, color: "#1d4ed8", bg: "#eff6ff" },
-                      { status: "courier_booked", label: "কুরিয়ার বুকড", count: stats.order_status_counts?.courier_booked || 0, color: "#6d28d9", bg: "#f5f3ff" },
-                      { status: "processing", label: "প্রসেসিং", count: stats.order_status_counts?.processing || 0, color: "#0891b2", bg: "#ecfeff" },
-                      { status: "delivered", label: "ডেলিভার্ড", count: stats.delivered_orders, color: "#059669", bg: "#ecfdf5" },
-                      { status: "cancelled", label: "বাতিলকৃত", count: stats.cancelled_orders, color: "#dc2626", bg: "#fef2f2" },
+                      { status: "all", label: "মোট অর্ডার", count: stats.total_orders, color: "#0f172a", bg: "#f1f5f9", tip: "সকল অর্ডারের পূর্ণাঙ্গ তালিকা দেখতে ক্লিক করুন" },
+                      { status: "pending", label: "পেন্ডিং", count: stats.pending_orders, color: "#b45309", bg: "#fef3c7", tip: "এখনও যাচাই বা কনফার্ম করা হয়নি এমন পেন্ডিং অর্ডার দেখতে ক্লিক করুন" },
+                      { status: "confirmed", label: "কনফার্মড", count: stats.order_status_counts?.confirmed || 0, color: "#1d4ed8", bg: "#eff6ff", tip: "গ্রাহকের সাথে কথা বলে কনফার্ম করা অর্ডারগুলো দেখতে ক্লিক করুন" },
+                      { status: "courier_booked", label: "কুরিয়ার বুকড", count: stats.order_status_counts?.courier_booked || 0, color: "#6d28d9", bg: "#f5f3ff", tip: "Steadfast বা Pathao কুরিয়ারে বুকিং সম্পন্ন করা অর্ডারসমূহ" },
+                      { status: "processing", label: "প্রসেসিং", count: stats.order_status_counts?.processing || 0, color: "#0891b2", bg: "#ecfeff", tip: "প্যাকিং ও কুরিয়ারে হস্তান্তরের জন্য প্রক্রিয়াধীন অর্ডারগুলো" },
+                      { status: "delivered", label: "ডেলিভার্ড", count: stats.delivered_orders, color: "#059669", bg: "#ecfdf5", tip: "সফলভাবে কাস্টমারের কাছে পৌঁছে যাওয়া ডেলিভার্ড অর্ডারসমূহ" },
+                      { status: "cancelled", label: "বাতিলকৃত", count: stats.cancelled_orders, color: "#dc2626", bg: "#fef2f2", tip: "গ্রাহক বা অ্যাডমিন কর্তৃক বাতিল হওয়া অর্ডারসমূহ" },
                     ].map(item => (
                       <button
                         key={item.status}
@@ -3708,7 +3806,7 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                           fontWeight: 800,
                           fontSize: "12px"
                         }}
-                        title={`View ${item.label} orders`}
+                        title={item.tip}
                       >
                         <span>{item.label}:</span>
                         <span style={{ background: "#ffffff", padding: "2px 8px", borderRadius: "8px", fontSize: "12px", fontWeight: 900, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
@@ -3726,6 +3824,7 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                       <h3 className="profit-panel-title">
                         <Package size={20} style={{ color: "#2563eb" }} />
                         সাম্প্রতিক অর্ডারসমূহ (Recent Orders)
+                        <MetricTooltip text="সর্বশেষ চেকআউট হওয়া ১০টি অর্ডারের সারসংক্ষেপ। বিস্তারিত দেখতে Details বাটনে ক্লিক করুন।" />
                       </h3>
                       <p className="profit-panel-sub">
                         গ্রাহকদের সর্বশেষ ১০টি সফল চেকআউট ও ডেলিভারি স্ট্যাটাস
@@ -3736,6 +3835,7 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                       onClick={() => navigateToTab("orders")}
                       className="admin-btn-secondary"
                       style={{ fontSize: "12px", padding: "7px 14px" }}
+                      title="অর্ডার ফিল্টার এবং সকল অর্ডারের তালিকা দেখতে ক্লিক করুন"
                     >
                       সব অর্ডার দেখুন <ArrowUpRight size={13} />
                     </button>
@@ -3756,7 +3856,7 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                       <tbody>
                         {stats.recent_orders && stats.recent_orders.length > 0 ? (
                           stats.recent_orders.map(order => (
-                            <tr key={order.id}>
+                            <tr key={order.id} title={`অর্ডার #${order.id} - ${order.customer_name} (৳${order.total})`}>
                               <td style={{ fontWeight: 800, color: "#2563eb" }}>#{order.id}</td>
                               <td style={{ fontWeight: 700, color: "#0f172a" }}>{order.customer_name}</td>
                               <td style={{ color: "#64748b", fontSize: "13px" }}>
@@ -3764,7 +3864,7 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                               </td>
                               <td style={{ fontWeight: 800, color: "#0f172a" }}>৳{order.total}</td>
                               <td>
-                                <span className={`admin-badge ${order.status}`}>
+                                <span className={`admin-badge ${order.status}`} title={`বর্তমান অবস্থা: ${order.status_display || order.status}`}>
                                   {order.status_display || order.status}
                                 </span>
                               </td>
@@ -3773,6 +3873,7 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                                   onClick={() => { setSelectedOrder(order); navigateToTab("orders"); }}
                                   className="admin-btn-secondary"
                                   style={{ padding: "5px 12px", fontSize: "11px", fontWeight: 700 }}
+                                  title="এই অর্ডারের বিস্তারিত তথ্য, পণ্য এবং কুরিয়ার চালান দেখতে ক্লিক করুন"
                                 >
                                   Details
                                 </button>
