@@ -53,11 +53,17 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     let addedQty = 1;
     setItems(old => {
       const found = old.find(x => x.id === product.id);
+      let updated: CartItem[];
       if (found) {
         addedQty = found.quantity + 1;
-        return old.map(x => x.id === product.id ? { ...x, quantity: Math.min(x.quantity + 1, product.stock) } : x);
+        updated = old.map(x => x.id === product.id ? { ...x, quantity: Math.min(x.quantity + 1, product.stock) } : x);
+      } else {
+        updated = [...old, { ...product, quantity: 1 }];
       }
-      return [...old, { ...product, quantity: 1 }];
+      try {
+        localStorage.setItem("atelier-cart", JSON.stringify(updated));
+      } catch { /* ignore */ }
+      return updated;
     });
     if (showPopup) {
       setPopupItem({ product, quantity: addedQty });

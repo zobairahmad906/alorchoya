@@ -316,7 +316,7 @@ export function ProductCard({ product }: { product: Product }) {
     e.stopPropagation();
     if (!product.stock) return;
     add(product, false);
-    router.push("/checkout");
+    window.location.href = "/checkout";
   };
 
   return (
