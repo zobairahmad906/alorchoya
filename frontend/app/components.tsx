@@ -307,7 +307,7 @@ export function ProductCatalog({ products, initialCategory = "all" }: { products
   const [page, setPage] = useState(1);
   const [position, setPosition] = useState({ right: 18, bottom: 92 });
   const drag = useRef<{ id: number; x: number; y: number; right: number; bottom: number } | null>(null);
-  const pageSize = 6;
+  const pageSize = 8;
   const t = useTranslations("shop");
   const categories = Array.from(new Map(products.map(product => [product.category.slug, product.category])).values());
   useEffect(() => {

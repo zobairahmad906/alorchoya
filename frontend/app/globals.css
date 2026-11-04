@@ -393,8 +393,8 @@ section {
 
 .prod-grid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 18px
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
 }
 
 .prod-card {
@@ -715,7 +715,8 @@ footer ul {
   }
 
   .prod-grid {
-    grid-template-columns: repeat(2, 1fr)
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
   }
 
   .why-grid,
@@ -738,7 +739,15 @@ footer ul {
   }
 
   .prod-grid {
-    grid-template-columns: repeat(3, 1fr)
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+}
+
+@media(min-width:1200px) {
+  .prod-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
   }
 }
 
@@ -5866,14 +5875,41 @@ footer ul {
 .markdown-content p{margin:0 0 10px}.markdown-content ul{margin:0 0 12px;padding-left:22px}.markdown-content li{margin:3px 0}.markdown-content blockquote{margin:10px 0;padding:8px 12px;border-left:3px solid var(--gold);background:var(--cream);color:var(--coffee)}
 .markdown-content code{padding:2px 5px;border-radius:4px;background:var(--cream);font-size:.9em}.markdown-content a{color:var(--emerald);text-decoration:underline}
 
-/* 4:5 portrait product cards: every upload is normalised to the same frame (card_image, cream background). */
-.prod-img{height:auto;aspect-ratio:4 / 5;padding:0;background:#fdfbf7;display:block}
-.prod-img img{width:100%;height:100%;max-width:none;max-height:none;object-fit:cover;padding:0}
+/* Compact modern product cards: normalised 1:1 square frame (card_image, cream background). */
+.prod-img{height:auto;aspect-ratio:1 / 1;padding:0;background:#fdfbf7;display:block;position:relative;overflow:hidden}
+.prod-img img{width:100%;height:100%;max-width:none;max-height:none;object-fit:cover;padding:0;transition:transform 0.3s ease}
+.prod-card:hover .prod-img img{transform:scale(1.05)}
 /* Keep the view / add-to-cart buttons on one line at the bottom of every card. */
-.prod-card{display:flex;flex-direction:column;height:100%}
-.prod-body{display:flex;flex-direction:column;flex:1}
-.prod-body .t{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.6em;line-height:1.3}
-.prod-actions{margin-top:auto}
+.prod-card{display:flex;flex-direction:column;height:100%;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:var(--cream);box-shadow:0 2px 8px rgba(23,63,53,.05);transition:all .2s ease}
+.prod-card:hover{transform:translateY(-3px);box-shadow:0 8px 20px rgba(23,63,53,.1)}
+.prod-body{display:flex;flex-direction:column;flex:1;padding:10px 10px 12px}
+@media(min-width:768px){
+  .prod-body{padding:14px 14px 16px}
+}
+.prod-body .t{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.6em;line-height:1.3;font-size:13px;font-weight:600;margin:0 0 6px;color:var(--forest)}
+@media(min-width:768px){
+  .prod-body .t{font-size:15px;margin:0 0 8px}
+}
+.prod-rating-badge{display:flex;align-items:center;gap:4px;margin-bottom:6px;font-size:11px}
+@media(min-width:768px){
+  .prod-rating-badge{font-size:12px;margin-bottom:8px}
+}
+.prod-price{display:flex;align-items:baseline;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.prod-price .now{color:var(--forest);font-size:15px;font-weight:700}
+.prod-price .old{color:var(--coffee);text-decoration:line-through;opacity:.65;font-size:12px}
+@media(min-width:768px){
+  .prod-price{margin-bottom:12px}
+  .prod-price .now{font-size:17px}
+  .prod-price .old{font-size:13px}
+}
+.prod-actions{margin-top:auto;display:flex;gap:6px}
+@media(min-width:768px){
+  .prod-actions{gap:8px}
+}
+.prod-actions .btn{flex:1;padding:6px 6px;font-size:11px;font-weight:700;justify-content:center;border-radius:6px;text-align:center;white-space:nowrap}
+@media(min-width:768px){
+  .prod-actions .btn{padding:8px 10px;font-size:12px;border-radius:8px}
+}
 
 /* ===== Hero slider (split layout): copy on the left, normalised 4:5 image on the right. No text over the image. ===== */
 .hero-split{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:40px;align-items:center;background:var(--ivory);border:1px solid var(--line);border-radius:14px;padding:32px 40px;box-shadow:0 10px 30px rgba(23,63,53,.06)}
