@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useCart } from "./cart";
 import type { Product } from "./types";
@@ -494,6 +495,10 @@ function CartDrawer({ open, close }: { open: boolean; close: () => void }) {
 }
 
 export function MobileBottomNav() {
+  const pathname = usePathname();
+  if (pathname && (pathname.startsWith("/dashboard") || pathname.startsWith("/admin"))) {
+    return null;
+  }
   const { count } = useCart();
   const [moreOpen, setMoreOpen] = useState(false);
   const [account, setAccount] = useState<{ authenticated: boolean; name?: string; profile?: { avatar_url?: string } } | null>(null);

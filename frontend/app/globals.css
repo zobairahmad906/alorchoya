@@ -8680,3 +8680,17 @@ footer ul {
   visibility: visible;
   transform: translateX(-50%) translateY(0);
 }
+
+
+/* Hide public mobile bottom navigation and remove body bottom padding inside Dashboard */
+body:has(.admin-main-wrapper) .mobile-bottom-nav,
+body:has(.admin-container) .mobile-bottom-nav {
+  display: none !important;
+}
+
+@media (max-width: 640px) {
+  body:has(.admin-main-wrapper),
+  body:has(.admin-container) {
+    padding-bottom: 0 !important;
+  }
+}
