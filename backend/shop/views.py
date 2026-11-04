@@ -504,19 +504,30 @@ class AdminDashboardStatsView(APIView):
             })
 
         # Top selling products aggregation from OrderItems
-        top_products_qs = valid_order_items.values("product__name").annotate(
+        top_products_qs = valid_order_items.values("product__id", "product__name").annotate(
             total_sold=Sum("quantity"),
             total_rev=Sum(F("quantity") * F("unit_price"))
         ).order_by("-total_sold")[:5]
 
-        top_products = [
-            {
+        top_products = []
+        for item in top_products_qs:
+            prod_id = item.get("product__id")
+            prod_obj = Product.objects.filter(id=prod_id).first() if prod_id else None
+            img_url = None
+            if prod_obj:
+                img = prod_obj.images.filter(is_primary=True).first() or prod_obj.images.first()
+                if img:
+                    file_obj = img.card_image or img.hero_desktop or img.image
+                    if file_obj:
+                        url = file_obj.url
+                        img_url = request.build_absolute_uri(url) if (url and url.startswith("/")) else url
+            top_products.append({
+                "id": prod_id,
                 "name": item["product__name"] or "Unknown",
                 "sold": item["total_sold"] or 0,
-                "revenue": float(item["total_rev"] or 0)
-            }
-            for item in top_products_qs
-        ]
+                "revenue": float(item["total_rev"] or 0),
+                "image": img_url,
+            })
 
         # Category Breakdown: Stock value, revenue, and product counts
         categories = Category.objects.all().order_by("name")

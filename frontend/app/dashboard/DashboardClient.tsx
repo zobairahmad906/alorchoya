@@ -380,7 +380,7 @@ type DashboardStats = {
   potential_stock_profit?: number;
   avg_product_price?: number;
   daily_sales: { date: string; revenue: number; profit?: number; orders: number; items_sold?: number }[];
-  top_products?: { name: string; sold: number; revenue?: number }[];
+  top_products?: { id?: number; name: string; sold: number; revenue?: number; image?: string | null }[];
   category_breakdown?: {
     name: string;
     product_count: number;
@@ -3632,6 +3632,30 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                               }}>
                                 #{idx + 1}
                               </span>
+                              <div
+                                style={{
+                                  width: "36px",
+                                  height: "36px",
+                                  borderRadius: "8px",
+                                  overflow: "hidden",
+                                  border: "1px solid #e2e8f0",
+                                  background: "#ffffff",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  flexShrink: 0
+                                }}
+                              >
+                                {item.image ? (
+                                  <img
+                                    src={item.image}
+                                    alt={item.name}
+                                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                  />
+                                ) : (
+                                  <Package size={18} style={{ color: "#94a3b8" }} />
+                                )}
+                              </div>
                               <span style={{ fontWeight: 700, fontSize: "13px", color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                                 {item.name}
                               </span>
@@ -3846,7 +3870,8 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                       <thead>
                         <tr>
                           <th>Order ID</th>
-                          <th>Customer Name</th>
+                          <th>Customer</th>
+                          <th>Products</th>
                           <th>Date</th>
                           <th>Total</th>
                           <th>Status</th>
@@ -3858,7 +3883,99 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                           stats.recent_orders.map(order => (
                             <tr key={order.id} title={`অর্ডার #${order.id} - ${order.customer_name} (৳${order.total})`}>
                               <td style={{ fontWeight: 800, color: "#2563eb" }}>#{order.id}</td>
-                              <td style={{ fontWeight: 700, color: "#0f172a" }}>{order.customer_name}</td>
+
+                              {/* Customer Profile Avatar & Name */}
+                              <td style={{ minWidth: "180px" }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                                  {order.customer_avatar ? (
+                                    <img
+                                      src={order.customer_avatar}
+                                      alt={order.customer_profile_name || order.customer_name}
+                                      style={{
+                                        width: "36px",
+                                        height: "36px",
+                                        borderRadius: "50%",
+                                        objectFit: "cover",
+                                        border: "2px solid #e2e8f0",
+                                        flexShrink: 0
+                                      }}
+                                    />
+                                  ) : (
+                                    <div
+                                      style={{
+                                        width: "36px",
+                                        height: "36px",
+                                        borderRadius: "50%",
+                                        background: "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)",
+                                        color: "#1d4ed8",
+                                        fontWeight: 800,
+                                        fontSize: "13px",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        border: "1.5px solid #bfdbfe",
+                                        flexShrink: 0
+                                      }}
+                                    >
+                                      {(order.customer_profile_name || order.customer_name || "C").charAt(0).toUpperCase()}
+                                    </div>
+                                  )}
+                                  <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+                                    <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "13px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                      {order.customer_profile_name || order.customer_name}
+                                    </span>
+                                    {order.phone && (
+                                      <span style={{ fontSize: "11px", color: "#64748b", fontWeight: 600 }}>
+                                        {order.phone}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </td>
+
+                              {/* Product Images & Thumbnails Preview */}
+                              <td style={{ minWidth: "150px" }}>
+                                {order.items && order.items.length > 0 ? (
+                                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                    {order.items.slice(0, 3).map((it, idx) => (
+                                      <div
+                                        key={it.id || idx}
+                                        title={`${it.product_name} (${it.quantity}x)`}
+                                        style={{
+                                          width: "34px",
+                                          height: "34px",
+                                          borderRadius: "8px",
+                                          overflow: "hidden",
+                                          border: "1px solid #e2e8f0",
+                                          background: "#ffffff",
+                                          display: "flex",
+                                          alignItems: "center",
+                                          justifyContent: "center",
+                                          flexShrink: 0
+                                        }}
+                                      >
+                                        {it.product_image ? (
+                                          <img
+                                            src={it.product_image}
+                                            alt={it.product_name}
+                                            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                          />
+                                        ) : (
+                                          <Package size={16} style={{ color: "#94a3b8" }} />
+                                        )}
+                                      </div>
+                                    ))}
+                                    {order.items.length > 3 && (
+                                      <span style={{ fontSize: "11px", fontWeight: 800, color: "#64748b", background: "#f1f5f9", padding: "2px 6px", borderRadius: "6px" }}>
+                                        +{order.items.length - 3}
+                                      </span>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span style={{ fontSize: "12px", color: "#94a3b8" }}>-</span>
+                                )}
+                              </td>
+
                               <td style={{ color: "#64748b", fontSize: "13px" }}>
                                 {new Date(order.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
                               </td>
@@ -3882,7 +3999,7 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                           ))
                         ) : (
                           <tr>
-                            <td colSpan={6} style={{ textAlign: "center", padding: "30px", color: "#94a3b8" }}>
+                            <td colSpan={7} style={{ textAlign: "center", padding: "30px", color: "#94a3b8" }}>
                               এখনও কোনো অর্ডার আসেনি।
                             </td>
                           </tr>
