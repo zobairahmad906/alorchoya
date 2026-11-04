@@ -4319,7 +4319,7 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
             {/* 4. Main Orders Layout: List Column & Sticky Detail Drawer */}
 
-            <div style={{ display: "grid", gridTemplateColumns: selectedOrder ? "1.1fr 1.3fr" : "1fr", gap: "24px", alignItems: "start" }}>
+            <div className={`orders-main-layout ${selectedOrder ? "has-selected" : ""}`}>
 
               {/* Orders List */}
 
@@ -4348,430 +4348,168 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                 ) : (
 
                   filteredOrders.map(order => {
-
                     const isSelected = selectedOrderIds.includes(order.id);
-
                     const isActive = selectedOrder?.id === order.id;
-
                     const waLink = getWhatsAppLink(order);
 
                     return (
-
                       <div
-
                         key={order.id}
-
                         onClick={() => setSelectedOrder(order)}
-
                         className={`order-card-row ${isActive ? "selected" : ""}`}
-
                       >
-
-                        <div style={{ display: "flex", alignItems: "center", gap: "12px", minWidth: 0 }}>
-
+                        <div className="order-card-content">
                           <input
-
                             type="checkbox"
-
                             checked={isSelected}
-
                             onClick={e => e.stopPropagation()}
-
                             onChange={e => {
-
                               if (e.target.checked) setSelectedOrderIds(curr => [...curr, order.id]);
-
                               else setSelectedOrderIds(curr => curr.filter(id => id !== order.id));
-
                             }}
-
-                            style={{ width: "16px", height: "16px", accentColor: "#2563eb", cursor: "pointer", flexShrink: 0 }}
-
+                            className="order-card-checkbox"
                           />
 
                           {/* Customer Avatar / Badge */}
-
                           {order.customer_avatar ? (
-
                             <img
-
                               src={order.customer_avatar}
-
                               alt={order.customer_profile_name || order.customer_name}
-
-                              style={{
-
-                                width: "40px",
-
-                                height: "40px",
-
-                                borderRadius: "50%",
-
-                                objectFit: "cover",
-
-                                border: "2px solid #3b82f6",
-
-                                flexShrink: 0
-
-                              }}
-
+                              className="order-card-avatar"
                             />
-
                           ) : (
-
-                            <div
-
-                              style={{
-
-                                width: "40px",
-
-                                height: "40px",
-
-                                borderRadius: "50%",
-
-                                background: "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)",
-
-                                color: "#1d4ed8",
-
-                                fontWeight: 800,
-
-                                fontSize: "14px",
-
-                                display: "flex",
-
-                                alignItems: "center",
-
-                                justifyContent: "center",
-
-                                border: "1.5px solid #bfdbfe",
-
-                                flexShrink: 0
-
-                              }}
-
-                            >
-
+                            <div className="order-card-avatar-placeholder">
                               {(order.customer_profile_name || order.customer_name || "C").charAt(0).toUpperCase()}
-
                             </div>
-
                           )}
 
-                          <div style={{ minWidth: 0 }}>
-
-                            <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-
-                              <span style={{ fontWeight: 900, color: "#2563eb", fontSize: "14px" }}>
-
-                                #{order.id}
-
-                              </span>
-
-                              <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "14px" }}>
-
-                                {order.customer_name}
-
-                              </span>
-
+                          <div className="order-card-details">
+                            <div className="order-card-title-row">
+                              <span className="order-card-id">#{order.id}</span>
+                              <span className="order-card-name">{order.customer_name}</span>
                               {order.customer_profile_name && order.customer_profile_name !== order.customer_name && (
-
-                                <span style={{ fontSize: "11px", fontWeight: 600, color: "#475569", background: "#f1f5f9", padding: "1px 6px", borderRadius: "6px" }}>
-
+                                <span className="order-card-profile-badge">
                                   👤 {order.customer_profile_name}
-
                                 </span>
-
                               )}
-
-                              <span style={{ fontSize: "11px", fontWeight: 700, color: "#64748b", background: "#f1f5f9", padding: "1px 6px", borderRadius: "6px" }}>
-
+                              <span className="order-card-items-badge">
                                 {order.items.length} items
-
                               </span>
-
                             </div>
 
                             {/* Product Thumbnails Preview */}
-
                             {order.items && order.items.length > 0 && (
-
-                              <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "4px" }}>
-
+                              <div className="order-card-products">
                                 {order.items.slice(0, 3).map((it, idx) => (
-
                                   <div
-
                                     key={it.id || idx}
-
                                     title={`${it.product_name} (${it.quantity}x)`}
-
-                                    style={{
-
-                                      width: "28px",
-
-                                      height: "28px",
-
-                                      borderRadius: "6px",
-
-                                      overflow: "hidden",
-
-                                      border: "1px solid #e2e8f0",
-
-                                      background: "#f8fafc",
-
-                                      display: "flex",
-
-                                      alignItems: "center",
-
-                                      justifyContent: "center",
-
-                                      flexShrink: 0
-
-                                    }}
-
+                                    className="order-card-product-thumb"
                                   >
-
                                     {it.product_image ? (
-
                                       <img src={it.product_image} alt={it.product_name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-
                                     ) : (
-
                                       <Package size={14} style={{ color: "#94a3b8" }} />
-
                                     )}
-
                                   </div>
-
                                 ))}
-
                                 {order.items.length > 3 && (
-
-                                  <span style={{ fontSize: "11px", fontWeight: 700, color: "#64748b", background: "#f1f5f9", padding: "2px 6px", borderRadius: "6px" }}>
-
+                                  <span className="order-card-products-more">
                                     +{order.items.length - 3} more
-
                                   </span>
-
                                 )}
-
                               </div>
-
                             )}
 
-                            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "4px", fontSize: "12px", color: "#64748b", flexWrap: "wrap" }}>
-
+                            {/* Order Meta Info */}
+                            <div className="order-card-meta">
                               <span>{new Date(order.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}</span>
-
                               {order.phone && <span>• {order.phone}</span>}
-
                               <span>• {order.payment_method.toUpperCase()}</span>
-
-                              {order.consignment_id ? (
-
-                                <span
-
-                                  onClick={e => { e.stopPropagation(); handleTrackCourier(order); }}
-
-                                  style={{
-
-                                    background: "#f0fdf4",
-
-                                    color: "#166534",
-
-                                    border: "1px solid #bbf7d0",
-
-                                    padding: "1px 7px",
-
-                                    borderRadius: "6px",
-
-                                    fontSize: "11px",
-
-                                    fontWeight: 700,
-
-                                    cursor: "pointer",
-
-                                    display: "inline-flex",
-
-                                    alignItems: "center",
-
-                                    gap: "4px"
-
-                                  }}
-
-                                  title="Click to track live courier status"
-
-                                >
-
-                                  <Truck size={12} />
-
-                                  {(order.courier_provider || "courier").toUpperCase()}: {order.tracking_code || order.consignment_id}
-
-                                </span>
-
-                              ) : (
-
-                                <button
-
-                                  type="button"
-
-                                  onClick={e => { e.stopPropagation(); handleOpenBookingModal(order); }}
-
-                                  style={{
-
-                                    background: "#eff6ff",
-
-                                    color: "#1d4ed8",
-
-                                    border: "1px solid #bfdbfe",
-
-                                    padding: "1px 7px",
-
-                                    borderRadius: "6px",
-
-                                    fontSize: "11px",
-
-                                    fontWeight: 700,
-
-                                    cursor: "pointer",
-
-                                    display: "inline-flex",
-
-                                    alignItems: "center",
-
-                                    gap: "4px"
-
-                                  }}
-
-                                >
-
-                                  <Truck size={12} /> Book Courier
-
-                                </button>
-
-                              )}
-
                             </div>
-
                           </div>
-
                         </div>
 
-                        <div style={{ display: "flex", alignItems: "center", gap: "12px", flexShrink: 0 }}>
-
-                          {/* Quick WhatsApp & Call Action Icons */}
-
-                          {waLink && (
-
-                            <a
-
-                              href={waLink}
-
-                              target="_blank"
-
-                              rel="noreferrer"
-
-                              onClick={e => e.stopPropagation()}
-
-                              className="btn-whatsapp"
-
-                              title="Chat with customer on WhatsApp"
-
-                            >
-
-                              <WhatsAppIcon />
-
-                              <span className="hidden sm:inline">WhatsApp</span>
-
-                            </a>
-
-                          )}
-
-                          {order.phone && (
-
-                            <a
-
-                              href={`tel:${order.phone}`}
-
-                              onClick={e => e.stopPropagation()}
-
-                              className="btn-call"
-
-                              title="Call customer directly"
-
-                            >
-
-                              <Phone size={12} />
-
-                              <span className="hidden sm:inline">Call</span>
-
-                            </a>
-
-                          )}
-
-                          <div style={{ textAlign: "right" }}>
-
-                            <div style={{ fontWeight: 900, color: "#0f172a", fontSize: "15px" }}>
-
-                              ৳{order.total}
-
-                            </div>
-
-                            <span className={`admin-badge ${order.status}`} style={{ marginTop: "4px" }}>
-
-                              {order.status_display || order.status}
-
-                            </span>
-
-                            {order.consignment_id && (
-
-                              <span className="admin-badge courier-status-badge" title={`Latest ${order.courier_provider || "courier"} status`}>
-
-                                {(order.courier_provider || "Courier").toUpperCase()}: {order.courier_status || "Booked"}
-
-                              </span>
-
+                        {/* RIGHT / ACTIONS SIDE */}
+                        <div className="order-card-side">
+                          {/* Action Buttons: Courier Book/Track, WhatsApp, Call */}
+                          <div className="order-card-actions">
+                            {order.consignment_id ? (
+                              <button
+                                type="button"
+                                onClick={e => { e.stopPropagation(); handleTrackCourier(order); }}
+                                className="order-courier-tracked-pill"
+                                title="Click to track live courier status"
+                              >
+                                <Truck size={12} />
+                                <span>{(order.courier_provider || "courier").toUpperCase()}: {order.tracking_code || order.consignment_id}</span>
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={e => { e.stopPropagation(); handleOpenBookingModal(order); }}
+                                className="order-book-courier-btn"
+                                title="Dispatch order with courier"
+                              >
+                                <Truck size={13} />
+                                <span>Book Courier</span>
+                              </button>
                             )}
 
+                            {waLink && (
+                              <a
+                                href={waLink}
+                                target="_blank"
+                                rel="noreferrer"
+                                onClick={e => e.stopPropagation()}
+                                className="btn-whatsapp"
+                                title="Chat with customer on WhatsApp"
+                              >
+                                <WhatsAppIcon />
+                                <span className="btn-action-text">WhatsApp</span>
+                              </a>
+                            )}
+
+                            {order.phone && (
+                              <a
+                                href={`tel:${order.phone}`}
+                                onClick={e => e.stopPropagation()}
+                                className="btn-call"
+                                title="Call customer directly"
+                              >
+                                <Phone size={12} />
+                                <span className="btn-action-text">Call</span>
+                              </a>
+                            )}
                           </div>
 
+                          {/* Price & Status */}
+                          <div className="order-card-price-status">
+                            <div className="order-card-price">
+                              ৳{order.total}
+                            </div>
+                            <div style={{ display: "flex", gap: "4px", flexWrap: "wrap", justifyContent: "flex-end" }}>
+                              <span className={`admin-badge ${order.status}`}>
+                                {order.status_display || order.status}
+                              </span>
+                              {order.consignment_id && (
+                                <span className="admin-badge courier-status-badge" title={`Latest ${order.courier_provider || "courier"} status`}>
+                                  {(order.courier_provider || "Courier").toUpperCase()}: {order.courier_status || "Booked"}
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         </div>
-
                       </div>
-
                     );
-
                   })
-
                 )}
 
               </div>
 
               {/* Selected Order Detail Drawer */}
-
               {selectedOrder && (
-
-                <div
-
-                  className="profit-panel-card"
-
-                  style={{
-
-                    position: "sticky",
-
-                    top: "80px",
-
-                    display: "flex",
-
-                    flexDirection: "column",
-
-                    gap: "18px",
-
-                    padding: "24px"
-
-                  }}
-
-                >
+                <div className="order-detail-drawer profit-panel-card">
 
                   {/* Top Bar with Print and Close */}
 
@@ -5061,7 +4799,7 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
                     ) : (
 
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", background: "#f0fdf4", padding: "12px", borderRadius: "12px", border: "1px solid #bbf7d0" }}>
+                      <div className="order-courier-booking-banner">
 
                         <div>
 
@@ -5095,7 +4833,7 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
                   {/* Customer & Payment Split Info Cards */}
 
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                  <div className="order-drawer-split-grid">
 
                     <div style={{ background: "#f8fafc", padding: "14px", borderRadius: "14px", border: "1px solid #e2e8f0" }}>
 

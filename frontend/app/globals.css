@@ -8063,6 +8063,43 @@ footer ul {
   box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.3);
 }
 
+/* ========================================================
+   ORDERS MAIN LAYOUT & CARDS - FULLY RESPONSIVE
+   ======================================================== */
+.orders-main-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (min-width: 1025px) {
+  .orders-main-layout.has-selected {
+    grid-template-columns: 1.1fr 1.3fr;
+  }
+}
+
+.order-detail-drawer {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 24px;
+}
+
+@media (min-width: 1025px) {
+  .order-detail-drawer {
+    position: sticky;
+    top: 80px;
+  }
+}
+
+@media (max-width: 640px) {
+  .order-detail-drawer {
+    padding: 16px;
+    border-radius: 14px;
+  }
+}
+
 .order-card-row {
   background: #ffffff;
   border: 1px solid #e2e8f0;
@@ -8075,6 +8112,8 @@ footer ul {
   transition: all 0.2s ease;
   cursor: pointer;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .order-card-row:hover {
@@ -8087,6 +8126,319 @@ footer ul {
   border-color: #2563eb;
   background: #f0f7ff;
   box-shadow: 0 4px 14px rgba(37, 99, 235, 0.12);
+}
+
+.order-card-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+
+.order-card-checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: #2563eb;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.order-card-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #3b82f6;
+  flex-shrink: 0;
+}
+
+.order-card-avatar-placeholder {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  color: #1d4ed8;
+  font-weight: 800;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid #bfdbfe;
+  flex-shrink: 0;
+}
+
+.order-card-details {
+  min-width: 0;
+  flex: 1;
+}
+
+.order-card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.order-card-id {
+  font-weight: 900;
+  color: #2563eb;
+  font-size: 14px;
+}
+
+.order-card-name {
+  font-weight: 700;
+  color: #0f172a;
+  font-size: 14px;
+}
+
+.order-card-profile-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: #475569;
+  background: #f1f5f9;
+  padding: 1px 6px;
+  border-radius: 6px;
+}
+
+.order-card-items-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 1px 6px;
+  border-radius: 6px;
+}
+
+.order-card-products {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+.order-card-product-thumb {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.order-card-products-more {
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+.order-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px 10px;
+  margin-top: 4px;
+  font-size: 12px;
+  color: #64748b;
+  flex-wrap: wrap;
+}
+
+.order-card-side {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.order-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.order-card-price-status {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.order-card-price {
+  font-weight: 900;
+  color: #0f172a;
+  font-size: 15px;
+}
+
+/* Dedicated responsive button for Book Courier */
+.order-book-courier-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(37, 99, 235, 0.08);
+}
+
+.order-book-courier-btn:hover {
+  background: #dbeafe;
+  border-color: #93c5fd;
+  color: #1e40af;
+  transform: translateY(-1px);
+}
+
+.order-courier-tracked-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.order-courier-tracked-pill:hover {
+  background: #dcfce7;
+  border-color: #86efac;
+}
+
+/* Banner in the Selected Order Drawer */
+.order-courier-booking-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  background: #f0fdf4;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid #bbf7d0;
+}
+
+.order-drawer-split-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* Responsive adjustments when detail drawer is open */
+.orders-main-layout.has-selected .order-card-row {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  padding: 14px 16px;
+}
+
+.orders-main-layout.has-selected .order-card-side {
+  width: 100%;
+  justify-content: space-between;
+  border-top: 1px dashed #e2e8f0;
+  padding-top: 10px;
+  flex-wrap: wrap;
+}
+
+.orders-main-layout.has-selected .btn-action-text {
+  display: none;
+}
+
+/* Tablet view */
+@media (max-width: 1024px) {
+  .orders-main-layout {
+    grid-template-columns: 1fr !important;
+  }
+  .order-card-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 14px 16px;
+  }
+  .order-card-side {
+    width: 100%;
+    justify-content: space-between;
+    border-top: 1px dashed #e2e8f0;
+    padding-top: 10px;
+    flex-wrap: wrap;
+  }
+  .btn-action-text {
+    display: none;
+  }
+}
+
+/* Mobile screen */
+@media (max-width: 640px) {
+  .order-card-row {
+    padding: 12px;
+    border-radius: 14px;
+  }
+  .order-card-content {
+    align-items: flex-start;
+  }
+  .order-card-side {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .order-card-price-status {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    order: 1;
+  }
+  .order-card-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    width: 100%;
+    order: 2;
+  }
+  .order-book-courier-btn {
+    grid-column: span 2;
+    width: 100%;
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+  .order-courier-tracked-pill {
+    grid-column: span 2;
+    width: 100%;
+    justify-content: center;
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+  .order-courier-booking-banner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .order-courier-booking-banner button {
+    width: 100%;
+    justify-content: center;
+  }
+  .order-drawer-split-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .btn-whatsapp {
