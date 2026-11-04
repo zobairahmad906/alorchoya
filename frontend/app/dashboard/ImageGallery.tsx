@@ -2,13 +2,9 @@
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
-  AlertCircle,
   ArrowDown,
   ArrowUp,
-  CheckCircle2,
   CheckSquare,
-  Clock,
-  Cpu,
   ExternalLink,
   Eye,
   FileImage,
@@ -23,7 +19,6 @@ import {
   RefreshCw,
   Search,
   SlidersHorizontal,
-  Sparkles,
   Square,
   Trash2,
   Unlink,
@@ -51,32 +46,14 @@ export type ProductImageAsset = {
   alt_text: string;
   image_caption: string;
   links: ImageAssetLink[];
-  processing_status: "pending" | "processing" | "ready" | "failed";
-  processing_error: string;
-  embedding_version: string;
+  processing_status?: string;
+  processing_error?: string;
+  embedding_version?: string;
   position: number;
   file_size?: number | null;
   dimensions?: { width: number; height: number } | null;
   created_at: string;
   updated_at: string;
-};
-
-export type EmbedSummary = {
-  counts: {
-    total: number;
-    pending: number;
-    processing: number;
-    ready: number;
-    failed: number;
-  };
-  last_embedded_at?: string | null;
-  queue_policy?: {
-    batch_size: number;
-    delay_seconds: number;
-    batch_interval_seconds: number;
-    mode: string;
-  };
-  failed_items?: { id: number; filename: string; processing_error: string; updated_at: string }[];
 };
 
 function formatBytes(bytes?: number | null) {
@@ -88,7 +65,7 @@ function formatBytes(bytes?: number | null) {
 
 interface StatCardProps {
   title: string;
-  value: number;
+  value: number | string;
   icon: React.ReactNode;
   color: "blue" | "purple" | "orange" | "red" | "green" | "indigo";
   subValue?: string;
@@ -128,7 +105,6 @@ interface ImageGalleryProps {
 
 export default function ImageGallery({ products, csrfToken, getApiUrl, onRefreshProducts }: ImageGalleryProps) {
   const [assets, setAssets] = useState<ProductImageAsset[]>([]);
-  const [embedSummary, setEmbedSummary] = useState<EmbedSummary | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Upload state
@@ -150,10 +126,6 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
   const [targetProductId, setTargetProductId] = useState<string>("");
   const [busy, setBusy] = useState(false);
 
-  // Embedding state
-  const [embeddingBusy, setEmbeddingBusy] = useState(false);
-  const [showErrorLogs, setShowErrorLogs] = useState(false);
-
   // Edit alt/caption
   const [editDraft, setEditDraft] = useState({ filename: "", alt_text: "", image_caption: "" });
   const [savingDetails, setSavingDetails] = useState(false);
@@ -165,22 +137,14 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
   const loadAll = async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const [assetsRes, embedRes] = await Promise.all([
-        fetch(getApiUrl("/admin/product-image-library/"), { credentials: "include" }),
-        fetch(getApiUrl("/admin/product-image-library/embed/"), { credentials: "include" }),
-      ]);
+      const res = await fetch(getApiUrl("/admin/product-image-library/"), { credentials: "include" });
 
-      if (assetsRes.ok) {
-        const assetList: ProductImageAsset[] = await assetsRes.json();
+      if (res.ok) {
+        const assetList: ProductImageAsset[] = await res.json();
         setAssets(assetList || []);
         if (!activeAssetId && assetList && assetList.length > 0) {
           setActiveAssetId(assetList[0].id);
         }
-      }
-
-      if (embedRes.ok) {
-        const embedData: EmbedSummary = await embedRes.json();
-        setEmbedSummary(embedData);
       }
     } catch {
       toast.error("Failed to load image gallery.");
@@ -209,17 +173,12 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
   }, [activeAsset]);
 
   const stats = useMemo(() => {
-    const counts = {
-      total: assets.length,
-      pending: assets.filter((a) => a.processing_status === "pending").length,
-      processing: assets.filter((a) => a.processing_status === "processing").length,
-      ready: assets.filter((a) => a.processing_status === "ready").length,
-      failed: assets.filter((a) => a.processing_status === "failed").length,
-      linked: assets.filter((a) => (a.links || []).length > 0).length,
-      unlinked: assets.filter((a) => (a.links || []).length === 0).length,
-    };
-    const progressPercent = counts.total > 0 ? Math.round((counts.ready / counts.total) * 100) : 0;
-    return { ...counts, progressPercent };
+    const total = assets.length;
+    const linked = assets.filter((a) => (a.links || []).length > 0).length;
+    const unlinked = assets.filter((a) => (a.links || []).length === 0).length;
+    const totalBytes = assets.reduce((acc, a) => acc + (a.file_size || 0), 0);
+    const totalStorageFormatted = formatBytes(totalBytes);
+    return { total, linked, unlinked, totalBytes, totalStorageFormatted };
   }, [assets]);
 
   const filteredAssets = useMemo(() => {
@@ -232,10 +191,6 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
 
       const matchesStatus =
         statusFilter === "all" ||
-        (statusFilter === "ready" && asset.processing_status === "ready") ||
-        (statusFilter === "pending" && asset.processing_status === "pending") ||
-        (statusFilter === "processing" && asset.processing_status === "processing") ||
-        (statusFilter === "failed" && asset.processing_status === "failed") ||
         (statusFilter === "linked" && links.length > 0) ||
         (statusFilter === "unlinked" && links.length === 0);
 
@@ -293,50 +248,6 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
         setUploading(false);
         setUploadProgress(0);
       }, 300);
-    }
-  };
-
-  const triggerEmbeddingQueue = async ({ onlyFailed = false, selectedOnly = false, assetIds = [] }: { onlyFailed?: boolean; selectedOnly?: boolean; assetIds?: number[] } = {}) => {
-    const payload: any = {};
-    if (assetIds.length) {
-      payload.asset_ids = assetIds;
-    } else if (selectedOnly) {
-      if (!selectedIds.length) {
-        toast.error("Please select at least one image.");
-        return;
-      }
-      payload.asset_ids = selectedIds;
-    } else if (onlyFailed) {
-      if (stats.failed === 0) {
-        toast.success("No failed images found.");
-        return;
-      }
-      payload.only_failed = true;
-    }
-
-    setEmbeddingBusy(true);
-    try {
-      const res = await fetch(getApiUrl("/admin/product-image-library/embed/"), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(csrfToken ? { "X-CSRFToken": csrfToken } : {}),
-        },
-        credentials: "include",
-        body: JSON.stringify(payload),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        await loadAll(true);
-        toast.success(`${data.queued || 0} images added to processing queue.`);
-      } else {
-        toast.error("Failed to start preparation queue.");
-      }
-    } catch {
-      toast.error("Server error occurred.");
-    } finally {
-      setEmbeddingBusy(false);
     }
   };
 
@@ -566,7 +477,6 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
     }
   };
 
-  const failedItems = embedSummary?.failed_items || [];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", width: "100%" }}>
@@ -578,7 +488,7 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
             <span className="gallery-badge-emerald">{assets.length} Total Assets</span>
           </h1>
           <p>
-            Central reusable product media library — upload, prepare AI metadata, and link to products.
+            Central product media library — upload, manage, and link images directly to catalog products.
           </p>
         </div>
 
@@ -594,159 +504,45 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
         </div>
       </div>
 
-      {/* 2. Status & Embed Card */}
-      <section className="gallery-section-card">
-        <div className="gallery-section-top">
-          <div className="gallery-section-title-wrap">
-            <div className="gallery-icon-cube">
-              <Cpu size={22} />
-            </div>
-            <div>
-              <div className="gallery-section-heading">
-                <h2>Image Preparation & AI Indexing Status</h2>
-                <span className="gallery-badge-emerald">Auto-Ready Pipeline</span>
-              </div>
-              <p className="gallery-section-sub">
-                Last Preparation:{" "}
-                <b style={{ color: "#334155" }}>
-                  {embedSummary?.last_embedded_at
-                    ? new Date(embedSummary.last_embedded_at).toLocaleString("bn-BD")
-                    : "Completed"}
-                </b>
-              </p>
-            </div>
-          </div>
-
-          <div className="gallery-section-actions">
-            {stats.failed > 0 && (
-              <button
-                type="button"
-                disabled={embeddingBusy}
-                onClick={() => triggerEmbeddingQueue({ onlyFailed: true })}
-                className="gallery-btn-danger"
-              >
-                <RefreshCw size={14} />
-                Retry Failed ({stats.failed})
-              </button>
-            )}
-
-            {stats.failed > 0 && (
-              <button
-                type="button"
-                onClick={() => setShowErrorLogs((v) => !v)}
-                className="gallery-btn-white"
-              >
-                {showErrorLogs ? "Hide Error Logs" : "View Error Logs"}
-              </button>
-            )}
-
-            <button
-              type="button"
-              disabled={embeddingBusy || stats.pending + stats.failed === 0}
-              onClick={() => triggerEmbeddingQueue()}
-              className="gallery-btn-primary"
-            >
-              <Sparkles size={14} />
-              {embeddingBusy ? "Processing..." : `Prepare Pending (${stats.pending + stats.failed})`}
-            </button>
-          </div>
-        </div>
-
-        {/* 6 Stat Cards Grid */}
-        <div className="stat-cards-grid">
-          <GalleryStatCard
-            title="Preparing"
-            value={stats.pending}
-            icon={<Clock size={18} />}
-            color="orange"
-            subValue="In Queue"
-            active={statusFilter === "pending"}
-            onClick={() => setStatusFilter(statusFilter === "pending" ? "all" : "pending")}
-          />
-          <GalleryStatCard
-            title="Processing"
-            value={stats.processing}
-            icon={<Cpu size={18} />}
-            color="blue"
-            subValue="Active Processing"
-            active={statusFilter === "processing"}
-            onClick={() => setStatusFilter(statusFilter === "processing" ? "all" : "processing")}
-          />
-          <GalleryStatCard
-            title="Ready"
-            value={stats.ready}
-            icon={<CheckCircle2 size={18} />}
-            color="green"
-            subValue={`${stats.progressPercent}% Completed`}
-            active={statusFilter === "ready"}
-            onClick={() => setStatusFilter(statusFilter === "ready" ? "all" : "ready")}
-          />
-          <GalleryStatCard
-            title="Linked"
-            value={stats.linked}
-            icon={<Link2 size={18} />}
-            color="purple"
-            subValue="Linked to Products"
-            active={statusFilter === "linked"}
-            onClick={() => setStatusFilter(statusFilter === "linked" ? "all" : "linked")}
-          />
-          <GalleryStatCard
-            title="Unlinked"
-            value={stats.unlinked}
-            icon={<Unlink size={18} />}
-            color="indigo"
-            subValue="Ready in Library"
-            active={statusFilter === "unlinked"}
-            onClick={() => setStatusFilter(statusFilter === "unlinked" ? "all" : "unlinked")}
-          />
-          <GalleryStatCard
-            title="Failed"
-            value={stats.failed}
-            icon={<AlertCircle size={18} />}
-            color="red"
-            subValue={stats.failed > 0 ? "Requires Retry" : "No Errors"}
-            active={statusFilter === "failed"}
-            onClick={() => setStatusFilter(statusFilter === "failed" ? "all" : "failed")}
-          />
-        </div>
-
-        {/* Progress bar */}
-        <div className="gallery-progress-wrap">
-          <div className="gallery-progress-labels">
-            <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <Sparkles size={13} style={{ color: "#10b981" }} />
-              Readiness Progress
-            </span>
-            <span className="gallery-progress-pct">
-              {stats.ready} / {stats.total} Ready ({stats.progressPercent}%)
-            </span>
-          </div>
-          <div className="gallery-progress-track">
-            <div
-              className="gallery-progress-bar"
-              style={{ width: `${stats.progressPercent}%` }}
-            />
-          </div>
-        </div>
-
-        {/* Diagnostic error logs */}
-        {showErrorLogs && failedItems.length > 0 && (
-          <div style={{ marginTop: "14px", borderRadius: "12px", border: "1px solid #fecdd3", background: "#fff1f2", padding: "14px" }}>
-            <b style={{ color: "#9f1239", fontSize: "12px" }}>Failed Image Logs:</b>
-            <div style={{ marginTop: "8px", maxHeight: "150px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "6px" }}>
-              {failedItems.map((item) => (
-                <div
-                  key={item.id}
-                  style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#ffffff", padding: "8px 12px", borderRadius: "8px", border: "1px solid #ffe4e6", fontSize: "12px", color: "#be123c" }}
-                >
-                  <span style={{ fontWeight: 700 }}>#{item.id} — {item.filename}</span>
-                  <span style={{ fontFamily: "monospace", fontSize: "11px" }}>{item.processing_error || "Processing Error"}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </section>
+      {/* 2. Media Overview & Quick Filter Stats */}
+      <div className="stat-cards-grid" style={{ marginBottom: "20px" }}>
+        <GalleryStatCard
+          title="Total Images"
+          value={stats.total}
+          icon={<FileImage size={18} />}
+          color="blue"
+          subValue="All Uploaded Media"
+          active={statusFilter === "all"}
+          onClick={() => setStatusFilter("all")}
+        />
+        <GalleryStatCard
+          title="Linked Images"
+          value={stats.linked}
+          icon={<Link2 size={18} />}
+          color="purple"
+          subValue="Attached to Products"
+          active={statusFilter === "linked"}
+          onClick={() => setStatusFilter(statusFilter === "linked" ? "all" : "linked")}
+        />
+        <GalleryStatCard
+          title="Unlinked Images"
+          value={stats.unlinked}
+          icon={<Unlink size={18} />}
+          color="indigo"
+          subValue="Available in Library"
+          active={statusFilter === "unlinked"}
+          onClick={() => setStatusFilter(statusFilter === "unlinked" ? "all" : "unlinked")}
+        />
+        <GalleryStatCard
+          title="Total Storage"
+          value={stats.totalStorageFormatted}
+          icon={<Package size={18} />}
+          color="green"
+          subValue={`${stats.total} Image Files`}
+          active={false}
+          onClick={() => {}}
+        />
+      </div>
 
       {/* 3. Drag & Drop Upload Zone */}
       <form
@@ -862,13 +658,9 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
             onChange={(e) => setStatusFilter(e.target.value)}
             className="gallery-select"
           >
-            <option value="all">All Statuses ({assets.length})</option>
-            <option value="ready">Ready ({stats.ready})</option>
-            <option value="pending">Pending ({stats.pending})</option>
-            <option value="processing">Processing ({stats.processing})</option>
-            <option value="linked">Linked ({stats.linked})</option>
-            <option value="unlinked">Unlinked ({stats.unlinked})</option>
-            <option value="failed">Failed ({stats.failed})</option>
+            <option value="all">All Images ({assets.length})</option>
+            <option value="linked">Linked to Products ({stats.linked})</option>
+            <option value="unlinked">Unlinked / Available ({stats.unlinked})</option>
           </select>
 
           <select
@@ -1069,10 +861,6 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
                       </div>
 
                       <div className="gallery-list-right">
-                        <span className={`status-pill ${asset.processing_status}`}>
-                          {asset.processing_status}
-                        </span>
-
                         {links.length > 0 ? (
                           <span className="gallery-card-link-badge linked">
                             {links.length} linked
@@ -1182,10 +970,6 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
                         </button>
                       </div>
 
-                      {/* Bottom-left Status Badge */}
-                      <span className={`gallery-card-status-badge ${asset.processing_status}`}>
-                        {asset.processing_status === "pending" ? "Preparing" : asset.processing_status}
-                      </span>
                     </div>
 
                     <div className="gallery-card-content">
@@ -1303,8 +1087,8 @@ export default function ImageGallery({ products, csrfToken, getApiUrl, onRefresh
                   </div>
                   <div className="meta-box">
                     <span className="meta-label">Status</span>
-                    <p className={`meta-val status-${activeAsset.processing_status}`}>
-                      {activeAsset.processing_status}
+                    <p className="meta-val" style={{ color: (activeAsset.links || []).length > 0 ? "#10b981" : "#64748b" }}>
+                      {(activeAsset.links || []).length > 0 ? "Linked" : "Unlinked"}
                     </p>
                   </div>
                 </div>
