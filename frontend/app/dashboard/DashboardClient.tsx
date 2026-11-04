@@ -529,6 +529,8 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
   const [selectedCourierTab, setSelectedCourierTab] = useState<"steadfast" | "pathao">("steadfast");
 
   const [savingCourierConfig, setSavingCourierConfig] = useState(false);
+  const [courierShipmentTab, setCourierShipmentTab] = useState<"dispatched" | "pending">("dispatched");
+  const [courierSearchQuery, setCourierSearchQuery] = useState("");
 
   const [steadfastForm, setSteadfastForm] = useState({
 
@@ -6112,35 +6114,51 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
             </div>
 
             {/* Courier KPI cards */}
-
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px" }}>
-
-              <div className="profit-stat-card green" style={{ padding: "18px" }}>
-
-                <div style={{ fontSize: "12px", fontWeight: 800, color: "#166534", textTransform: "uppercase" }}>Dispatched Shipments</div>
-
-                <div style={{ fontSize: "24px", fontWeight: 900, color: "#0f172a", marginTop: "4px" }}>
-
-                  {orders.filter(o => o.consignment_id).length}
-
+              <div
+                className="profit-stat-card green"
+                style={{
+                  padding: "18px",
+                  cursor: "pointer",
+                  border: courierShipmentTab === "dispatched" ? "2px solid #16a34a" : "1px solid #e2e8f0",
+                  transform: courierShipmentTab === "dispatched" ? "scale(1.02)" : "scale(1)",
+                  transition: "all 0.2s ease"
+                }}
+                onClick={() => setCourierShipmentTab("dispatched")}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div style={{ fontSize: "12px", fontWeight: 800, color: "#166534", textTransform: "uppercase" }}>Dispatched Shipments</div>
+                  {courierShipmentTab === "dispatched" && (
+                    <span style={{ fontSize: "10px", background: "#16a34a", color: "#ffffff", padding: "1px 6px", borderRadius: "10px", fontWeight: 800 }}>ACTIVE</span>
+                  )}
                 </div>
-
-                <div style={{ fontSize: "11px", color: "#64748b", marginTop: "4px" }}>Booked with Courier Consignment</div>
-
+                <div style={{ fontSize: "24px", fontWeight: 900, color: "#0f172a", marginTop: "4px" }}>
+                  {orders.filter(o => o.consignment_id).length}
+                </div>
+                <div style={{ fontSize: "11px", color: "#64748b", marginTop: "4px" }}>Booked with Courier Consignment (Click to view)</div>
               </div>
 
-              <div className="profit-stat-card orange" style={{ padding: "18px" }}>
-
-                <div style={{ fontSize: "12px", fontWeight: 800, color: "#9a3412", textTransform: "uppercase" }}>Pending Dispatch</div>
-
-                <div style={{ fontSize: "24px", fontWeight: 900, color: "#0f172a", marginTop: "4px" }}>
-
-                  {orders.filter(o => !o.consignment_id && (o.status === "confirmed" || o.status === "processing")).length}
-
+              <div
+                className="profit-stat-card orange"
+                style={{
+                  padding: "18px",
+                  cursor: "pointer",
+                  border: courierShipmentTab === "pending" ? "2px solid #ea580c" : "1px solid #e2e8f0",
+                  transform: courierShipmentTab === "pending" ? "scale(1.02)" : "scale(1)",
+                  transition: "all 0.2s ease"
+                }}
+                onClick={() => setCourierShipmentTab("pending")}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div style={{ fontSize: "12px", fontWeight: 800, color: "#9a3412", textTransform: "uppercase" }}>Pending Dispatch</div>
+                  {courierShipmentTab === "pending" && (
+                    <span style={{ fontSize: "10px", background: "#ea580c", color: "#ffffff", padding: "1px 6px", borderRadius: "10px", fontWeight: 800 }}>ACTIVE</span>
+                  )}
                 </div>
-
-                <div style={{ fontSize: "11px", color: "#64748b", marginTop: "4px" }}>Confirmed orders ready for booking</div>
-
+                <div style={{ fontSize: "24px", fontWeight: 900, color: "#0f172a", marginTop: "4px" }}>
+                  {orders.filter(o => !o.consignment_id && (o.status === "confirmed" || o.status === "processing")).length}
+                </div>
+                <div style={{ fontSize: "11px", color: "#64748b", marginTop: "4px" }}>Confirmed orders ready for booking (Click to view)</div>
               </div>
 
               <div className="profit-stat-card blue" style={{ padding: "18px" }}>
@@ -6592,183 +6610,347 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
             </div>
 
             {/* Consignments Table & Dispatch Queue */}
-
-            <div className="profit-panel-card" style={{ padding: 0, overflow: "hidden" }}>
-
-              <div style={{ padding: "16px 20px", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-
-                <div>
-
-                  <h4 style={{ margin: 0, fontSize: "16px", fontWeight: 800, color: "#0f172a" }}>
-
-                    Dispatched Consignments & Tracking Ledger
-
-                  </h4>
-
-                  <p style={{ margin: "2px 0 0", fontSize: "12px", color: "#64748b" }}>
-
-                    Real-time status of all booked orders
-
-                  </p>
-
-                </div>
-
-                <span className="admin-badge pending" style={{ fontSize: "12px" }}>
-
-                  {orders.filter(o => o.consignment_id).length} Active Consignments
-
-                </span>
-
-              </div>
-
-              <div style={{ overflowX: "auto" }}>
-
-                <table className="admin-table">
-
-                  <thead>
-
-                    <tr>
-
-                      <th>Order ID</th>
-
-                      <th>Courier Provider</th>
-
-                      <th>Consignment ID</th>
-
-                      <th>Tracking Code</th>
-
-                      <th>Customer Details</th>
-
-                      <th>COD Amount</th>
-
-                      <th>Status</th>
-
-                      <th style={{ textAlign: "right" }}>Actions</th>
-
-                    </tr>
-
-                  </thead>
-
-                  <tbody>
-
-                    {orders.filter(o => o.consignment_id).length === 0 ? (
-
-                      <tr>
-
-                        <td colSpan={8} style={{ textAlign: "center", padding: "36px", color: "var(--coffee)" }}>
-
-                          No orders have been dispatched yet. Go to Orders tab to book consignments!
-
-                        </td>
-
-                      </tr>
-
-                    ) : (
-
-                      orders.filter(o => o.consignment_id).map(o => (
-
-                        <tr key={o.id}>
-
-                          <td style={{ fontWeight: 800, color: "#2563eb" }}>#{o.id}</td>
-
-                          <td>
-
-                            <span style={{
-
-                              fontWeight: 700,
-
-                              textTransform: "uppercase",
-
-                              fontSize: "11px",
-
-                              padding: "2px 8px",
-
-                              borderRadius: "6px",
-
-                              background: o.courier_provider === "steadfast" ? "#fef3c7" : "#e0e7ff",
-
-                              color: o.courier_provider === "steadfast" ? "#b45309" : "#4338ca",
-
-                              border: "1px solid",
-
-                              borderColor: o.courier_provider === "steadfast" ? "#fde68a" : "#c7d2fe"
-
-                            }}>
-
-                              {o.courier_provider || "SteadFast"}
-
-                            </span>
-
-                          </td>
-
-                          <td style={{ fontFamily: "monospace", fontWeight: 700, color: "#0f172a" }}>
-
-                            {o.consignment_id}
-
-                          </td>
-
-                          <td style={{ fontFamily: "monospace", fontWeight: 700, color: "#2563eb" }}>
-
-                            {o.tracking_code || o.consignment_id}
-
-                          </td>
-
-                          <td>
-
-                            <div style={{ fontWeight: 700, color: "#0f172a" }}>{o.customer_name}</div>
-
-                            <div style={{ fontSize: "11px", color: "#64748b" }}>{o.phone}</div>
-
-                          </td>
-
-                          <td style={{ fontWeight: 800, color: "#0f172a" }}>৳{o.total}</td>
-
-                          <td>
-
-                            <span className="admin-badge delivered" style={{ textTransform: "capitalize" }}>
-
-                              {o.courier_status || "In Review"}
-
-                            </span>
-
-                          </td>
-
-                          <td style={{ textAlign: "right" }}>
-
-                            <button
-
-                              type="button"
-
-                              onClick={() => handleTrackCourier(o)}
-
-                              className="admin-header-link"
-
-                              style={{ padding: "4px 12px", fontSize: "12px", color: "#2563eb", borderColor: "#93c5fd" }}
-
-                            >
-
-                              Track
-
-                            </button>
-
-                          </td>
-
+            {(() => {
+              const dispatchedOrders = orders.filter(o => o.consignment_id);
+              const pendingOrders = orders.filter(o => !o.consignment_id && (o.status === "confirmed" || o.status === "processing"));
+              const activeList = courierShipmentTab === "dispatched" ? dispatchedOrders : pendingOrders;
+              const filteredCourierOrders = activeList.filter(o => {
+                if (!courierSearchQuery.trim()) return true;
+                const q = courierSearchQuery.toLowerCase();
+                return (
+                  o.id.toString().includes(q) ||
+                  o.customer_name?.toLowerCase().includes(q) ||
+                  o.customer_profile_name?.toLowerCase().includes(q) ||
+                  o.phone?.includes(q) ||
+                  o.consignment_id?.toLowerCase().includes(q) ||
+                  o.tracking_code?.toLowerCase().includes(q) ||
+                  o.items?.some(it => it.product_name?.toLowerCase().includes(q))
+                );
+              });
+
+              return (
+                <div className="profit-panel-card" style={{ padding: 0, overflow: "hidden" }}>
+                  <div style={{ padding: "16px 20px", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
+                    <div>
+                      <h4 style={{ margin: 0, fontSize: "16px", fontWeight: 800, color: "#0f172a" }}>
+                        {courierShipmentTab === "dispatched" ? "Dispatched Consignments & Tracking Ledger" : "Pending Dispatch Queue (Ready to Book)"}
+                      </h4>
+                      <p style={{ margin: "2px 0 0", fontSize: "12px", color: "#64748b" }}>
+                        {courierShipmentTab === "dispatched" ? "Real-time status of all booked courier parcels" : "Orders ready to be assigned and dispatched via courier"}
+                      </p>
+                    </div>
+
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                      <div style={{ display: "flex", background: "#f1f5f9", padding: "4px", borderRadius: "10px", gap: "4px" }}>
+                        <button
+                          type="button"
+                          onClick={() => setCourierShipmentTab("dispatched")}
+                          style={{
+                            border: "none",
+                            padding: "6px 14px",
+                            borderRadius: "8px",
+                            fontSize: "12px",
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            background: courierShipmentTab === "dispatched" ? "#ffffff" : "transparent",
+                            color: courierShipmentTab === "dispatched" ? "#0f172a" : "#64748b",
+                            boxShadow: courierShipmentTab === "dispatched" ? "0 1px 3px rgba(0,0,0,0.1)" : "none"
+                          }}
+                        >
+                          Dispatched ({dispatchedOrders.length})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCourierShipmentTab("pending")}
+                          style={{
+                            border: "none",
+                            padding: "6px 14px",
+                            borderRadius: "8px",
+                            fontSize: "12px",
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            background: courierShipmentTab === "pending" ? "#ffffff" : "transparent",
+                            color: courierShipmentTab === "pending" ? "#0f172a" : "#64748b",
+                            boxShadow: courierShipmentTab === "pending" ? "0 1px 3px rgba(0,0,0,0.1)" : "none"
+                          }}
+                        >
+                          Pending ({pendingOrders.length})
+                        </button>
+                      </div>
+
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                        <input
+                          type="text"
+                          placeholder="Search orders, customers, items..."
+                          value={courierSearchQuery}
+                          onChange={e => setCourierSearchQuery(e.target.value)}
+                          className="admin-input-field"
+                          style={{ margin: 0, padding: "6px 12px", fontSize: "12px", width: "230px" }}
+                        />
+                        {courierSearchQuery && (
+                          <button
+                            type="button"
+                            onClick={() => setCourierSearchQuery("")}
+                            className="admin-btn-secondary"
+                            style={{ padding: "6px 10px", fontSize: "11px" }}
+                          >
+                            Clear
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ overflowX: "auto" }}>
+                    <table className="admin-table">
+                      <thead>
+                        <tr>
+                          <th>Order ID</th>
+                          <th>Customer Profile</th>
+                          <th>Products</th>
+                          <th>Courier Provider</th>
+                          <th>Consignment ID</th>
+                          <th>Tracking Code</th>
+                          <th>COD Amount</th>
+                          <th>Status</th>
+                          <th style={{ textAlign: "right" }}>Actions</th>
                         </tr>
+                      </thead>
+                      <tbody>
+                        {filteredCourierOrders.length === 0 ? (
+                          <tr>
+                            <td colSpan={9} style={{ textAlign: "center", padding: "36px", color: "var(--coffee)" }}>
+                              {courierShipmentTab === "dispatched"
+                                ? "No dispatched orders found matching your search."
+                                : "No pending orders waiting for courier booking."}
+                            </td>
+                          </tr>
+                        ) : (
+                          filteredCourierOrders.map(o => (
+                            <tr key={o.id}>
+                              <td style={{ fontWeight: 800, color: "#2563eb" }}>#{o.id}</td>
 
-                      ))
+                              {/* Customer Profile Column */}
+                              <td>
+                                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                                  {o.customer_avatar ? (
+                                    <img
+                                      src={o.customer_avatar}
+                                      alt={o.customer_profile_name || o.customer_name}
+                                      style={{
+                                        width: "38px",
+                                        height: "38px",
+                                        borderRadius: "50%",
+                                        objectFit: "cover",
+                                        border: "2px solid #3b82f6",
+                                        flexShrink: 0
+                                      }}
+                                    />
+                                  ) : (
+                                    <div
+                                      style={{
+                                        width: "38px",
+                                        height: "38px",
+                                        borderRadius: "50%",
+                                        background: "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)",
+                                        color: "#1d4ed8",
+                                        fontWeight: 800,
+                                        fontSize: "14px",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        border: "1.5px solid #bfdbfe",
+                                        flexShrink: 0
+                                      }}
+                                    >
+                                      {(o.customer_profile_name || o.customer_name || "C").charAt(0).toUpperCase()}
+                                    </div>
+                                  )}
+                                  <div style={{ minWidth: 0 }}>
+                                    <div style={{ fontWeight: 700, color: "#0f172a", fontSize: "13px" }}>
+                                      {o.customer_name}
+                                    </div>
+                                    {o.customer_profile_name && o.customer_profile_name !== o.customer_name && (
+                                      <div style={{ fontSize: "10px", color: "#475569", fontWeight: 600 }}>
+                                        👤 {o.customer_profile_name}
+                                      </div>
+                                    )}
+                                    <div style={{ fontSize: "11px", color: "#64748b" }}>{o.phone || "No phone"}</div>
+                                  </div>
+                                </div>
+                              </td>
 
-                    )}
+                              {/* Product Items Column */}
+                              <td>
+                                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                  {o.items && o.items.length > 0 ? (
+                                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                      {o.items.slice(0, 3).map((it, idx) => (
+                                        <div
+                                          key={it.id || idx}
+                                          title={`${it.product_name} (${it.quantity}x)`}
+                                          style={{
+                                            position: "relative",
+                                            width: "38px",
+                                            height: "38px",
+                                            borderRadius: "8px",
+                                            overflow: "hidden",
+                                            border: "1px solid #e2e8f0",
+                                            background: "#f8fafc",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            flexShrink: 0,
+                                            boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+                                          }}
+                                        >
+                                          {it.product_image ? (
+                                            <img
+                                              src={it.product_image}
+                                              alt={it.product_name}
+                                              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                            />
+                                          ) : (
+                                            <Package size={16} style={{ color: "#94a3b8" }} />
+                                          )}
+                                          {it.quantity > 1 && (
+                                            <span
+                                              style={{
+                                                position: "absolute",
+                                                bottom: "1px",
+                                                right: "1px",
+                                                background: "rgba(15, 23, 42, 0.85)",
+                                                color: "#ffffff",
+                                                fontSize: "9px",
+                                                fontWeight: 800,
+                                                padding: "0 3px",
+                                                borderRadius: "4px",
+                                                lineHeight: "12px"
+                                              }}
+                                            >
+                                              {it.quantity}x
+                                            </span>
+                                          )}
+                                        </div>
+                                      ))}
+                                      {o.items.length > 3 && (
+                                        <span
+                                          style={{
+                                            fontSize: "11px",
+                                            fontWeight: 700,
+                                            color: "#64748b",
+                                            background: "#f1f5f9",
+                                            padding: "3px 6px",
+                                            borderRadius: "6px"
+                                          }}
+                                        >
+                                          +{o.items.length - 3}
+                                        </span>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <span style={{ fontSize: "12px", color: "#94a3b8" }}>No items</span>
+                                  )}
+                                  {o.items && o.items.length > 0 && (
+                                    <div
+                                      style={{
+                                        fontSize: "11px",
+                                        color: "#475569",
+                                        maxWidth: "140px",
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis",
+                                        whiteSpace: "nowrap"
+                                      }}
+                                      title={o.items.map(i => `${i.product_name} (${i.quantity}x)`).join(", ")}
+                                    >
+                                      <div style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis" }}>
+                                        {o.items[0]?.product_name}
+                                      </div>
+                                      {o.items.length > 1 && (
+                                        <span style={{ fontSize: "10px", color: "#64748b" }}>
+                                          +{o.items.length - 1} more item{o.items.length > 2 ? "s" : ""}
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
 
-                  </tbody>
+                              {/* Courier Provider */}
+                              <td>
+                                {o.consignment_id ? (
+                                  <span style={{
+                                    fontWeight: 700,
+                                    textTransform: "uppercase",
+                                    fontSize: "11px",
+                                    padding: "2px 8px",
+                                    borderRadius: "6px",
+                                    background: o.courier_provider === "steadfast" ? "#fef3c7" : "#e0e7ff",
+                                    color: o.courier_provider === "steadfast" ? "#b45309" : "#4338ca",
+                                    border: "1px solid",
+                                    borderColor: o.courier_provider === "steadfast" ? "#fde68a" : "#c7d2fe"
+                                  }}>
+                                    {o.courier_provider || "SteadFast"}
+                                  </span>
+                                ) : (
+                                  <span style={{ fontSize: "11px", color: "#94a3b8", fontWeight: 600 }}>
+                                    Unassigned
+                                  </span>
+                                )}
+                              </td>
 
-                </table>
+                              {/* Consignment ID */}
+                              <td style={{ fontFamily: "monospace", fontWeight: 700, color: "#0f172a" }}>
+                                {o.consignment_id || "—"}
+                              </td>
 
-              </div>
+                              {/* Tracking Code */}
+                              <td style={{ fontFamily: "monospace", fontWeight: 700, color: "#2563eb" }}>
+                                {o.tracking_code || o.consignment_id || "—"}
+                              </td>
 
-            </div>
+                              {/* COD Amount */}
+                              <td style={{ fontWeight: 800, color: "#0f172a" }}>৳{o.total}</td>
 
+                              {/* Status */}
+                              <td>
+                                <span className={`admin-badge ${o.consignment_id ? "delivered" : "pending"}`} style={{ textTransform: "capitalize" }}>
+                                  {o.consignment_id ? (o.courier_status || "Dispatched") : (o.status_display || o.status)}
+                                </span>
+                              </td>
+
+                              {/* Actions */}
+                              <td style={{ textAlign: "right" }}>
+                                {o.consignment_id ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleTrackCourier(o)}
+                                    className="admin-header-link"
+                                    style={{ padding: "4px 12px", fontSize: "12px", color: "#2563eb", borderColor: "#93c5fd" }}
+                                  >
+                                    Track
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenBookingModal(o)}
+                                    className="admin-btn-primary"
+                                    style={{ padding: "4px 12px", fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "4px" }}
+                                  >
+                                    <Truck size={12} /> Book
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
-
         )}
 
         {/* CUSTOMERS TAB (CRM & Directory) */}
@@ -8405,11 +8587,78 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
             <form onSubmit={handleSubmitBooking} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
 
-              <div style={{ background: "#f8fafc", padding: "12px", borderRadius: "10px", border: "1px solid #e2e8f0", fontSize: "13px" }}>
-
-                <strong>Order #{bookingOrder.id}</strong> • Total Items: <strong>{bookingOrder.items?.length || 0}</strong> • Order Value: <strong>৳{bookingOrder.total}</strong>
-
+              {/* Customer Profile & Order Header */}
+              <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px", background: "#f8fafc", borderRadius: "10px", border: "1px solid #e2e8f0" }}>
+                {bookingOrder.customer_avatar ? (
+                  <img
+                    src={bookingOrder.customer_avatar}
+                    alt={bookingOrder.customer_profile_name || bookingOrder.customer_name}
+                    style={{ width: "42px", height: "42px", borderRadius: "50%", objectFit: "cover", border: "2px solid #3b82f6", flexShrink: 0 }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      width: "42px",
+                      height: "42px",
+                      borderRadius: "50%",
+                      background: "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)",
+                      color: "#1d4ed8",
+                      fontWeight: 800,
+                      fontSize: "16px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      border: "1.5px solid #bfdbfe",
+                      flexShrink: 0
+                    }}
+                  >
+                    {(bookingOrder.customer_profile_name || bookingOrder.customer_name || "C").charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                    <span style={{ fontWeight: 800, color: "#0f172a", fontSize: "14px" }}>
+                      {bookingOrder.customer_name}
+                    </span>
+                    {bookingOrder.customer_profile_name && bookingOrder.customer_profile_name !== bookingOrder.customer_name && (
+                      <span style={{ fontSize: "11px", color: "#475569", background: "#e2e8f0", padding: "1px 6px", borderRadius: "4px" }}>
+                        👤 {bookingOrder.customer_profile_name}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: "12px", color: "#64748b", marginTop: "2px" }}>
+                    Order <strong style={{ color: "#2563eb" }}>#{bookingOrder.id}</strong> • Value: <strong style={{ color: "#0f172a" }}>৳{bookingOrder.total}</strong> • {bookingOrder.phone || ""}
+                  </div>
+                </div>
               </div>
+
+              {/* Product Items Preview with Images */}
+              {bookingOrder.items && bookingOrder.items.length > 0 && (
+                <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "12px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                  <div style={{ fontSize: "11px", fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>
+                    Products to Dispatch ({bookingOrder.items.length})
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px", maxHeight: "130px", overflowY: "auto" }}>
+                    {bookingOrder.items.map((it, idx) => (
+                      <div key={it.id || idx} style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "12px", background: "#ffffff", padding: "6px 8px", borderRadius: "6px", border: "1px solid #f1f5f9" }}>
+                        <div style={{ width: "32px", height: "32px", borderRadius: "6px", overflow: "hidden", border: "1px solid #e2e8f0", background: "#f8fafc", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          {it.product_image ? (
+                            <img src={it.product_image} alt={it.product_name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                          ) : (
+                            <Package size={14} style={{ color: "#94a3b8" }} />
+                          )}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontWeight: 600, color: "#334155" }}>
+                          {it.product_name}
+                        </div>
+                        <div style={{ fontWeight: 700, color: "#0f172a", flexShrink: 0 }}>
+                          {it.quantity}x
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Provider Choice */}
 
@@ -8709,6 +8958,78 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
               </button>
 
+            </div>
+
+            {/* Customer & Product preview in Tracking Modal */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", padding: "10px 14px", background: "#f8fafc", borderRadius: "10px", border: "1px solid #e2e8f0", marginBottom: "16px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0 }}>
+                {trackingOrder.customer_avatar ? (
+                  <img
+                    src={trackingOrder.customer_avatar}
+                    alt={trackingOrder.customer_profile_name || trackingOrder.customer_name}
+                    style={{ width: "36px", height: "36px", borderRadius: "50%", objectFit: "cover", border: "2px solid #3b82f6", flexShrink: 0 }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      width: "36px",
+                      height: "36px",
+                      borderRadius: "50%",
+                      background: "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)",
+                      color: "#1d4ed8",
+                      fontWeight: 800,
+                      fontSize: "14px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      border: "1.5px solid #bfdbfe",
+                      flexShrink: 0
+                    }}
+                  >
+                    {(trackingOrder.customer_profile_name || trackingOrder.customer_name || "C").charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, color: "#0f172a", fontSize: "13px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {trackingOrder.customer_name}
+                  </div>
+                  <div style={{ fontSize: "11px", color: "#64748b" }}>{trackingOrder.phone || ""}</div>
+                </div>
+              </div>
+
+              {trackingOrder.items && trackingOrder.items.length > 0 && (
+                <div style={{ display: "flex", alignItems: "center", gap: "4px", flexShrink: 0 }}>
+                  {trackingOrder.items.slice(0, 2).map((it, idx) => (
+                    <div
+                      key={it.id || idx}
+                      title={`${it.product_name} (${it.quantity}x)`}
+                      style={{
+                        position: "relative",
+                        width: "32px",
+                        height: "32px",
+                        borderRadius: "6px",
+                        overflow: "hidden",
+                        border: "1px solid #cbd5e1",
+                        background: "#ffffff",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center"
+                      }}
+                    >
+                      {it.product_image ? (
+                        <img src={it.product_image} alt={it.product_name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      ) : (
+                        <Package size={14} style={{ color: "#94a3b8" }} />
+                      )}
+                    </div>
+                  ))}
+                  {trackingOrder.items.length > 2 && (
+                    <span style={{ fontSize: "10px", fontWeight: 700, color: "#64748b", background: "#e2e8f0", padding: "2px 5px", borderRadius: "4px" }}>
+                      +{trackingOrder.items.length - 2}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
 
             {loadingTracking ? (
