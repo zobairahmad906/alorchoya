@@ -212,6 +212,7 @@ export default function ProductForm({
 
   // Gallery state
   const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
+  const [galleryDragging, setGalleryDragging] = useState(false);
   const [galleryVariantKey, setGalleryVariantKey] = useState<string>("");
   const [galleryFileAssignments, setGalleryFileAssignments] = useState<Record<string, string>>({});
   const [existingGallery, setExistingGallery] = useState<ExistingImageItem[]>(
@@ -280,6 +281,24 @@ export default function ProductForm({
         next.base_sku = suggestBaseSku(val, catName);
       }
       return next;
+    });
+  };
+
+  const addGalleryFiles = (files: FileList | File[]) => {
+    const imageFiles = Array.from(files).filter((file) => file.type.startsWith("image/"));
+    if (!imageFiles.length) return;
+    setDirty(true);
+    setGalleryFiles((curr) => {
+      const updated = [...curr, ...imageFiles];
+      setGalleryFileAssignments((prev) => {
+        const next = { ...prev };
+        updated.forEach((file, idx) => {
+          const key = `${file.name}_${idx}`;
+          if (next[key] === undefined) next[key] = galleryVariantKey;
+        });
+        return next;
+      });
+      return updated;
     });
   };
 
@@ -1828,39 +1847,42 @@ export default function ProductForm({
               <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "var(--ink)", marginBottom: "4px" }}>
                 Select New Images
               </label>
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={(e) => {
-                  const newFiles = Array.from(e.target.files || []);
-                  if (!newFiles.length) return;
-                  setDirty(true);
-                  setGalleryFiles((curr) => {
-                    const updated = [...curr, ...newFiles];
-                    setGalleryFileAssignments((prev) => {
-                      const next = { ...prev };
-                      updated.forEach((file, idx) => {
-                        const key = `${file.name}_${idx}`;
-                        if (next[key] === undefined) {
-                          next[key] = galleryVariantKey;
-                        }
-                      });
-                      return next;
-                    });
-                    return updated;
-                  });
+              <label
+                onDragOver={(e) => { e.preventDefault(); setGalleryDragging(true); }}
+                onDragEnter={(e) => { e.preventDefault(); setGalleryDragging(true); }}
+                onDragLeave={(e) => {
+                  if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setGalleryDragging(false);
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setGalleryDragging(false);
+                  addGalleryFiles(e.dataTransfer.files);
                 }}
                 style={{
-                  width: "100%",
-                  boxSizing: "border-box",
-                  padding: "8px",
-                  borderRadius: "8px",
-                  border: "1px solid var(--line)",
-                  fontSize: "12px",
-                  background: "#fff",
+                  display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                  gap: "6px", minHeight: "100px", padding: "14px", borderRadius: "10px",
+                  border: `2px dashed ${galleryDragging ? "var(--emerald)" : "var(--line)"}`,
+                  background: galleryDragging ? "#ecfdf5" : "#fff", color: "var(--coffee)", cursor: "pointer",
+                  textAlign: "center", transition: "background 120ms, border-color 120ms",
                 }}
-              />
+              >
+                <Upload size={20} color="var(--emerald)" />
+                <span style={{ fontSize: "12px", fontWeight: 700, color: "var(--forest)" }}>
+                  {galleryDragging ? "Drop images to add them" : "Drag and drop images here, or click to browse"}
+                </span>
+                <span style={{ fontSize: "11px" }}>You can select multiple images</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(e) => {
+                    addGalleryFiles(e.target.files || []);
+                    e.currentTarget.value = "";
+                  }}
+                  style={{ position: "absolute", width: 1, height: 1, opacity: 0, pointerEvents: "none" }}
+                  aria-label="Select product images"
+                />
+              </label>
             </div>
 
             <div>

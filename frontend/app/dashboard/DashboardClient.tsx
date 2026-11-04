@@ -2029,6 +2029,8 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
     setEditingProduct(null);
 
+    navigateToTab("products");
+
     setShowProductForm(true);
 
   };

@@ -355,6 +355,7 @@ export default function AdminDashboardPage() {
 
   const openCreateModal = () => {
     setEditingProduct(null);
+    setActiveTab("products");
     setShowProductForm(true);
   };
 
