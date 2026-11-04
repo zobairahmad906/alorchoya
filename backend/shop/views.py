@@ -412,6 +412,7 @@ class AdminLoginView(APIView):
 
 
 # ==================== ADMIN DASHBOARD APIS ====================
+from decimal import Decimal
 from rest_framework.permissions import IsAdminUser
 from django.db.models import Sum, Count, Q, F
 from django.utils import timezone
@@ -436,50 +437,138 @@ class AdminDashboardStatsView(APIView):
             for row in orders_qs.values("status").annotate(count=Count("id"))
         })
 
-        # Calculate revenue excluding cancelled
+        # Calculate revenue and profit excluding cancelled orders
         valid_orders = orders_qs.exclude(status="cancelled")
         valid_orders_count = valid_orders.count()
-        total_revenue = sum(o.total for o in valid_orders)
-        monthly_revenue = sum(o.total for o in valid_orders.filter(created_at__gte=thirty_days_ago))
+        total_revenue = sum((o.total for o in valid_orders), Decimal("0.00"))
+        monthly_orders = valid_orders.filter(created_at__gte=thirty_days_ago)
+        monthly_revenue = sum((o.total for o in monthly_orders), Decimal("0.00"))
         avg_order_value = float(total_revenue / valid_orders_count) if valid_orders_count > 0 else 0.0
 
-        products_qs = Product.objects.all()
+        # COGS & Gross Profit calculations from OrderItems
+        valid_order_items = OrderItem.objects.filter(order__in=valid_orders).select_related("product")
+        total_cogs = Decimal("0.00")
+        for item in valid_order_items:
+            unit_cost = item.product.cost_price if (item.product and item.product.cost_price is not None) else Decimal("0.00")
+            total_cogs += unit_cost * item.quantity
+
+        gross_profit = total_revenue - total_cogs
+        profit_margin_percent = float(round((gross_profit / total_revenue * 100), 2)) if total_revenue > Decimal("0.00") else 0.0
+        avg_profit_per_order = float(round(gross_profit / valid_orders_count, 2)) if valid_orders_count > 0 else 0.0
+
+        # Products & Inventory Stock Valuation Calculations
+        products_qs = Product.objects.all().select_related("category")
         total_products = products_qs.count()
         low_stock_products = products_qs.filter(stock__lte=5, stock__gt=0, is_active=True).count()
         out_of_stock_products = products_qs.filter(stock=0, is_active=True).count()
+        total_stock_units = sum(p.stock for p in products_qs)
+
+        # Selling/retail price stock valuation vs Cost valuation
+        retail_stock_valuation = sum(
+            ((p.discount_price if p.discount_price is not None else p.price) * p.stock for p in products_qs),
+            Decimal("0.00")
+        )
+        cost_stock_valuation = sum(
+            ((p.cost_price if p.cost_price is not None else Decimal("0.00")) * p.stock for p in products_qs),
+            Decimal("0.00")
+        )
+        potential_stock_profit = max(Decimal("0.00"), retail_stock_valuation - cost_stock_valuation)
+        
+        # Product price averages
+        avg_product_price = float(round(
+            sum((p.discount_price if p.discount_price is not None else p.price) for p in products_qs) / total_products, 2
+        )) if total_products > 0 else 0.0
 
         # Unique Customers count
         unique_customers = orders_qs.values("phone").distinct().count()
 
-        # Sales over last 7 days chart data
+        # Sales & Profit over last 14 days chart data
         daily_sales = []
-        for i in range(6, -1, -1):
+        for i in range(13, -1, -1):
             day_start = (now - timedelta(days=i)).replace(hour=0, minute=0, second=0, microsecond=0)
             day_end = day_start + timedelta(days=1)
             day_orders = valid_orders.filter(created_at__gte=day_start, created_at__lt=day_end)
-            rev = sum(o.total for o in day_orders)
+            day_rev = sum((o.total for o in day_orders), Decimal("0.00"))
+            day_items = valid_order_items.filter(order__in=day_orders)
+            day_cogs = sum(((it.product.cost_price if (it.product and it.product.cost_price is not None) else Decimal("0.00")) * it.quantity for it in day_items), Decimal("0.00"))
+            day_profit = day_rev - day_cogs
+            day_items_sold = sum(it.quantity for it in day_items)
+
             daily_sales.append({
                 "date": day_start.strftime("%b %d"),
-                "revenue": float(rev),
-                "orders": day_orders.count()
+                "revenue": float(day_rev),
+                "profit": float(day_profit),
+                "orders": day_orders.count(),
+                "items_sold": day_items_sold
             })
 
         # Top selling products aggregation from OrderItems
-        top_products_qs = OrderItem.objects.filter(order__in=valid_orders).values("product__name").annotate(
-            total_sold=Sum("quantity")
+        top_products_qs = valid_order_items.values("product__name").annotate(
+            total_sold=Sum("quantity"),
+            total_rev=Sum(F("quantity") * F("unit_price"))
         ).order_by("-total_sold")[:5]
 
         top_products = [
-            {"name": item["product__name"], "sold": item["total_sold"]}
+            {
+                "name": item["product__name"] or "Unknown",
+                "sold": item["total_sold"] or 0,
+                "revenue": float(item["total_rev"] or 0)
+            }
             for item in top_products_qs
         ]
+
+        # Category Breakdown: Stock value, revenue, and product counts
+        categories = Category.objects.all().order_by("name")
+        category_breakdown = []
+        for cat in categories:
+            cat_prods = [p for p in products_qs if p.category_id == cat.id]
+            cat_stock = sum(p.stock for p in cat_prods)
+            cat_val = sum(((p.discount_price if p.discount_price is not None else p.price) * p.stock for p in cat_prods), Decimal("0.00"))
+            cat_cost = sum(((p.cost_price if p.cost_price is not None else Decimal("0.00")) * p.stock for p in cat_prods), Decimal("0.00"))
+            cat_items = [it for it in valid_order_items if it.product and it.product.category_id == cat.id]
+            cat_sold = sum(it.quantity for it in cat_items)
+            cat_rev = sum((it.quantity * it.unit_price for it in cat_items), Decimal("0.00"))
+            
+            category_breakdown.append({
+                "name": cat.name,
+                "product_count": len(cat_prods),
+                "stock": cat_stock,
+                "stock_value": float(cat_val),
+                "cost_value": float(cat_cost),
+                "sold": cat_sold,
+                "revenue": float(cat_rev),
+            })
+        category_breakdown.sort(key=lambda x: (x["stock_value"] + x["revenue"]), reverse=True)
+
+        # Price range distribution tiers
+        tiers_config = [
+            {"label": "< 500", "min": 0, "max": 499},
+            {"label": "500 - 1,500", "min": 500, "max": 1500},
+            {"label": "1,501 - 3,000", "min": 1501, "max": 3000},
+            {"label": "3,001 - 5,000", "min": 3001, "max": 5000},
+            {"label": "5,000+", "min": 5001, "max": 999999999},
+        ]
+        price_tiers = []
+        for tier in tiers_config:
+            in_tier = [
+                p for p in products_qs
+                if tier["min"] <= (p.discount_price if p.discount_price is not None else p.price) <= tier["max"]
+            ]
+            price_tiers.append({
+                "label": tier["label"],
+                "count": len(in_tier),
+                "total_stock": sum(p.stock for p in in_tier),
+            })
 
         recent_orders = CustomerOrderSerializer(orders_qs.order_by("-created_at")[:10], many=True, context={"request": request}).data
 
         return Response({
             "total_revenue": float(total_revenue),
             "monthly_revenue": float(monthly_revenue),
+            "gross_profit": float(gross_profit),
+            "profit_margin_percent": profit_margin_percent,
             "avg_order_value": round(avg_order_value, 2),
+            "avg_profit_per_order": avg_profit_per_order,
             "total_orders": total_orders,
             "pending_orders": pending_orders,
             "delivered_orders": delivered_orders,
@@ -489,8 +578,15 @@ class AdminDashboardStatsView(APIView):
             "low_stock_products": low_stock_products,
             "out_of_stock_products": out_of_stock_products,
             "unique_customers": unique_customers,
+            "total_stock_units": total_stock_units,
+            "retail_stock_valuation": float(retail_stock_valuation),
+            "cost_stock_valuation": float(cost_stock_valuation),
+            "potential_stock_profit": float(potential_stock_profit),
+            "avg_product_price": avg_product_price,
             "daily_sales": daily_sales,
             "top_products": top_products,
+            "category_breakdown": category_breakdown,
+            "price_tiers": price_tiers,
             "recent_orders": recent_orders
         })
 

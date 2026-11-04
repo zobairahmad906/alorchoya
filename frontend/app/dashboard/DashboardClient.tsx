@@ -348,37 +348,43 @@ type HeroSlide = {
 };
 
 type DashboardStats = {
-
   total_revenue: number;
-
   monthly_revenue: number;
-
+  gross_profit?: number;
+  profit_margin_percent?: number;
   avg_order_value?: number;
-
+  avg_profit_per_order?: number;
   total_orders: number;
-
   pending_orders: number;
-
   delivered_orders: number;
-
   cancelled_orders: number;
-
   order_status_counts?: Record<string, number>;
-
   total_products: number;
-
   low_stock_products: number;
-
   out_of_stock_products: number;
-
   unique_customers?: number;
-
-  daily_sales: { date: string; revenue: number; orders: number }[];
-
-  top_products?: { name: string; sold: number }[];
-
+  total_stock_units?: number;
+  retail_stock_valuation?: number;
+  cost_stock_valuation?: number;
+  potential_stock_profit?: number;
+  avg_product_price?: number;
+  daily_sales: { date: string; revenue: number; profit?: number; orders: number; items_sold?: number }[];
+  top_products?: { name: string; sold: number; revenue?: number }[];
+  category_breakdown?: {
+    name: string;
+    product_count: number;
+    stock: number;
+    stock_value: number;
+    cost_value?: number;
+    sold: number;
+    revenue: number;
+  }[];
+  price_tiers?: {
+    label: string;
+    count: number;
+    total_stock: number;
+  }[];
   recent_orders: Order[];
-
 };
 
 type DashboardTab = "overview" | "orders" | "products" | "coupons" | "courier" | "hero" | "gallery" | "customers";
@@ -442,6 +448,8 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
   const [csrfToken, setCsrfToken] = useState("");
 
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [overviewChartDays, setOverviewChartDays] = useState<7 | 14>(7);
+  const [overviewChartMetric, setOverviewChartMetric] = useState<"dual" | "orders">("dual");
 
   const [orders, setOrders] = useState<Order[]>([]);
 
@@ -3098,577 +3106,694 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
             {/* OVERVIEW TAB (Exact newsmartagent Profit Style) */}
 
-            {activeTab === "overview" && stats && (
+            {activeTab === "overview" && stats && (() => {
+              const displayedDays = (stats.daily_sales || []).slice(-overviewChartDays);
+              const maxRev = Math.max(...displayedDays.map(d => d.revenue || 0), 1000);
+              const maxProf = Math.max(...displayedDays.map(d => d.profit || 0), 1000);
+              const maxChartVal = Math.max(maxRev, maxProf, 1000);
+              const maxOrders = Math.max(...displayedDays.map(d => d.orders || 0), 5);
 
+              const periodRevenue = displayedDays.reduce((acc, d) => acc + (d.revenue || 0), 0);
+              const periodProfit = displayedDays.reduce((acc, d) => acc + (d.profit || 0), 0);
+              const periodOrders = displayedDays.reduce((acc, d) => acc + (d.orders || 0), 0);
+              const periodItemsSold = displayedDays.reduce((acc, d) => acc + (d.items_sold || 0), 0);
+
+              const totalCatalogStockVal = (stats.retail_stock_valuation && stats.retail_stock_valuation > 0) ? stats.retail_stock_valuation : 1;
+
+              return (
               <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-
-                {/* 1. Overview / Profit Style Header Bar */}
-
+                {/* 1. Header Bar */}
                 <div className="profit-filter-bar">
-
                   <div className="profit-filter-left">
-
                     <div className="profit-filter-icon-box">
-
-                      <Filter size={20} />
-
+                      <TrendingUp size={20} />
                     </div>
-
                     <div>
-
                       <h3 className="profit-filter-title">
-
                         Store Performance & Financial Overview
-
                       </h3>
-
                       <p className="profit-filter-sub">
-
-                        Live revenue, order fulfillment, stock valuation & customer directory ledger
-
+                        লাইভ রেভিনিউ, নিট লাভ, ইনভেন্টরি স্টক মূল্যায়ন ও প্রোডাক্ট প্রাইস অ্যানালিটিক্স
                       </p>
-
                     </div>
-
                   </div>
-
                   <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-
                     <button
-
                       type="button"
-
                       onClick={openCreateModal}
-
                       className="admin-btn-primary"
-
                     >
-
                       <Plus size={15} /> Add Product
-
                     </button>
-
                     <button
-
                       type="button"
-
                       onClick={() => navigateToTab("hero")}
-
                       className="admin-btn-secondary"
-
                     >
-
                       <SlidersHorizontal size={14} /> Hero Banners
-
                     </button>
-
                     <button
-
                       type="button"
-
                       onClick={() => navigateToTab("orders")}
-
                       className="admin-btn-secondary"
-
                     >
-
                       View Orders <ArrowUpRight size={14} />
-
                     </button>
-
                   </div>
-
                 </div>
 
-                {/* 2. Key Financial & Operational StatCards (Exact newsmartagent Profit Style) */}
-
-                <div className="profit-stat-grid">
-
-                  {/* Card 1: Total Revenue (Green) */}
-
-                  <div className="profit-stat-card green">
-
-                    <div className="profit-stat-inner">
-
-                      <div className="profit-glow-orb" style={{ background: "#10b981" }} />
-
-                      <div className="profit-icon-box green">
-
-                        <TrendingUp size={22} />
-
-                      </div>
-
-                      <div>
-
-                        <div className="profit-title">Total Revenue</div>
-
-                        <div className="profit-val">৳{stats.total_revenue.toLocaleString()}</div>
-
-                        <div className="profit-sub">
-
-                          Last 30 Days: ৳{stats.monthly_revenue.toLocaleString()}
-
+                {/* 2. Primary Financial StatCards (Row 1: Revenue & Profits) */}
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
+                    <span style={{ fontSize: "12px", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.06em", color: "#64748b" }}>
+                      আর্থিক লাভ ও বিক্রয় বিবরণী (Revenue & Profit Metrics)
+                    </span>
+                  </div>
+                  <div className="profit-stat-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))" }}>
+                    {/* Card 1: Total Revenue */}
+                    <div className="profit-stat-card green">
+                      <div className="profit-stat-inner">
+                        <div className="profit-glow-orb" style={{ background: "#10b981" }} />
+                        <div className="profit-icon-box green">
+                          <TrendingUp size={22} />
                         </div>
-
+                        <div>
+                          <div className="profit-title">মোট বিক্রয় (Total Revenue)</div>
+                          <div className="profit-val">৳{stats.total_revenue.toLocaleString()}</div>
+                          <div className="profit-sub">
+                            গত ৩০ দিন: ৳{stats.monthly_revenue.toLocaleString()}
+                          </div>
+                        </div>
                       </div>
-
                     </div>
 
-                  </div>
-
-                  {/* Card 2: Average Order Value (Blue) */}
-
-                  <div className="profit-stat-card blue">
-
-                    <div className="profit-stat-inner">
-
-                      <div className="profit-glow-orb" style={{ background: "#3b82f6" }} />
-
-                      <div className="profit-icon-box blue">
-
-                        <Wallet size={22} />
-
-                      </div>
-
-                      <div>
-
-                        <div className="profit-title">Average Order Value</div>
-
-                        <div className="profit-val">৳{stats.avg_order_value || 0}</div>
-
-                        <div className="profit-sub">
-
-                          Avg. customer spend per checkout
-
+                    {/* Card 2: Gross Realized Profit */}
+                    <div className="profit-stat-card indigo">
+                      <div className="profit-stat-inner">
+                        <div className="profit-glow-orb" style={{ background: "#6366f1" }} />
+                        <div className="profit-icon-box indigo">
+                          <Wallet size={22} />
                         </div>
-
+                        <div>
+                          <div className="profit-title">মোট অর্জিত লাভ (Gross Profit)</div>
+                          <div className="profit-val">৳{(stats.gross_profit ?? 0).toLocaleString()}</div>
+                          <div className="profit-sub">
+                            মার্জিন: <span style={{ color: "#4f46e5", fontWeight: 800 }}>{(stats.profit_margin_percent ?? 0).toFixed(1)}%</span> | গড় লাভ: ৳{stats.avg_profit_per_order ?? 0}
+                          </div>
+                        </div>
                       </div>
-
                     </div>
 
-                  </div>
-
-                  {/* Card 3: Total Orders (Indigo) */}
-
-                  <div className="profit-stat-card indigo">
-
-                    <div className="profit-stat-inner">
-
-                      <div className="profit-glow-orb" style={{ background: "#6366f1" }} />
-
-                      <div className="profit-icon-box indigo">
-
-                        <ShoppingCart size={22} />
-
-                      </div>
-
-                      <div>
-
-                        <div className="profit-title">Total Orders</div>
-
-                        <div className="profit-val">{stats.total_orders}</div>
-
-                        <div className="profit-sub">
-
-                          Pending: {stats.pending_orders} | Delivered: {stats.delivered_orders}
-
+                    {/* Card 3: Average Order Value */}
+                    <div className="profit-stat-card blue">
+                      <div className="profit-stat-inner">
+                        <div className="profit-glow-orb" style={{ background: "#3b82f6" }} />
+                        <div className="profit-icon-box blue">
+                          <Receipt size={22} />
                         </div>
-
+                        <div>
+                          <div className="profit-title">গড় অর্ডার মূল্য (AOV)</div>
+                          <div className="profit-val">৳{stats.avg_order_value || 0}</div>
+                          <div className="profit-sub">
+                            প্রতি সফল চেকআউটে গ্রাহকের গড় ব্যয়
+                          </div>
+                        </div>
                       </div>
-
                     </div>
 
-                  </div>
-
-                  {/* Card 4: Total Customers (Purple) */}
-
-                  <div className="profit-stat-card purple">
-
-                    <div className="profit-stat-inner">
-
-                      <div className="profit-glow-orb" style={{ background: "#a855f7" }} />
-
-                      <div className="profit-icon-box purple">
-
-                        <Users size={22} />
-
-                      </div>
-
-                      <div>
-
-                        <div className="profit-title">Customer Profiles</div>
-
-                        <div className="profit-val">{stats.unique_customers || customersList.length}</div>
-
-                        <div className="profit-sub">
-
-                          Unique customer accounts recorded
-
+                    {/* Card 4: Total Orders & Completion */}
+                    <div className="profit-stat-card purple">
+                      <div className="profit-stat-inner">
+                        <div className="profit-glow-orb" style={{ background: "#a855f7" }} />
+                        <div className="profit-icon-box purple">
+                          <ShoppingCart size={22} />
                         </div>
-
-                      </div>
-
-                    </div>
-
-                  </div>
-
-                  {/* Card 5: Inventory & Stock Status (Orange) */}
-
-                  <div className="profit-stat-card orange">
-
-                    <div className="profit-stat-inner">
-
-                      <div className="profit-glow-orb" style={{ background: "#f59e0b" }} />
-
-                      <div className="profit-icon-box orange">
-
-                        <Boxes size={22} />
-
-                      </div>
-
-                      <div>
-
-                        <div className="profit-title">Inventory & Stock</div>
-
-                        <div className="profit-val">{stats.total_products} Products</div>
-
-                        <div className="profit-sub">
-
-                          Out of stock: {stats.out_of_stock_products} | Low: {stats.low_stock_products}
-
+                        <div>
+                          <div className="profit-title">মোট অর্ডার সংখ্যা (Total Orders)</div>
+                          <div className="profit-val">{stats.total_orders}</div>
+                          <div className="profit-sub">
+                            ডেলিভার্ড: <b style={{ color: "#059669" }}>{stats.delivered_orders}</b> | পেন্ডিং: <b style={{ color: "#d97706" }}>{stats.pending_orders}</b>
+                          </div>
                         </div>
-
                       </div>
-
                     </div>
-
                   </div>
-
-                  {/* Card 6: Operations Health (Teal) */}
-
-                  <div className="profit-stat-card teal">
-
-                    <div className="profit-stat-inner">
-
-                      <div className="profit-glow-orb" style={{ background: "#0d9488" }} />
-
-                      <div className="profit-icon-box teal">
-
-                        <ShieldCheck size={22} />
-
-                      </div>
-
-                      <div>
-
-                        <div className="profit-title">System Status</div>
-
-                        <div className="profit-val">100% Active</div>
-
-                        <div className="profit-sub">
-
-                          Live store & AI catalog active
-
-                        </div>
-
-                      </div>
-
-                    </div>
-
-                  </div>
-
                 </div>
 
-                {/* 3. Sales Trend & Top Products Row (Profit Panel Style) */}
-
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "20px" }}>
-
-                  {/* Daily Sales Bar Chart */}
-
-                  <div className="profit-panel-card" style={{ flex: 1.6 }}>
-
-                    <div className="profit-panel-header">
-
-                      <h3 className="profit-panel-title">
-
-                        <TrendingUp size={20} style={{ color: "#4f46e5" }} />
-
-                        Sales Analytics (Last 7 Days)
-
-                      </h3>
-
-                      <p className="profit-panel-sub">
-
-                        Daily sales revenue velocity and turnover
-
-                      </p>
-
+                {/* 3. Product Pricing & Stock Valuation StatCards (Row 2: Product Price Hisab) */}
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
+                    <span style={{ fontSize: "12px", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.06em", color: "#64748b" }}>
+                      প্রোডাক্ট মূল্য ও স্টক ইনভেন্টরি মূল্যায়ন (Product Price & Inventory Ledger)
+                    </span>
+                  </div>
+                  <div className="profit-stat-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))" }}>
+                    {/* Card 5: Retail Stock Valuation */}
+                    <div className="profit-stat-card teal">
+                      <div className="profit-stat-inner">
+                        <div className="profit-glow-orb" style={{ background: "#0d9488" }} />
+                        <div className="profit-icon-box teal">
+                          <Boxes size={22} />
+                        </div>
+                        <div>
+                          <div className="profit-title">স্টক বিক্রয় মূল্য (Retail Value)</div>
+                          <div className="profit-val">৳{(stats.retail_stock_valuation ?? 0).toLocaleString()}</div>
+                          <div className="profit-sub">
+                            মোট মজুদ: <b>{stats.total_stock_units ?? 0} পিস</b> পণ্য
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="profit-bar-chart">
+                    {/* Card 6: Cost Stock Valuation */}
+                    <div className="profit-stat-card orange">
+                      <div className="profit-stat-inner">
+                        <div className="profit-glow-orb" style={{ background: "#f59e0b" }} />
+                        <div className="profit-icon-box orange">
+                          <Tag size={22} />
+                        </div>
+                        <div>
+                          <div className="profit-title">স্টক ক্রয় মূল্য / ইনভেস্টমেন্ট</div>
+                          <div className="profit-val">৳{(stats.cost_stock_valuation ?? 0).toLocaleString()}</div>
+                          <div className="profit-sub">
+                            গোডাউনে আটকে থাকা মোট মূলধন
+                          </div>
+                        </div>
+                      </div>
+                    </div>
 
-                      {stats.daily_sales.map((day, idx) => {
+                    {/* Card 7: Potential Stock Profit */}
+                    <div className="profit-stat-card green">
+                      <div className="profit-stat-inner">
+                        <div className="profit-glow-orb" style={{ background: "#10b981" }} />
+                        <div className="profit-icon-box green">
+                          <Award size={22} />
+                        </div>
+                        <div>
+                          <div className="profit-title">সম্ভাব্য স্টক লাভ (Potential Profit)</div>
+                          <div className="profit-val">৳{(stats.potential_stock_profit ?? 0).toLocaleString()}</div>
+                          <div className="profit-sub">
+                            সব স্টক বিক্রি হলে অর্জিতব্য লাভ
+                          </div>
+                        </div>
+                      </div>
+                    </div>
 
-                        const maxRev = Math.max(...stats.daily_sales.map(d => d.revenue), 1000);
+                    {/* Card 8: Catalog Average Price & Items */}
+                    <div className="profit-stat-card blue">
+                      <div className="profit-stat-inner">
+                        <div className="profit-glow-orb" style={{ background: "#3b82f6" }} />
+                        <div className="profit-icon-box blue">
+                          <Package size={22} />
+                        </div>
+                        <div>
+                          <div className="profit-title">গড় প্রোডাক্ট মূল্য (Avg Price)</div>
+                          <div className="profit-val">৳{stats.avg_product_price || 0}</div>
+                          <div className="profit-sub">
+                            ক্যাটালগে মোট {stats.total_products}টি আইটেম সক্রিয়
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
-                        const heightPercent = Math.max((day.revenue / maxRev) * 100, 8);
+                {/* 4. Sales & Profit Velocity Chart + Top Products */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: "20px" }}>
+                  {/* Interactive Dual-Bar Chart */}
+                  <div className="profit-panel-card" style={{ flex: 1.8 }}>
+                    <div className="profit-panel-header" style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "12px" }}>
+                      <div>
+                        <h3 className="profit-panel-title">
+                          <TrendingUp size={20} style={{ color: "#4f46e5" }} />
+                          Sales & Profit Velocity (বিক্রয় ও লাভ বিশ্লেষণ)
+                        </h3>
+                        <p className="profit-panel-sub">
+                          দৈনিক রেভিনিউ, নিট লাভ এবং অর্ডারের গতিবিধি
+                        </p>
+                      </div>
+
+                      {/* Chart Controls */}
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                        {/* Metric Selector */}
+                        <div style={{ display: "inline-flex", background: "#f1f5f9", borderRadius: "10px", padding: "3px" }}>
+                          <button
+                            type="button"
+                            onClick={() => setOverviewChartMetric("dual")}
+                            style={{
+                              border: "none",
+                              background: overviewChartMetric === "dual" ? "#ffffff" : "transparent",
+                              color: overviewChartMetric === "dual" ? "#0f172a" : "#64748b",
+                              fontWeight: 800,
+                              fontSize: "11px",
+                              padding: "5px 10px",
+                              borderRadius: "7px",
+                              cursor: "pointer",
+                              boxShadow: overviewChartMetric === "dual" ? "0 2px 4px rgba(0,0,0,0.06)" : "none",
+                              transition: "all 0.2s"
+                            }}
+                          >
+                            বিক্রয় ও লাভ
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setOverviewChartMetric("orders")}
+                            style={{
+                              border: "none",
+                              background: overviewChartMetric === "orders" ? "#ffffff" : "transparent",
+                              color: overviewChartMetric === "orders" ? "#0f172a" : "#64748b",
+                              fontWeight: 800,
+                              fontSize: "11px",
+                              padding: "5px 10px",
+                              borderRadius: "7px",
+                              cursor: "pointer",
+                              boxShadow: overviewChartMetric === "orders" ? "0 2px 4px rgba(0,0,0,0.06)" : "none",
+                              transition: "all 0.2s"
+                            }}
+                          >
+                            অর্ডার ভলিউম
+                          </button>
+                        </div>
+
+                        {/* Days Range Selector */}
+                        <div style={{ display: "inline-flex", background: "#f1f5f9", borderRadius: "10px", padding: "3px" }}>
+                          <button
+                            type="button"
+                            onClick={() => setOverviewChartDays(7)}
+                            style={{
+                              border: "none",
+                              background: overviewChartDays === 7 ? "#ffffff" : "transparent",
+                              color: overviewChartDays === 7 ? "#0f172a" : "#64748b",
+                              fontWeight: 800,
+                              fontSize: "11px",
+                              padding: "5px 10px",
+                              borderRadius: "7px",
+                              cursor: "pointer",
+                              boxShadow: overviewChartDays === 7 ? "0 2px 4px rgba(0,0,0,0.06)" : "none",
+                              transition: "all 0.2s"
+                            }}
+                          >
+                            ৭ দিন
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setOverviewChartDays(14)}
+                            style={{
+                              border: "none",
+                              background: overviewChartDays === 14 ? "#ffffff" : "transparent",
+                              color: overviewChartDays === 14 ? "#0f172a" : "#64748b",
+                              fontWeight: 800,
+                              fontSize: "11px",
+                              padding: "5px 10px",
+                              borderRadius: "7px",
+                              cursor: "pointer",
+                              boxShadow: overviewChartDays === 14 ? "0 2px 4px rgba(0,0,0,0.06)" : "none",
+                              transition: "all 0.2s"
+                            }}
+                          >
+                            ১৪ দিন
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Legend */}
+                    <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "8px", fontSize: "12px", fontWeight: 700 }}>
+                      {overviewChartMetric === "dual" ? (
+                        <>
+                          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                            <span style={{ width: "12px", height: "12px", borderRadius: "3px", background: "linear-gradient(180deg, #6366f1, #3b82f6)", display: "inline-block" }} />
+                            <span style={{ color: "#475569" }}>বিক্রয় রেভিনিউ (Revenue)</span>
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                            <span style={{ width: "12px", height: "12px", borderRadius: "3px", background: "linear-gradient(180deg, #10b981, #059669)", display: "inline-block" }} />
+                            <span style={{ color: "#475569" }}>অর্জিত লাভ (Gross Profit)</span>
+                          </div>
+                        </>
+                      ) : (
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                          <span style={{ width: "12px", height: "12px", borderRadius: "3px", background: "linear-gradient(180deg, #8b5cf6, #6366f1)", display: "inline-block" }} />
+                          <span style={{ color: "#475569" }}>সম্পন্ন অর্ডার সংখ্যা (Orders)</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Bar Chart Container */}
+                    <div className="profit-bar-chart" style={{ height: "230px", gap: overviewChartDays === 14 ? "8px" : "16px" }}>
+                      {displayedDays.map((day, idx) => {
+                        const revPercent = Math.max((day.revenue / maxChartVal) * 100, 4);
+                        const profPercent = Math.max(((day.profit || 0) / maxChartVal) * 100, (day.profit || 0) > 0 ? 4 : 0);
+                        const orderPercent = Math.max((day.orders / maxOrders) * 100, day.orders > 0 ? 6 : 2);
 
                         return (
+                          <div key={idx} className="profit-bar-col" title={`${day.date}\nবিক্রয়: ৳${day.revenue}\nলাভ: ৳${day.profit || 0}\nঅর্ডার: ${day.orders}`}>
+                            {overviewChartMetric === "dual" ? (
+                              <div style={{ display: "flex", alignItems: "flex-end", gap: "4px", width: "100%", height: "100%" }}>
+                                {/* Revenue Bar */}
+                                <div
+                                  style={{
+                                    flex: 1,
+                                    height: `${revPercent}%`,
+                                    background: "linear-gradient(180deg, #6366f1 0%, #3b82f6 100%)",
+                                    borderRadius: "6px 6px 0 0",
+                                    boxShadow: "0 2px 6px rgba(99, 102, 241, 0.2)",
+                                    transition: "all 0.3s ease"
+                                  }}
+                                />
+                                {/* Profit Bar */}
+                                <div
+                                  style={{
+                                    flex: 1,
+                                    height: `${profPercent}%`,
+                                    background: "linear-gradient(180deg, #10b981 0%, #059669 100%)",
+                                    borderRadius: "6px 6px 0 0",
+                                    boxShadow: "0 2px 6px rgba(16, 185, 129, 0.2)",
+                                    transition: "all 0.3s ease"
+                                  }}
+                                />
+                              </div>
+                            ) : (
+                              <div
+                                style={{
+                                  width: "100%",
+                                  height: `${orderPercent}%`,
+                                  background: "linear-gradient(180deg, #8b5cf6 0%, #6366f1 100%)",
+                                  borderRadius: "6px 6px 0 0",
+                                  boxShadow: "0 2px 6px rgba(139, 92, 246, 0.2)",
+                                  transition: "all 0.3s ease"
+                                }}
+                              />
+                            )}
 
-                          <div key={idx} className="profit-bar-col">
-
-                            <span style={{ fontSize: "11px", fontWeight: 700, color: "#64748b" }}>
-
-                              ৳{day.revenue > 0 ? (day.revenue >= 1000 ? `${(day.revenue / 1000).toFixed(1)}k` : day.revenue) : 0}
-
-                            </span>
-
-                            <div
-
-                              className="profit-bar-fill"
-
-                              style={{ height: `${heightPercent}%` }}
-
-                              title={`${day.date}: ৳${day.revenue}`}
-
-                            />
-
-                            <span style={{ fontSize: "12px", color: "#64748b", fontWeight: 700 }}>
-
+                            {/* Label */}
+                            <span style={{ fontSize: "11px", color: "#64748b", fontWeight: 700, whiteSpace: "nowrap", transform: overviewChartDays === 14 ? "rotate(-30deg)" : "none", transformOrigin: "center" }}>
                               {day.date}
-
                             </span>
-
                           </div>
-
                         );
-
                       })}
-
                     </div>
 
+                    {/* Chart Summary Badges */}
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "10px", marginTop: "24px", paddingTop: "14px", borderTop: "1px solid #f1f5f9" }}>
+                      <div style={{ background: "#f8fafc", padding: "10px 14px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+                        <span style={{ fontSize: "11px", fontWeight: 800, color: "#64748b", textTransform: "uppercase" }}>নির্বাচিত রেভিনিউ</span>
+                        <div style={{ fontSize: "16px", fontWeight: 900, color: "#1e293b", marginTop: "2px" }}>৳{periodRevenue.toLocaleString()}</div>
+                      </div>
+                      <div style={{ background: "#ecfdf5", padding: "10px 14px", borderRadius: "12px", border: "1px solid #a7f3d0" }}>
+                        <span style={{ fontSize: "11px", fontWeight: 800, color: "#065f46", textTransform: "uppercase" }}>নির্বাচিত লাভ</span>
+                        <div style={{ fontSize: "16px", fontWeight: 900, color: "#047857", marginTop: "2px" }}>৳{periodProfit.toLocaleString()}</div>
+                      </div>
+                      <div style={{ background: "#f5f3ff", padding: "10px 14px", borderRadius: "12px", border: "1px solid #ddd6fe" }}>
+                        <span style={{ fontSize: "11px", fontWeight: 800, color: "#5b21b6", textTransform: "uppercase" }}>মোট অর্ডার</span>
+                        <div style={{ fontSize: "16px", fontWeight: 900, color: "#6d28d9", marginTop: "2px" }}>{periodOrders} টি</div>
+                      </div>
+                      <div style={{ background: "#eff6ff", padding: "10px 14px", borderRadius: "12px", border: "1px solid #bfdbfe" }}>
+                        <span style={{ fontSize: "11px", fontWeight: 800, color: "#1e40af", textTransform: "uppercase" }}>মোট বিক্রীত ইউনিট</span>
+                        <div style={{ fontSize: "16px", fontWeight: 900, color: "#1d4ed8", marginTop: "2px" }}>{periodItemsSold} পিস</div>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Top Selling Products */}
-
                   <div className="profit-panel-card" style={{ flex: 1 }}>
-
                     <div className="profit-panel-header">
-
                       <h3 className="profit-panel-title">
-
                         <Award size={20} style={{ color: "#f59e0b" }} />
-
-                        Top Selling Products
-
+                        শীর্ষ বিক্রিত প্রোডাক্ট (Top Selling)
                       </h3>
-
                       <p className="profit-panel-sub">
-
-                        Best-performing catalog items by units sold
-
+                        সবচেয়ে বেশি বিক্রিত পণ্যের লাইভ পারফরম্যান্স
                       </p>
-
                     </div>
 
                     {stats.top_products && stats.top_products.length > 0 ? (
-
                       <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-
                         {stats.top_products.map((item, idx) => (
-
                           <div key={idx} className="profit-top-product-item">
-
                             <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0 }}>
-
                               <span style={{
-
                                 width: "26px",
-
                                 height: "26px",
-
                                 borderRadius: "8px",
-
                                 background: idx === 0 ? "#fef3c7" : idx === 1 ? "#eff6ff" : "#f1f5f9",
-
                                 color: idx === 0 ? "#b45309" : idx === 1 ? "#1d4ed8" : "#475569",
-
                                 display: "flex",
-
                                 alignItems: "center",
-
                                 justifyContent: "center",
-
                                 fontWeight: 900,
-
                                 fontSize: "12px",
-
                                 flexShrink: 0
-
                               }}>
-
                                 #{idx + 1}
-
                               </span>
-
                               <span style={{ fontWeight: 700, fontSize: "13px", color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-
                                 {item.name}
-
                               </span>
-
                             </div>
-
-                            <span style={{ fontSize: "12px", fontWeight: 800, color: "#059669", background: "#ecfdf5", border: "1px solid #a7f3d0", padding: "3px 10px", borderRadius: "8px", flexShrink: 0 }}>
-
-                              {item.sold} sold
-
-                            </span>
-
+                            <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
+                              {item.revenue ? (
+                                <span style={{ fontSize: "11px", fontWeight: 700, color: "#475569" }}>
+                                  ৳{item.revenue.toLocaleString()}
+                                </span>
+                              ) : null}
+                              <span style={{ fontSize: "12px", fontWeight: 800, color: "#059669", background: "#ecfdf5", border: "1px solid #a7f3d0", padding: "3px 10px", borderRadius: "8px" }}>
+                                {item.sold} বিক্রি
+                              </span>
+                            </div>
                           </div>
-
                         ))}
-
                       </div>
-
                     ) : (
-
                       <div style={{ color: "#94a3b8", fontSize: "13px", textAlign: "center", padding: "40px 0", fontWeight: 600 }}>
-
-                        No product sales recorded yet.
-
+                        এখনও কোনো বিক্রয় রেকর্ড তৈরি হয়নি।
                       </div>
-
                     )}
-
                   </div>
-
                 </div>
 
-                {/* 4. Recent Orders Panel (Profit Table Style) */}
-
-                <div className="profit-panel-card" style={{ padding: "20px 24px" }}>
-
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "18px", paddingBottom: "14px", borderBottom: "1px solid #f1f5f9" }}>
-
-                    <div>
-
+                {/* 5. Category Breakdown & Price Tiers Row */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: "20px" }}>
+                  {/* Category-wise Stock Valuation & Performance */}
+                  <div className="profit-panel-card" style={{ flex: 1.4 }}>
+                    <div className="profit-panel-header">
                       <h3 className="profit-panel-title">
-
-                        <Package size={20} style={{ color: "#2563eb" }} />
-
-                        Recent Orders (Last 10)
-
+                        <Boxes size={20} style={{ color: "#0d9488" }} />
+                        ক্যাটাগরি অনুযায়ী স্টক ও বিক্রয় বিশ্লেষণ (Category Breakdown)
                       </h3>
-
                       <p className="profit-panel-sub">
-
-                        Latest customer checkouts and fulfillment status
-
+                        প্রতিটি ক্যাটাগরির বর্তমান স্টক মূল্য, ইনভেস্টমেন্ট ও মোট বিক্রয়
                       </p>
+                    </div>
 
+                    {stats.category_breakdown && stats.category_breakdown.length > 0 ? (
+                      <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                        {stats.category_breakdown.map((cat, idx) => {
+                          const stockPercent = Math.min(Math.round((cat.stock_value / totalCatalogStockVal) * 100), 100);
+                          return (
+                            <div key={idx} style={{ background: "#f8fafc", borderRadius: "14px", padding: "14px", border: "1px solid #e2e8f0" }}>
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                  <span style={{ fontWeight: 800, fontSize: "14px", color: "#0f172a" }}>{cat.name}</span>
+                                  <span style={{ fontSize: "11px", fontWeight: 700, color: "#64748b", background: "#e2e8f0", padding: "2px 8px", borderRadius: "6px" }}>
+                                    {cat.product_count} প্রোডাক্ট
+                                  </span>
+                                </div>
+                                <span style={{ fontSize: "13px", fontWeight: 900, color: "#0d9488" }}>
+                                  ৳{cat.stock_value.toLocaleString()} <span style={{ fontSize: "10px", color: "#64748b", fontWeight: 600 }}>(স্টক মূল্য)</span>
+                                </span>
+                              </div>
+
+                              {/* Progress bar */}
+                              <div style={{ width: "100%", height: "6px", background: "#e2e8f0", borderRadius: "4px", overflow: "hidden", marginBottom: "8px" }}>
+                                <div style={{ width: `${Math.max(stockPercent, 2)}%`, height: "100%", background: "linear-gradient(90deg, #0d9488, #10b981)", borderRadius: "4px" }} />
+                              </div>
+
+                              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#64748b", fontWeight: 700 }}>
+                                <span>মজুদ: <b>{cat.stock} পিস</b></span>
+                                <span>বিক্রি: <b>{cat.sold} পিস</b></span>
+                                <span>বিক্রয় রেভিনিউ: <b style={{ color: "#2563eb" }}>৳{cat.revenue.toLocaleString()}</b></span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div style={{ color: "#94a3b8", fontSize: "13px", textAlign: "center", padding: "30px 0" }}>
+                        ক্যাটাগরি ডাটা পাওয়া যায়নি।
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Product Price Range Distribution Tiers */}
+                  <div className="profit-panel-card" style={{ flex: 1 }}>
+                    <div className="profit-panel-header">
+                      <h3 className="profit-panel-title">
+                        <Tag size={20} style={{ color: "#ea580c" }} />
+                        প্রোডাক্ট প্রাইস রেঞ্জ ডিস্ট্রিবিউশন (Price Tiers)
+                      </h3>
+                      <p className="profit-panel-sub">
+                        মূল্য পরিসীমা অনুযায়ী পণ্য ও স্টকের বন্টন
+                      </p>
+                    </div>
+
+                    {stats.price_tiers && stats.price_tiers.length > 0 ? (
+                      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                        {stats.price_tiers.map((tier, idx) => {
+                          const tierProdPercent = stats.total_products > 0 ? Math.round((tier.count / stats.total_products) * 100) : 0;
+                          return (
+                            <div key={idx} style={{ background: "#f8fafc", borderRadius: "12px", padding: "12px 14px", border: "1px solid #e2e8f0" }}>
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                                <span style={{ fontWeight: 800, fontSize: "13px", color: "#1e293b" }}>৳ {tier.label}</span>
+                                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                  <span style={{ fontSize: "12px", fontWeight: 800, color: "#ea580c" }}>{tier.count}টি পণ্য</span>
+                                  <span style={{ fontSize: "11px", fontWeight: 700, color: "#64748b" }}>({tier.total_stock} পিস স্টক)</span>
+                                </div>
+                              </div>
+                              <div style={{ width: "100%", height: "5px", background: "#e2e8f0", borderRadius: "3px", overflow: "hidden" }}>
+                                <div style={{ width: `${Math.max(tierProdPercent, 2)}%`, height: "100%", background: "linear-gradient(90deg, #ea580c, #f59e0b)", borderRadius: "3px" }} />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div style={{ color: "#94a3b8", fontSize: "13px", textAlign: "center", padding: "30px 0" }}>
+                        প্রাইস রেঞ্জ ডাটা প্রস্তুত হচ্ছে।
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* 6. Order Status Pipeline Summary */}
+                <div className="profit-panel-card" style={{ padding: "18px 22px" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px", marginBottom: "14px" }}>
+                    <h3 className="profit-panel-title" style={{ fontSize: "15px" }}>
+                      <ShoppingCart size={18} style={{ color: "#6366f1" }} />
+                      অর্ডার স্ট্যাটাস পাইপলাইন (Order Status Ledger)
+                    </h3>
+                    <span style={{ fontSize: "12px", color: "#64748b", fontWeight: 600 }}>
+                      যেকোনো স্ট্যাটাসে ক্লিক করে সরাসরি ফিল্টার দেখুন
+                    </span>
+                  </div>
+
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+                    {[
+                      { status: "all", label: "মোট অর্ডার", count: stats.total_orders, color: "#0f172a", bg: "#f1f5f9" },
+                      { status: "pending", label: "পেন্ডিং", count: stats.pending_orders, color: "#b45309", bg: "#fef3c7" },
+                      { status: "confirmed", label: "কনফার্মড", count: stats.order_status_counts?.confirmed || 0, color: "#1d4ed8", bg: "#eff6ff" },
+                      { status: "courier_booked", label: "কুরিয়ার বুকড", count: stats.order_status_counts?.courier_booked || 0, color: "#6d28d9", bg: "#f5f3ff" },
+                      { status: "processing", label: "প্রসেসিং", count: stats.order_status_counts?.processing || 0, color: "#0891b2", bg: "#ecfeff" },
+                      { status: "delivered", label: "ডেলিভার্ড", count: stats.delivered_orders, color: "#059669", bg: "#ecfdf5" },
+                      { status: "cancelled", label: "বাতিলকৃত", count: stats.cancelled_orders, color: "#dc2626", bg: "#fef2f2" },
+                    ].map(item => (
+                      <button
+                        key={item.status}
+                        type="button"
+                        onClick={() => {
+                          setOrderStatusFilter(item.status);
+                          navigateToTab("orders");
+                        }}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                          padding: "8px 14px",
+                          borderRadius: "12px",
+                          background: item.bg,
+                          border: "1px solid rgba(0,0,0,0.06)",
+                          cursor: "pointer",
+                          transition: "all 0.15s ease",
+                          color: item.color,
+                          fontWeight: 800,
+                          fontSize: "12px"
+                        }}
+                        title={`View ${item.label} orders`}
+                      >
+                        <span>{item.label}:</span>
+                        <span style={{ background: "#ffffff", padding: "2px 8px", borderRadius: "8px", fontSize: "12px", fontWeight: 900, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+                          {item.count}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 7. Recent Orders Panel (Profit Table Style) */}
+                <div className="profit-panel-card" style={{ padding: "20px 24px" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "18px", paddingBottom: "14px", borderBottom: "1px solid #f1f5f9" }}>
+                    <div>
+                      <h3 className="profit-panel-title">
+                        <Package size={20} style={{ color: "#2563eb" }} />
+                        সাম্প্রতিক অর্ডারসমূহ (Recent Orders)
+                      </h3>
+                      <p className="profit-panel-sub">
+                        গ্রাহকদের সর্বশেষ ১০টি সফল চেকআউট ও ডেলিভারি স্ট্যাটাস
+                      </p>
                     </div>
 
                     <button
-
                       onClick={() => navigateToTab("orders")}
-
                       className="admin-btn-secondary"
-
                       style={{ fontSize: "12px", padding: "7px 14px" }}
-
                     >
-
-                      View All Orders <ArrowUpRight size={13} />
-
+                      সব অর্ডার দেখুন <ArrowUpRight size={13} />
                     </button>
-
                   </div>
 
                   <div style={{ overflowX: "auto" }}>
-
                     <table className="admin-table">
-
                       <thead>
-
                         <tr>
-
                           <th>Order ID</th>
-
                           <th>Customer Name</th>
-
                           <th>Date</th>
-
                           <th>Total</th>
-
                           <th>Status</th>
-
                           <th style={{ textAlign: "right" }}>Action</th>
-
                         </tr>
-
                       </thead>
-
                       <tbody>
-
-                        {stats.recent_orders.map(order => (
-
-                          <tr key={order.id}>
-
-                            <td style={{ fontWeight: 800, color: "#2563eb" }}>#{order.id}</td>
-
-                            <td style={{ fontWeight: 700, color: "#0f172a" }}>{order.customer_name}</td>
-
-                            <td style={{ color: "#64748b", fontSize: "13px" }}>
-
-                              {new Date(order.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
-
+                        {stats.recent_orders && stats.recent_orders.length > 0 ? (
+                          stats.recent_orders.map(order => (
+                            <tr key={order.id}>
+                              <td style={{ fontWeight: 800, color: "#2563eb" }}>#{order.id}</td>
+                              <td style={{ fontWeight: 700, color: "#0f172a" }}>{order.customer_name}</td>
+                              <td style={{ color: "#64748b", fontSize: "13px" }}>
+                                {new Date(order.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
+                              </td>
+                              <td style={{ fontWeight: 800, color: "#0f172a" }}>৳{order.total}</td>
+                              <td>
+                                <span className={`admin-badge ${order.status}`}>
+                                  {order.status_display || order.status}
+                                </span>
+                              </td>
+                              <td style={{ textAlign: "right" }}>
+                                <button
+                                  onClick={() => { setSelectedOrder(order); navigateToTab("orders"); }}
+                                  className="admin-btn-secondary"
+                                  style={{ padding: "5px 12px", fontSize: "11px", fontWeight: 700 }}
+                                >
+                                  Details
+                                </button>
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={6} style={{ textAlign: "center", padding: "30px", color: "#94a3b8" }}>
+                              এখনও কোনো অর্ডার আসেনি।
                             </td>
-
-                            <td style={{ fontWeight: 800, color: "#0f172a" }}>৳{order.total}</td>
-
-                            <td>
-
-                              <span className={`admin-badge ${order.status}`}>
-
-                                {order.status_display || order.status}
-
-                              </span>
-
-                            </td>
-
-                            <td style={{ textAlign: "right" }}>
-
-                              <button
-
-                                onClick={() => { setSelectedOrder(order); navigateToTab("orders"); }}
-
-                                className="admin-btn-secondary"
-
-                                style={{ padding: "5px 12px", fontSize: "11px", fontWeight: 700 }}
-
-                              >
-
-                                Details
-
-                              </button>
-
-                            </td>
-
                           </tr>
-
-                        ))}
-
+                        )}
                       </tbody>
-
                     </table>
-
                   </div>
-
                 </div>
 
               </div>
-
-          )}
+              );
+            })()}
 
         {/* ORDERS TAB (Fulfillment Powerhouse with Status Tabs, Bulk Actions & WhatsApp) */}
 
