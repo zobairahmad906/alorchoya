@@ -59,6 +59,8 @@ export default function CheckoutPage() {
 
   const [savedAddresses, setSavedAddresses] = useState<{ id: number; label: string; recipient_name: string; phone: string; address: string; district: string; upazila?: string }[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null);
+  const [autoResolving, setAutoResolving] = useState(false);
+  const pendingAddressRef = useRef<{ id: number; recipient_name: string; phone: string; address: string; district: string; upazila?: string } | null>(null);
 
   useEffect(() => {
     // 1. Fetch CSRF token
@@ -80,7 +82,12 @@ export default function CheckoutPage() {
         const cityResponse = await fetch(`${API}/checkout/couriers/${provider}/cities/`);
         const cityData = await cityResponse.json();
         if (!cityResponse.ok) throw new Error(cityData.error || "Could not load courier cities.");
-        setCities(normalizeLocations(cityData.results || [], "cities"));
+        const loadedCities = normalizeLocations(cityData.results || [], "cities");
+        setCities(loadedCities);
+        if (pendingAddressRef.current) {
+          void autoResolveCourier(pendingAddressRef.current, provider, loadedCities);
+          pendingAddressRef.current = null;
+        }
       })
       .catch(error => setCourierError(error instanceof Error ? error.message : "Could not connect to the courier."))
       .finally(() => setCitiesLoading(false));
@@ -116,13 +123,157 @@ export default function CheckoutPage() {
       .catch(() => undefined);
   }, []);
 
+
+  const BN_TO_EN_MAP: Record<string, string> = {
+    "ঢাকা": "dhaka", "ধানমন্ডি": "dhanmondi", "গুলশান": "gulshan", "বনানী": "banani", "উত্তরা": "uttara",
+    "মিরপুর": "mirpur", "মোহাম্মদপুর": "mohammadpur", "বাড্ডা": "badda", "খিলগাঁও": "khilgaon",
+    "যাত্রাবাড়ী": "jatrabari", "লালবাগ": "lalbagh", "মতিঝিল": "motijheel", "শাহবাগ": "shahbagh",
+    "পল্টন": "paltan", "তেজগাঁও": "tejgaon", "রমনা": "ramna", "সাভার": "savar",
+    "ধামরাই": "dhamrai", "কেরানীগঞ্জ": "keraniganj", "গাজীপুর": "gazipur", "টঙ্গী": "tongi",
+    "নারায়ণগঞ্জ": "narayanganj", "কালিয়াকৈড়": "kaliakair", "শ্রীপুর": "sreepur", "চট্টগ্রাম": "chittagong",
+    "পটিয়া": "patia", "হাটহাজারী": "hathazari", "কক্সবাজার": "cox", "কুমিল্লা": "cumilla",
+    "ফেনী": "feni", "নোয়াখালী": "noakhali", "সিলেট": "sylhet", "রাজশাহী": "rajshahi",
+    "বগুড়া": "bogra", "খুলনা": "khulna", "যশোর": "jashore", "বরিশাল": "barishal",
+    "রংপুর": "rangpur", "ময়মনসিংহ": "mymensingh", "পাবনা": "pabna", "সিরাজগঞ্জ": "sirajganj",
+    "টাঙ্গাইল": "tangail", "ফরিদপুর": "faridpur", "ব্রাহ্মণবাড়িয়া": "brahmanbaria", "চাঁদপুর": "chandpur"
+  };
+
+  const autoResolveCourier = async (
+    addr: { id: number; recipient_name: string; phone: string; address: string; district: string; upazila?: string },
+    provider: string,
+    cityList: LocationOption[]
+  ) => {
+    if (!addr || !provider || !cityList.length) return;
+    setAutoResolving(true);
+    setCourierError("");
+
+    try {
+      // 1. Try local cache
+      try {
+        const cached = JSON.parse(localStorage.getItem(`courier-addr-${addr.id}`) || "null");
+        if (cached && cached.city_id && cached.zone_id && cached.area_id) {
+          const cityValid = cityList.some(c => c.id === cached.city_id);
+          if (cityValid) {
+            setCityId(cached.city_id);
+            const zRes = await fetch(`${API}/checkout/couriers/${provider}/zones/?city_id=${encodeURIComponent(cached.city_id)}`);
+            const zData = await zRes.json();
+            const zList = normalizeLocations(zData.results || [], "zones");
+            setZones(zList);
+            setZoneId(cached.zone_id);
+
+            const aRes = await fetch(`${API}/checkout/couriers/${provider}/areas/?zone_id=${encodeURIComponent(cached.zone_id)}`);
+            const aData = await aRes.json();
+            const aList = normalizeLocations(aData.results || [], "areas");
+            setAreas(aList);
+            setAreaId(cached.area_id);
+            setAutoResolving(false);
+            return;
+          }
+        }
+      } catch { /* proceed to auto match */ }
+
+      // 2. Intelligent Match for City
+      const rawDistrict = (addr.district || "").toLowerCase();
+      const rawUpazila = (addr.upazila || "").toLowerCase();
+      const rawAddress = (addr.address || "").toLowerCase();
+
+      const tokens: string[] = [];
+      const addTokens = (str: string) => {
+        str.split(/[\s,()\/–—\-]+/).forEach(p => {
+          const trimmed = p.trim();
+          if (trimmed.length >= 2) {
+            tokens.push(trimmed);
+            if (BN_TO_EN_MAP[trimmed]) tokens.push(BN_TO_EN_MAP[trimmed]);
+          }
+        });
+      };
+      addTokens(rawDistrict);
+      addTokens(rawUpazila);
+      addTokens(rawAddress);
+
+      // Find city
+      let matchedCity = cityList.find(c => {
+        const cName = c.name.toLowerCase();
+        return tokens.some(t => cName.includes(t) || t.includes(cName));
+      });
+      if (!matchedCity) {
+        matchedCity = cityList.find(c => c.name.toLowerCase().includes("dhaka")) || cityList[0];
+      }
+      if (!matchedCity) {
+        setAutoResolving(false);
+        return;
+      }
+
+      setCityId(matchedCity.id);
+      setZonesLoading(true);
+
+      // Load zones
+      const zRes = await fetch(`${API}/checkout/couriers/${provider}/zones/?city_id=${encodeURIComponent(matchedCity.id)}`);
+      const zData = await zRes.json();
+      const zList = normalizeLocations(zData.results || [], "zones");
+      setZones(zList);
+      setZonesLoading(false);
+
+      if (!zList.length) {
+        setAutoResolving(false);
+        return;
+      }
+
+      // Match zone
+      const matchedZone = zList.find(z => {
+        const zName = z.name.toLowerCase();
+        return tokens.some(t => zName.includes(t) || t.includes(zName));
+      }) || zList[0];
+
+      setZoneId(matchedZone.id);
+      setAreasLoading(true);
+
+      // Load areas
+      const aRes = await fetch(`${API}/checkout/couriers/${provider}/areas/?zone_id=${encodeURIComponent(matchedZone.id)}`);
+      const aData = await aRes.json();
+      const aList = normalizeLocations(aData.results || [], "areas");
+      setAreas(aList);
+      setAreasLoading(false);
+
+      if (!aList.length) {
+        setAutoResolving(false);
+        return;
+      }
+
+      // Match area
+      const matchedArea = aList.find(a => {
+        const aName = a.name.toLowerCase();
+        return tokens.some(t => aName.includes(t) || t.includes(aName));
+      }) || aList[0];
+
+      setAreaId(matchedArea.id);
+
+      // Cache for next time
+      try {
+        localStorage.setItem(`courier-addr-${addr.id}`, JSON.stringify({
+          city_id: matchedCity.id,
+          zone_id: matchedZone.id,
+          area_id: matchedArea.id
+        }));
+      } catch { /* ignore */ }
+    } catch (err) {
+      console.error("Auto resolve courier error:", err);
+    } finally {
+      setAutoResolving(false);
+    }
+  };
+
   const handleSelectSavedAddress = (addr: { id: number; recipient_name: string; phone: string; address: string; district: string; upazila?: string }) => {
     setSelectedAddressId(addr.id);
-    setCityId(""); setZoneId(""); setAreaId(""); setZones([]); setAreas([]);
-    setDeliveryCharge(null);
     if (addr.recipient_name) setName(addr.recipient_name);
     if (addr.phone) setPhone(addr.phone);
     setDeliveryAddress(addr.address);
+
+    if (courierProvider && cities.length > 0) {
+      void autoResolveCourier(addr, courierProvider, cities);
+    } else {
+      pendingAddressRef.current = addr;
+    }
   };
 
   const handleCityChange = async (value: string) => {
@@ -510,43 +661,69 @@ export default function CheckoutPage() {
                       </div>
                     )}
 
+                    {/* Auto-resolved Courier Info Box for Saved Addresses */}
+                    {selectedAddressId && cityId && zoneId && areaId && !autoResolving && (
+                      <div style={{ backgroundColor: "#ecfdf5", border: "1px solid #10b981", borderRadius: "10px", padding: "12px 16px", marginBottom: "18px", display: "flex", alignItems: "center", gap: "10px" }}>
+                        <span style={{ fontSize: "1.2rem", color: "#10b981" }}>✓</span>
+                        <div style={{ flex: 1, fontSize: "0.9rem", color: "#065f46" }}>
+                          <strong>সংরক্ষিত ঠিকানা থেকে কুরিয়ার লোকেশন স্বয়ংক্রিয়ভাবে যুক্ত হয়েছে:</strong>
+                          <div style={{ fontSize: "0.85rem", color: "#047857", marginTop: "2px", fontWeight: 600 }}>
+                            {cities.find(c => c.id === cityId)?.name || ""} ➔ {zones.find(z => z.id === zoneId)?.name || ""} ➔ {areas.find(a => a.id === areaId)?.name || ""}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {autoResolving && (
+                      <div style={{ backgroundColor: "#eff6ff", border: "1px solid #93c5fd", borderRadius: "10px", padding: "12px 16px", marginBottom: "18px", fontSize: "0.9rem", color: "#1e40af" }}>
+                        ⏳ সংরক্ষিত ঠিকানার কুরিয়ার লোকেশন ও ডেলিভারি চার্জ স্বয়ংক্রিয়ভাবে লোড হচ্ছে...
+                      </div>
+                    )}
+
                     <div className="field-group" style={{ marginBottom: "18px" }}>
-                      <label>Delivery courier</label>
+                      <label>কুরিয়ার সার্ভিস</label>
                       <select value={courierProvider} disabled={courierOptions.length <= 1} onChange={e => { setCourierProvider(e.target.value); setCityId(""); setZoneId(""); setAreaId(""); setZones([]); setAreas([]); setDeliveryCharge(null); }}>
-                        <option value="">Choose courier</option>
+                        <option value="">কুরিয়ার বেছে নিন</option>
                         {courierOptions.map(option => <option key={option.id} value={option.id}>{option.name}</option>)}
                       </select>
                     </div>
+
                     <div className="contact-inputs-grid" style={{ marginBottom: "18px" }}>
                       <div className="field-group">
-                        <label>City *</label>
+                        <label>শহর / জেলা *</label>
                         <select required value={cityId} disabled={citiesLoading || !cities.length} aria-busy={citiesLoading} onChange={e => handleCityChange(e.target.value)}>
-                          <option value="">{citiesLoading ? "Loading cities..." : "Choose city"}</option>
+                          <option value="">{citiesLoading ? "শহর লোড হচ্ছে..." : "-- শহর / জেলা বেছে নিন --"}</option>
                           {cities.map(option => <option key={option.id} value={option.id}>{option.name}</option>)}
                         </select>
                       </div>
                       <div className="field-group">
-                        <label>Zone *</label>
+                        <label>থানা / জোন *</label>
                         <select required value={zoneId} disabled={!cityId || zonesLoading || !zones.length} aria-busy={zonesLoading} onChange={e => handleZoneChange(e.target.value)}>
-                          <option value="">{zonesLoading ? "Loading zones..." : "Choose zone"}</option>
+                          <option value="">{zonesLoading ? "জোন লোড হচ্ছে..." : "-- থানা / জোন বেছে নিন --"}</option>
                           {zones.map(option => <option key={option.id} value={option.id}>{option.name}</option>)}
                         </select>
                       </div>
                       <div className="field-group">
-                        <label>Area *</label>
+                        <label>এলাকা / এরিয়া *</label>
                         <select required value={areaId} disabled={!zoneId || areasLoading || !areas.length} aria-busy={areasLoading} onChange={e => { setAreaId(e.target.value); setDeliveryCharge(null); }}>
-                          <option value="">{areasLoading ? "Loading areas..." : "Choose area"}</option>
+                          <option value="">{areasLoading ? "এলাকা লোড হচ্ছে..." : "-- এলাকা বেছে নিন --"}</option>
                           {areas.map(option => <option key={option.id} value={option.id}>{option.name}</option>)}
                         </select>
                       </div>
                     </div>
+
                     {courierError && <div className="checkout-error-box" role="alert">{courierError}</div>}
-                    {quoteLoading && <p aria-live="polite">Checking live delivery charge...</p>}
-                    {deliveryCharge !== null && !quoteLoading && <p aria-live="polite">Live delivery charge: <strong>BDT {deliveryCharge.toLocaleString("bn-BD")}</strong></p>}
+                    {quoteLoading && <p aria-live="polite" style={{ color: "#0284c7", fontWeight: 600 }}>লাইভ ডেলিভারি চার্জ যাচাই করা হচ্ছে...</p>}
+                    {deliveryCharge !== null && !quoteLoading && (
+                      <div style={{ backgroundColor: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "10px 14px", marginTop: "10px", marginBottom: "16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span style={{ fontSize: "0.9rem", color: "#334155", fontWeight: 600 }}>ডেলিভারি চার্জ:</span>
+                        <strong style={{ fontSize: "1.05rem", color: "#059669" }}>৳{deliveryCharge.toLocaleString("bn-BD")}</strong>
+                      </div>
+                    )}
 
                     <div className="field-group">
-                      <label>Detailed address (house, road, landmark) *</label>
-                      <textarea required rows={4} value={deliveryAddress} onChange={e => setDeliveryAddress(e.target.value)} placeholder="House, road, area, and a nearby landmark" style={{ lineHeight: "1.5", fontSize: "0.9rem" }} />
+                      <label>বিস্তারিত ঠিকানা (বাসা/হোল্ডিং, রোড, ল্যান্ডমার্ক) *</label>
+                      <textarea required rows={4} value={deliveryAddress} onChange={e => setDeliveryAddress(e.target.value)} placeholder="বাসা নম্বর, রোড নম্বর, এলাকা ও আশেপাশের পরিচিত স্থান" style={{ lineHeight: "1.5", fontSize: "0.9rem" }} />
                     </div>
                   </div>
 
