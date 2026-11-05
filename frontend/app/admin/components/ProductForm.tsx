@@ -142,12 +142,24 @@ export interface ProductFormData {
   variants: VariantItem[];
 }
 
+export function cleanImageUrl(url?: string | null): string {
+  if (!url) return "";
+  if (url.includes("minio:9000") || url.includes("://minio/")) {
+    return url.replace(/^https?:\/\/minio(:9000)?\/?/i, "https://minio-alorchoya.newsmartagent.com/");
+  }
+  if (url.startsWith("http://minio-alorchoya.newsmartagent.com")) {
+    return url.replace("http://", "https://");
+  }
+  return url;
+}
+
 interface ProductFormProps {
   initialProduct?: any;
   categories: { id: number; name: string }[];
   onSaveSuccess: () => void;
   onCancel: () => void;
   getApiUrl: (endpoint: string) => string;
+  csrfToken?: string;
 }
 
 export default function ProductForm({
@@ -156,8 +168,41 @@ export default function ProductForm({
   onSaveSuccess,
   onCancel,
   getApiUrl,
+  csrfToken,
 }: ProductFormProps) {
   const isEdit = Boolean(initialProduct?.id);
+  const [csrf, setCsrf] = useState<string>(csrfToken || "");
+
+  useEffect(() => {
+    if (csrfToken) {
+      setCsrf(csrfToken);
+      return;
+    }
+    if (typeof document !== "undefined") {
+      const match = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
+      if (match) {
+        setCsrf(decodeURIComponent(match[1]));
+        return;
+      }
+    }
+    fetch(getApiUrl("/auth/csrf/"), { credentials: "include" })
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.csrfToken) setCsrf(d.csrfToken);
+      })
+      .catch(() => undefined);
+  }, [csrfToken, getApiUrl]);
+
+  const getCsrfHeader = (): Record<string, string> => {
+    let token = csrf;
+    if (!token && typeof document !== "undefined") {
+      const match = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
+      if (match) token = decodeURIComponent(match[1]);
+    }
+    const headers: Record<string, string> = {};
+    if (token) headers["X-CSRFToken"] = token;
+    return headers;
+  };
 
   const [form, setForm] = useState<ProductFormData>({
     id: initialProduct?.id,
@@ -359,7 +404,7 @@ export default function ProductForm({
 
     existingGallery.forEach((img) => {
       if (img.variant_id && (img.variant_id === variant?.id || String(img.variant_id) === String(variant?.id))) {
-        images.push({ type: "existing", id: img.id, url: img.image });
+        images.push({ type: "existing", id: img.id, url: cleanImageUrl(img.image) });
       }
     });
 
@@ -419,7 +464,7 @@ export default function ProductForm({
       const url = isEdit ? getApiUrl(`/admin/products/${form.id}/`) : getApiUrl("/admin/products/");
       const res = await fetch(url, {
         method: isEdit ? "PATCH" : "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getCsrfHeader() },
         credentials: "include",
         body: JSON.stringify(payload),
       });
@@ -440,13 +485,14 @@ export default function ProductForm({
         audioData.append("voice_audio_file", form.voice_audio_file);
         await fetch(getApiUrl(`/admin/products/${prodId}/`), {
           method: "PATCH",
+          headers: getCsrfHeader(),
           credentials: "include",
           body: audioData,
         });
       } else if (form.remove_voice_audio && prodId) {
         await fetch(getApiUrl(`/admin/products/${prodId}/`), {
           method: "PATCH",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...getCsrfHeader() },
           credentials: "include",
           body: JSON.stringify({ remove_voice_audio: true }),
         });
@@ -476,6 +522,7 @@ export default function ProductForm({
           if (vId) imgFormData.append("variant_id", vId);
           await fetch(getApiUrl(`/products/${prodId}/upload-images/`), {
             method: "POST",
+            headers: getCsrfHeader(),
             credentials: "include",
             body: imgFormData,
           });
@@ -496,6 +543,7 @@ export default function ProductForm({
     try {
       const res = await fetch(getApiUrl(`/admin/products/images/${imgId}/`), {
         method: "DELETE",
+        headers: getCsrfHeader(),
         credentials: "include",
       });
       if (res.ok) {
@@ -510,7 +558,7 @@ export default function ProductForm({
     try {
       const res = await fetch(getApiUrl(`/admin/products/images/${imgId}/`), {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getCsrfHeader() },
         credentials: "include",
         body: JSON.stringify({ is_primary: true }),
       });
@@ -529,7 +577,7 @@ export default function ProductForm({
     try {
       await fetch(getApiUrl(`/admin/products/images/${imgId}/`), {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getCsrfHeader() },
         credentials: "include",
         body: JSON.stringify({ variant_id: val }),
       });
@@ -1764,7 +1812,7 @@ export default function ProductForm({
                     }}
                   >
                     <div style={{ position: "relative", width: "100%", height: "110px", background: "#f8fafc" }}>
-                      <img src={img.image} alt={img.alt_text || ""} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      <img src={cleanImageUrl(img.image)} alt={img.alt_text || ""} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                       {img.is_primary && (
                         <span
                           style={{
@@ -2144,7 +2192,7 @@ export default function ProductForm({
                       overflow: "hidden",
                     }}
                   >
-                    <img src={img.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    <img src={cleanImageUrl(img.url)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                   </div>
                 ))}
                 {getVariantImages(form.variants[activeVariantModalIndex], activeVariantModalIndex).length === 0 && (

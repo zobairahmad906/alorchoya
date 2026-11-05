@@ -5126,7 +5126,7 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
               }}
 
               getApiUrl={getApiUrl}
-
+              csrfToken={csrfToken}
             />
 
           ) : (

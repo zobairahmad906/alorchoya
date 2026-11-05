@@ -46,11 +46,18 @@ else:
     AWS_S3_ADDRESSING_STYLE = "path"
     AWS_QUERYSTRING_AUTH = False
     AWS_S3_FILE_OVERWRITE = False
+    _minio_public = os.getenv("MINIO_PUBLIC_ENDPOINT", "minio-alorchoya.newsmartagent.com").strip()
+    if _minio_public:
+        _proto = "http:" if _minio_public in ("localhost:9000", "127.0.0.1:9000") else "https:"
+        AWS_S3_URL_PROTOCOL = _proto
+        AWS_S3_CUSTOM_DOMAIN = f"{_minio_public}/{AWS_STORAGE_BUCKET_NAME}"
+        MEDIA_URL = f"{_proto}//{_minio_public}/{AWS_STORAGE_BUCKET_NAME}/"
+    else:
+        MEDIA_URL = f"http://localhost:9000/{AWS_STORAGE_BUCKET_NAME}/"
     STORAGES = {
         "default": {"BACKEND": "storages.backends.s3boto3.S3Boto3Storage"},
         "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
     }
-    MEDIA_URL = f"http://{os.getenv('MINIO_PUBLIC_ENDPOINT', 'localhost:9000')}/{AWS_STORAGE_BUCKET_NAME}/"
     LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
 USE_I18N = True

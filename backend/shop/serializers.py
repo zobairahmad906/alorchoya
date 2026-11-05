@@ -1,10 +1,47 @@
 import os
+import re
 from django.utils import timezone
 from django.db import transaction
 from rest_framework import serializers
 from rest_framework.exceptions import APIException
 from .models import Category, Product, ProductVariant, ProductImage, Order, OrderItem, Cart, CartItem, DeliveryZone, Coupon, Review, CustomerProfile, CustomerAddress, ProductImageAsset, ProductImageAssetLink, HeroSlide, CourierConfig
 from .courier import PathaoCourierClient
+
+
+def build_media_url(file_field, request=None):
+    if not file_field:
+        return None
+    try:
+        url = file_field.url
+    except Exception:
+        return None
+    if not url:
+        return None
+    if url.startswith("/"):
+        return request.build_absolute_uri(url) if request else url
+
+    public = os.getenv("MINIO_PUBLIC_ENDPOINT", "minio-alorchoya.newsmartagent.com").strip()
+    if not public or public in ("localhost:9000", "127.0.0.1:9000"):
+        if request and request.is_secure():
+            public = "minio-alorchoya.newsmartagent.com"
+        elif os.getenv("DEBUG", "0") != "1":
+            public = "minio-alorchoya.newsmartagent.com"
+        else:
+            public = "localhost:9000"
+
+    scheme = "http" if public in ("localhost:9000", "127.0.0.1:9000") else "https"
+    public_clean = re.sub(r"^https?://", "", public).rstrip("/")
+
+    cleaned = re.sub(r"^https?://minio(:9000)?", f"{scheme}://{public_clean}", url)
+    internal = os.getenv("MINIO_ENDPOINT", "minio:9000").strip()
+    internal_clean = re.sub(r"^https?://", "", internal).rstrip("/")
+    if internal_clean:
+        cleaned = re.sub(r"^https?://" + re.escape(internal_clean), f"{scheme}://{public_clean}", cleaned)
+
+    if scheme == "https" and cleaned.startswith(f"http://{public_clean}"):
+        cleaned = cleaned.replace(f"http://{public_clean}", f"https://{public_clean}")
+
+    return cleaned
 
 
 class CourierServiceUnavailable(APIException):
@@ -33,16 +70,7 @@ class ProductImageSerializer(serializers.ModelSerializer):
         fields = ("id", "image", "hero_desktop", "hero_mobile", "card_image", "alt_text", "is_primary", "variant_id")
 
     def _get_file_url(self, file):
-        if not file:
-            return None
-        url = file.url
-        if url.startswith("/"):
-            request = self.context.get("request")
-            return request.build_absolute_uri(url) if request else url
-        internal = os.getenv("MINIO_ENDPOINT", "minio:9000")
-        public = os.getenv("MINIO_PUBLIC_ENDPOINT", "localhost:9000")
-        scheme = "https" if public not in ("localhost:9000", "127.0.0.1:9000") else "http"
-        return url.replace(f"http://{internal}", f"{scheme}://{public}")
+        return build_media_url(file, self.context.get("request"))
 
     def get_image(self, obj):
         return self._get_file_url(obj.image)
@@ -93,9 +121,7 @@ class ProductSerializer(serializers.ModelSerializer):
     def get_voice_audio_file(self, obj):
         if not obj.voice_audio_file:
             return None
-        url = obj.voice_audio_file.url
-        request = self.context.get("request")
-        return request.build_absolute_uri(url) if request else url
+        return build_media_url(obj.voice_audio_file, self.context.get("request"))
 
     def get_reviews(self, obj):
         approved = obj.reviews.filter(is_approved=True)
@@ -316,14 +342,7 @@ class CustomerOrderItemSerializer(serializers.ModelSerializer):
         file_obj = img_obj.card_image or img_obj.hero_desktop or img_obj.image
         if not file_obj:
             return None
-        url = file_obj.url
-        if url.startswith("/"):
-            request = self.context.get("request")
-            return request.build_absolute_uri(url) if request else url
-        internal = os.getenv("MINIO_ENDPOINT", "minio:9000")
-        public = os.getenv("MINIO_PUBLIC_ENDPOINT", "localhost:9000")
-        scheme = "https" if public not in ("localhost:9000", "127.0.0.1:9000") else "http"
-        return url.replace(f"http://{internal}", f"{scheme}://{public}")
+        return build_media_url(file_obj, self.context.get("request"))
 
 class CustomerOrderSerializer(serializers.ModelSerializer):
     total = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
@@ -415,19 +434,7 @@ class ProductImageAssetSerializer(serializers.ModelSerializer):
     dimensions = serializers.SerializerMethodField()
 
     def _get_file_url(self, file_field):
-        if not file_field:
-            return None
-        try:
-            url = file_field.url
-        except Exception:
-            return None
-        if url.startswith("/"):
-            request = self.context.get("request")
-            return request.build_absolute_uri(url) if request else url
-        internal = os.getenv("MINIO_ENDPOINT", "minio:9000")
-        public = os.getenv("MINIO_PUBLIC_ENDPOINT", "localhost:9000")
-        scheme = "https" if public not in ("localhost:9000", "127.0.0.1:9000") else "http"
-        return url.replace(f"http://{internal}", f"{scheme}://{public}")
+        return build_media_url(file_field, self.context.get("request"))
 
     def get_image(self, obj):
         return self._get_file_url(obj.image)
@@ -505,19 +512,7 @@ class HeroSlideSerializer(serializers.ModelSerializer):
         }
 
     def _get_file_url(self, file_field):
-        if not file_field:
-            return None
-        try:
-            url = file_field.url
-        except Exception:
-            return None
-        if url.startswith("/"):
-            request = self.context.get("request")
-            return request.build_absolute_uri(url) if request else url
-        internal = os.getenv("MINIO_ENDPOINT", "minio:9000")
-        public = os.getenv("MINIO_PUBLIC_ENDPOINT", "localhost:9000")
-        scheme = "https" if public not in ("localhost:9000", "127.0.0.1:9000") else "http"
-        return url.replace(f"http://{internal}", f"{scheme}://{public}")
+        return build_media_url(file_field, self.context.get("request"))
 
     def to_representation(self, instance):
         data = super().to_representation(instance)

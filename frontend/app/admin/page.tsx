@@ -109,6 +109,7 @@ export default function AdminDashboardPage() {
   // Product modal / editing state
   const [editingProduct, setEditingProduct] = useState<Partial<Product> | null>(null);
   const [showProductForm, setShowProductForm] = useState(false);
+  const [csrfToken, setCsrfToken] = useState("");
   const [showProductModal, setShowProductModal] = useState(false);
   const [productForm, setProductForm] = useState({
     name: "",
@@ -190,6 +191,13 @@ export default function AdminDashboardPage() {
   };
 
   useEffect(() => {
+    fetch(getApiUrl("/auth/csrf/"), { credentials: "include" })
+      .then((res) => res.json())
+      .then((data) => setCsrfToken(data.csrfToken || ""))
+      .catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
     fetchDashboardData();
   }, [orderStatusFilter]);
 
@@ -254,7 +262,7 @@ export default function AdminDashboardPage() {
     try {
       const res = await fetch(getApiUrl(`/admin/products/${product.id}/`), {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(csrfToken ? { "X-CSRFToken": csrfToken } : {}) },
         credentials: "include",
         body: JSON.stringify({ stock: newStock })
       });
@@ -271,7 +279,7 @@ export default function AdminDashboardPage() {
     try {
       const res = await fetch(getApiUrl(`/admin/products/${product.id}/`), {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(csrfToken ? { "X-CSRFToken": csrfToken } : {}) },
         credentials: "include",
         body: JSON.stringify({ is_active: newStatus })
       });
@@ -287,7 +295,7 @@ export default function AdminDashboardPage() {
     try {
       const res = await fetch(getApiUrl(`/admin/orders/${orderId}/`), {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(csrfToken ? { "X-CSRFToken": csrfToken } : {}) },
         credentials: "include",
         body: JSON.stringify({ status: newStatus })
       });
@@ -314,7 +322,7 @@ export default function AdminDashboardPage() {
       
       const res = await fetch(url, {
         method: isEdit ? "PATCH" : "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(csrfToken ? { "X-CSRFToken": csrfToken } : {}) },
         credentials: "include",
         body: JSON.stringify(productForm)
       });
@@ -337,6 +345,7 @@ export default function AdminDashboardPage() {
     try {
       const res = await fetch(getApiUrl(`/admin/products/${productId}/`), {
         method: "DELETE",
+        headers: { ...(csrfToken ? { "X-CSRFToken": csrfToken } : {}) },
         credentials: "include"
       });
       if (res.ok) {
@@ -1103,6 +1112,7 @@ export default function AdminDashboardPage() {
                 setEditingProduct(null);
               }}
               getApiUrl={getApiUrl}
+              csrfToken={csrfToken}
             />
           ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>

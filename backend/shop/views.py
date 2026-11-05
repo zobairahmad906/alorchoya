@@ -12,7 +12,7 @@ from django.http import JsonResponse
 import json
 from django.shortcuts import get_object_or_404
 from .models import Category, Product, ProductVariant, ProductImage, Cart, CartItem, DeliveryZone, Order, OrderItem, CustomerProfile, CustomerAddress, Review, ProductImageAsset, ProductImageAssetLink, Coupon, HeroSlide, CourierConfig
-from .serializers import CategorySerializer, ProductSerializer, ProductImageSerializer, OrderSerializer, CartSerializer, CartItemSerializer, DeliveryZoneSerializer, OrderTrackingSerializer, ReviewSerializer, CustomerProfileSerializer, CustomerAddressSerializer, CustomerOrderSerializer, ProductImageAssetSerializer, ProductImageAssetLinkSerializer, AdminCouponSerializer, HeroSlideSerializer, CourierConfigSerializer
+from .serializers import CategorySerializer, ProductSerializer, ProductImageSerializer, OrderSerializer, CartSerializer, CartItemSerializer, DeliveryZoneSerializer, OrderTrackingSerializer, ReviewSerializer, CustomerProfileSerializer, CustomerAddressSerializer, CustomerOrderSerializer, ProductImageAssetSerializer, ProductImageAssetLinkSerializer, AdminCouponSerializer, HeroSlideSerializer, CourierConfigSerializer, build_media_url
 from .courier import SteadFastCourierClient, PathaoCourierClient
 
 from django.views.decorators.csrf import csrf_exempt
@@ -415,11 +415,19 @@ class AdminLoginView(APIView):
 # ==================== ADMIN DASHBOARD APIS ====================
 from decimal import Decimal
 from rest_framework.permissions import IsAdminUser
+from rest_framework.authentication import SessionAuthentication, BasicAuthentication
 from django.db.models import Sum, Count, Q, F
 from django.utils import timezone
 from datetime import timedelta
 
+
+class CsrfExemptSessionAuthentication(SessionAuthentication):
+    def enforce_csrf(self, request):
+        return  # Relax CSRF enforcement for authenticated staff API calls
+
+
 class AdminDashboardStatsView(APIView):
+    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
     permission_classes = (IsAdminUser,)
 
     def get(self, request):
@@ -519,8 +527,7 @@ class AdminDashboardStatsView(APIView):
                 if img:
                     file_obj = img.card_image or img.hero_desktop or img.image
                     if file_obj:
-                        url = file_obj.url
-                        img_url = request.build_absolute_uri(url) if (url and url.startswith("/")) else url
+                        img_url = build_media_url(file_obj, request)
             top_products.append({
                 "id": prod_id,
                 "name": item["product__name"] or "Unknown",
@@ -604,6 +611,7 @@ class AdminDashboardStatsView(APIView):
 
 
 class AdminOrderListDetailView(APIView):
+    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
     permission_classes = (IsAdminUser,)
 
     def get(self, request, pk=None):
@@ -655,6 +663,7 @@ class AdminOrderListDetailView(APIView):
 
 
 class AdminCustomerListView(APIView):
+    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
     permission_classes = (IsAdminUser,)
 
     def get(self, request):
@@ -729,14 +738,7 @@ class AdminCustomerListView(APIView):
                     if img_obj:
                         file_obj = img_obj.card_image or img_obj.hero_desktop or img_obj.image
                         if file_obj:
-                            url = file_obj.url
-                            if url.startswith("/"):
-                                img_url = request.build_absolute_uri(url)
-                            else:
-                                internal = os.getenv("MINIO_ENDPOINT", "minio:9000")
-                                public = os.getenv("MINIO_PUBLIC_ENDPOINT", "localhost:9000")
-                                scheme = "https" if public not in ("localhost:9000", "127.0.0.1:9000") else "http"
-                                img_url = url.replace(f"http://{internal}", f"{scheme}://{public}")
+                            img_url = build_media_url(file_obj, request)
                     cust["purchased_products"].append({
                         "id": itm.product_id,
                         "name": itm.product.name,
@@ -751,6 +753,7 @@ class AdminCustomerListView(APIView):
 
 
 class AdminCouponView(APIView):
+    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
     permission_classes = (IsAdminUser,)
 
     def get(self, request, pk=None):
@@ -782,6 +785,7 @@ class AdminCouponView(APIView):
 
 
 class AdminCourierConfigView(APIView):
+    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
     permission_classes = (IsAdminUser,)
 
     def get(self, request):
@@ -810,6 +814,7 @@ class AdminCourierConfigView(APIView):
 
 
 class AdminCourierBookView(APIView):
+    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
     permission_classes = (IsAdminUser,)
 
     def post(self, request):
@@ -907,6 +912,7 @@ class AdminCourierBookView(APIView):
 
 
 class AdminCourierTrackView(APIView):
+    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
     permission_classes = (IsAdminUser,)
 
     def get(self, request, order_id):
@@ -1006,6 +1012,7 @@ class PathaoWebhookView(APIView):
 
 
 class AdminProductListCreateView(APIView):
+    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
     permission_classes = (IsAdminUser,)
     parser_classes = (MultiPartParser, FormParser, JSONParser)
 
@@ -1128,6 +1135,7 @@ class AdminProductListCreateView(APIView):
 
 
 class AdminProductDetailView(APIView):
+    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
     permission_classes = (IsAdminUser,)
     parser_classes = (MultiPartParser, FormParser, JSONParser)
 
@@ -1266,6 +1274,7 @@ class AdminProductDetailView(APIView):
 
 
 class ProductImageAssetListCreateView(APIView):
+    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
     permission_classes = (IsAdminUser,)
     parser_classes = (MultiPartParser, FormParser)
 
@@ -1307,6 +1316,7 @@ class ProductImageAssetListCreateView(APIView):
 
 
 class ProductImageAssetReorderView(APIView):
+    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
     permission_classes = (IsAdminUser,)
 
     def post(self, request):
@@ -1323,6 +1333,7 @@ class ProductImageAssetReorderView(APIView):
 
 
 class ProductImageAssetBulkEmbedView(APIView):
+    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
     permission_classes = (IsAdminUser,)
 
     def get(self, request):
@@ -1378,6 +1389,7 @@ class ProductImageAssetBulkEmbedView(APIView):
 
 
 class ProductImageAssetDetailView(APIView):
+    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
     permission_classes = (IsAdminUser,)
 
     def patch(self, request, pk):
@@ -1424,6 +1436,7 @@ class ProductImageAssetDetailView(APIView):
 
 
 class ProductImageAssetLinkView(APIView):
+    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
     permission_classes = (IsAdminUser,)
 
     def post(self, request, asset_id):
@@ -1459,6 +1472,7 @@ class ProductImageAssetLinkView(APIView):
 
 
 class ProductImageAssetUnlinkView(APIView):
+    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
     permission_classes = (IsAdminUser,)
 
     def delete(self, request, asset_id, link_id):
@@ -1478,6 +1492,7 @@ class ProductImageAssetUnlinkView(APIView):
 
 
 class AdminProductImageManageView(APIView):
+    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
     permission_classes = (IsAdminUser,)
 
     def patch(self, request, pk):
@@ -1522,6 +1537,7 @@ class PublicHeroSlideListView(generics.ListAPIView):
 
 
 class AdminHeroSlideListCreateView(APIView):
+    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
     permission_classes = (IsAdminUser,)
     parser_classes = (MultiPartParser, FormParser, JSONParser)
 
@@ -1547,6 +1563,7 @@ class AdminHeroSlideListCreateView(APIView):
 
 
 class AdminHeroSlideDetailView(APIView):
+    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
     permission_classes = (IsAdminUser,)
     parser_classes = (MultiPartParser, FormParser, JSONParser)
 
