@@ -61,15 +61,10 @@ export function ContactActions() {
     const hide = window.setTimeout(() => setShowTeaser(false), 6500);
     return () => { window.clearTimeout(reveal); window.clearInterval(timer); window.clearTimeout(hide); };
   }, [teaserIndex]);
-  const [position, setPosition] = useState({ right: 18, bottom: 88 });
-  const drag = useRef<{ id: number; x: number; y: number; right: number; bottom: number; moved: boolean } | null>(null);
-  useEffect(() => { try { const saved = JSON.parse(localStorage.getItem("message-launcher-position") || "null"); if (saved && Number.isFinite(saved.right) && Number.isFinite(saved.bottom)) setPosition({ right: saved.right, bottom: saved.bottom }); } catch { /* use default position */ } }, []);
-  const move = (event: React.PointerEvent<HTMLButtonElement>) => { if (!drag.current || event.pointerId !== drag.current.id) return; const dx = event.clientX - drag.current.x; const dy = event.clientY - drag.current.y; if (Math.abs(dx) > 5 || Math.abs(dy) > 5) drag.current.moved = true; setPosition({ right: Math.max(8, Math.min(window.innerWidth - 58, drag.current.right - dx)), bottom: Math.max(80, Math.min(window.innerHeight - 58, drag.current.bottom - dy)) }); };
-  const stop = (event: React.PointerEvent<HTMLButtonElement>) => { if (!drag.current || event.pointerId !== drag.current.id) return; localStorage.setItem("message-launcher-position", JSON.stringify(position)); drag.current = null; };
-  return <div className="message-launcher" style={{ right: position.right, bottom: position.bottom }}>
-    {!open && showTeaser && <span className="message-teaser" key={teaserIndex}>{typedTeaser}<i className="message-caret" aria-hidden="true">|</i></span>}
+  return <div className="message-launcher">
+    {!open && showTeaser && <span className="message-teaser" key={teaserIndex} onClick={() => setOpen(true)}>{typedTeaser}<i className="message-caret" aria-hidden="true">|</i></span>}
     {open && <div className="message-options"><a className="message-option whatsapp-option" href="https://wa.me/8801302111188" target="_blank" rel="noreferrer" aria-label="WhatsApp"><WhatsAppIcon /><span>WhatsApp</span></a><a className="message-option messenger-option" href={MESSENGER_URL} target="_blank" rel="noreferrer" aria-label="Messenger"><MessengerIcon /><span>Messenger</span></a></div>}
-    <button className="message-launcher-button" onPointerDown={event => { drag.current = { id: event.pointerId, x: event.clientX, y: event.clientY, right: position.right, bottom: position.bottom, moved: false }; event.currentTarget.setPointerCapture(event.pointerId); }} onPointerMove={move} onPointerUp={stop} onClick={() => { if (!drag.current?.moved) setOpen(value => !value); }} aria-label="মেসেজ অপশন"><MessageIcon /><b className="message-unread">1</b></button>
+    <button type="button" className="message-launcher-button" onClick={() => setOpen(value => !value)} aria-label="মেসেজ অপশন"><MessageIcon /><b className="message-unread">1</b></button>
   </div>;
 }
 
@@ -297,24 +292,25 @@ export function ProductCard({ product }: { product: Product }) {
   const image = primaryImage?.card_image || primaryImage?.hero_desktop || primaryImage?.image;
   const currentPrice = product.discount_price || product.price;
   const imageCount = product.images ? product.images.length : 0;
+  const isAvailable = product.stock === undefined || product.stock === null || Number(product.stock) > 0;
 
   const handleCardClick = (e: React.MouseEvent) => {
-    const target = e.target as HTMLElement;
-    if (target.closest("button") || target.closest(".prod-actions")) {
-      return;
-    }
+    const el = (e.target as HTMLElement)?.closest?.("button, a, .prod-actions");
+    if (el) return;
     router.push(`/products/${product.slug}`);
   };
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!product.stock) return;
+    e.preventDefault();
+    if (!isAvailable) return;
     add(product, true);
   };
 
   const handleOrderNow = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!product.stock) return;
+    e.preventDefault();
+    if (!isAvailable) return;
     add(product, false);
     window.location.href = "/checkout";
   };
@@ -348,13 +344,19 @@ export function ProductCard({ product }: { product: Product }) {
             type="button"
             className="btn btn-ghost btn-add-cart"
             onClick={handleAddToCart}
-            disabled={!product.stock}
-            title={product.stock ? (t("addToCart") || "কার্টে যোগ") : t("outOfStock")}
+            disabled={!isAvailable}
+            title={isAvailable ? (t("addToCart") || "কার্টে যোগ") : (t("outOfStock") || "স্টক শেষ")}
           >
-            {product.stock ? t("addToCart") : t("outOfStock")}
+            {isAvailable ? (t("addToCart") || "কার্টে যোগ") : (t("outOfStock") || "স্টক শেষ")}
           </button>
-          <button type="button" className="btn btn-primary btn-order-now" onClick={handleOrderNow} disabled={!product.stock} title={product.stock ? (t("orderNow") || "অর্ডার করুন") : t("outOfStock")}>
-            {product.stock ? t("orderNow") : t("outOfStock")}
+          <button
+            type="button"
+            className="btn btn-primary btn-order-now"
+            onClick={handleOrderNow}
+            disabled={!isAvailable}
+            title={isAvailable ? (t("orderNow") || "অর্ডার করুন") : (t("outOfStock") || "স্টক শেষ")}
+          >
+            {isAvailable ? (t("orderNow") || "অর্ডার করুন") : (t("outOfStock") || "স্টক শেষ")}
           </button>
         </div>
       </div>
@@ -412,7 +414,7 @@ export function ProductCatalog({ products, initialCategory = "all" }: { products
         <button type="button" onClick={() => update(setQuery, "")} aria-label="মুছে ফেলুন">✕</button>
       </div>
     )}
-    <button className="filter-fab" style={{ right: position.right, bottom: position.bottom }} onPointerDown={event => { drag.current = { id: event.pointerId, x: event.clientX, y: event.clientY, right: position.right, bottom: position.bottom }; event.currentTarget.setPointerCapture(event.pointerId); }} onPointerMove={moveTools} onPointerUp={stopTools} onClick={() => setToolsOpen(open => !open)} aria-label="ফিল্টার টুলস"><ToolsIcon /><span>{activeFilters || "Tools"}</span></button>
+    <button type="button" className="filter-fab" onClick={() => setToolsOpen(open => !open)} aria-label="ফিল্টার টুলস"><ToolsIcon /><span>{activeFilters || "Tools"}</span></button>
     {toolsOpen && <div className="catalog-tools-panel" style={{ right: position.right, bottom: position.bottom + 60 }} role="dialog" aria-label="ফিল্টার ও সাজানো">
       <div className="catalog-tools-head"><div><strong>ফিল্টার ও সাজানো</strong><small>{activeFilters ? `${activeFilters}টি filter সক্রিয়` : "ফিল্টার ১ দিন পর reset হবে"}</small></div><button type="button" onClick={() => setToolsOpen(false)} aria-label="বন্ধ করুন">×</button></div>
       <select value={category} onChange={event => update(setCategory, event.target.value)} aria-label={t("filterCategory")}><option value="all">সব ক্যাটাগরি</option>{categories.map(item => <option key={item.slug} value={item.slug}>{item.name}</option>)}</select>
@@ -577,6 +579,19 @@ export function MobileBottomNav() {
   useEffect(() => { fetch(API + "/auth/me/", { credentials: "include" }).then(response => response.json()).then(setAccount).catch(() => setAccount({ authenticated: false })); }, []);
   const profileLabel = account?.name || "অ্যাকাউন্ট";
   const closeMore = () => setMoreOpen(false);
+
+  useEffect(() => {
+    if (!moreOpen) return;
+    const handleOutside = (e: MouseEvent) => {
+      const el = e.target as HTMLElement;
+      if (!el?.closest?.(".mobile-more-menu") && !el?.closest?.(".mobile-more-trigger")) {
+        setMoreOpen(false);
+      }
+    };
+    document.addEventListener("click", handleOutside);
+    return () => document.removeEventListener("click", handleOutside);
+  }, [moreOpen]);
+
   return <nav className="mobile-bottom-nav" aria-label="Mobile navigation">
     <Link href="/shop"><ShopIcon /><span>শপ</span></Link>
     <Link href="/cart"><CartIcon /><b>{count}</b><span>কার্ট</span></Link>

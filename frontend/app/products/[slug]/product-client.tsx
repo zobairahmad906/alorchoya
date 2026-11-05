@@ -224,58 +224,67 @@ export default function ProductClient({ product: initialProduct }: { product: Pr
           </div>
 
           {/* Action Buttons: Add to Cart & Buy Now */}
-          <div className="action-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "24px" }}>
-            <button
-              className="btn-add-cart"
-              onClick={() => {
-                for (let i = 0; i < quantity; i++) add(product);
-              }}
-              disabled={!product.stock}
-              style={{
-                backgroundColor: "#0f172a",
-                color: "#ffffff",
-                padding: "14px",
-                borderRadius: "10px",
-                fontWeight: 700,
-                fontSize: "1rem",
-                border: "none",
-                cursor: "pointer",
-                boxShadow: "0 4px 12px rgba(15, 23, 42, 0.15)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "8px"
-              }}
-            >
-              🛒 কার্টে যোগ করুন
-            </button>
+          {(() => {
+            const isAvailable = product.stock === undefined || product.stock === null || Number(product.stock) > 0;
+            return (
+              <div className="action-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "24px" }}>
+                <button
+                  type="button"
+                  className="btn-add-cart"
+                  onClick={() => {
+                    for (let i = 0; i < quantity; i++) add(product, true);
+                  }}
+                  disabled={!isAvailable}
+                  style={{
+                    backgroundColor: "#0f172a",
+                    color: "#ffffff",
+                    padding: "14px",
+                    borderRadius: "10px",
+                    fontWeight: 700,
+                    fontSize: "1rem",
+                    border: "none",
+                    cursor: isAvailable ? "pointer" : "not-allowed",
+                    opacity: isAvailable ? 1 : 0.6,
+                    boxShadow: "0 4px 12px rgba(15, 23, 42, 0.15)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "8px"
+                  }}
+                >
+                  {isAvailable ? "🛒 কার্টে যোগ করুন" : "স্টক শেষ"}
+                </button>
 
-            <button
-              type="button"
-              onClick={() => {
-                for (let i = 0; i < quantity; i++) add(product);
-                window.location.href = "/checkout";
-              }}
-              disabled={!product.stock}
-              style={{
-                backgroundColor: "#10b981",
-                color: "#ffffff",
-                padding: "14px",
-                borderRadius: "10px",
-                fontWeight: 700,
-                fontSize: "1rem",
-                border: "none",
-                cursor: "pointer",
-                boxShadow: "0 4px 12px rgba(16, 185, 129, 0.2)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "8px"
-              }}
-            >
-              ⚡ সরাসরি অর্ডার করুন
-            </button>
-          </div>
+                <button
+                  type="button"
+                  className="btn-buy-now"
+                  onClick={() => {
+                    for (let i = 0; i < quantity; i++) add(product, false);
+                    window.location.href = "/checkout";
+                  }}
+                  disabled={!isAvailable}
+                  style={{
+                    backgroundColor: "#10b981",
+                    color: "#ffffff",
+                    padding: "14px",
+                    borderRadius: "10px",
+                    fontWeight: 700,
+                    fontSize: "1rem",
+                    border: "none",
+                    cursor: isAvailable ? "pointer" : "not-allowed",
+                    opacity: isAvailable ? 1 : 0.6,
+                    boxShadow: "0 4px 12px rgba(16, 185, 129, 0.2)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "8px"
+                  }}
+                >
+                  {isAvailable ? "⚡ সরাসরি অর্ডার করুন" : "স্টক শেষ"}
+                </button>
+              </div>
+            );
+          })()}
 
           {/* Trust Features Strip */}
           <div className="trust-features" style={{ backgroundColor: "#ffffff", padding: "18px", borderRadius: "14px", border: "1px solid #e2e8f0" }}>

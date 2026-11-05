@@ -729,7 +729,7 @@ footer ul {
   }
 }
 
-@media(min-width:860px) {
+@media(min-width:768px) {
   .links {
     display: flex
   }
@@ -3288,7 +3288,7 @@ footer ul {
   }
 }
 
-@media(max-width:640px) {
+@media(max-width:767px) {
   .mobile-bottom-nav {
     position: fixed;
     display: grid;
@@ -8852,4 +8852,64 @@ body:has(.admin-container) .mobile-bottom-nav {
 .catalog-active-query-badge button:hover {
   background: #ef4444;
   color: #ffffff;
+}
+
+
+/* Enhanced floating button positions to prevent touch conflicts */
+.message-launcher {
+  position: fixed;
+  right: 18px;
+  bottom: 24px;
+  z-index: 68;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 9px;
+  pointer-events: auto;
+}
+
+@media(max-width: 767px) {
+  .message-launcher {
+    bottom: 82px;
+    right: 14px;
+  }
+}
+
+.filter-fab {
+  position: fixed;
+  left: 18px;
+  bottom: 24px;
+  z-index: 65;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--forest, #0f5132);
+  color: var(--gold, #d97706);
+  border: 2px solid #ffffff;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+}
+
+@media(max-width: 767px) {
+  .filter-fab {
+    bottom: 82px;
+    left: 14px;
+  }
+}
+
+.catalog-tools-panel {
+  position: fixed;
+  left: 18px;
+  bottom: 80px;
+  z-index: 75;
+}
+
+@media(max-width: 767px) {
+  .catalog-tools-panel {
+    bottom: 138px;
+    left: 14px;
+  }
 }
