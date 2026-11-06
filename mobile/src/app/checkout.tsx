@@ -22,6 +22,20 @@ import { C, R, shadow } from '@/constants/theme';
 import { API, effectivePrice, productImage, taka } from '@/lib/api';
 import { useCart } from '@/lib/cart';
 
+const BN_TO_EN_MAP: Record<string, string> = {
+  'ঢাকা': 'dhaka', 'ধানমন্ডি': 'dhanmondi', 'গুলশান': 'gulshan', 'বনানী': 'banani', 'উত্তরা': 'uttara',
+  'মিরপুর': 'mirpur', 'মোহাম্মদপুর': 'mohammadpur', 'বাড্ডা': 'badda', 'খিলগাঁও': 'khilgaon',
+  'যাত্রাবাড়ী': 'jatrabari', 'যাত্রাবাড়ী': 'jatrabari', 'লালবাগ': 'lalbagh', 'মতিঝিল': 'motijheel', 'শাহবাগ': 'shahbagh',
+  'পল্টন': 'paltan', 'তেজগাঁও': 'tejgaon', 'রমনা': 'ramna', 'সাভার': 'savar',
+  'ধামরাই': 'dhamrai', 'কেরানীগঞ্জ': 'keraniganj', 'গাজীপুর': 'gazipur', 'টঙ্গী': 'tongi',
+  'নারায়ণগঞ্জ': 'narayanganj', 'কালিয়াকৈর': 'kaliakair', 'শ্রীপুর': 'sreepur', 'চট্টগ্রাম': 'chittagong',
+  'পটিয়া': 'patia', 'হাটহাজারী': 'hathazari', 'কক্সবাজার': 'cox', 'কুমিল্লা': 'cumilla',
+  'ফেনী': 'feni', 'নোয়াখালী': 'noakhali', 'সিলেট': 'sylhet', 'রাজশাহী': 'rajshahi',
+  'বগুড়া': 'bogra', 'খুলনা': 'khulna', 'যশোর': 'jashore', 'বরিশাল': 'barishal',
+  'রংপুর': 'rangpur', 'ময়মনসিংহ': 'mymensingh', 'পাবনা': 'pabna', 'সিরাজগঞ্জ': 'sirajganj',
+  'টাঙ্গাইল': 'tangail', 'ফরিদপুর': 'faridpur', 'ব্রাহ্মণবাড়িয়া': 'brahmanbaria', 'চাঁদপুর': 'chandpur',
+};
+
 type Opt = { id: string; name: string };
 
 type SavedAddress = {
@@ -233,7 +247,10 @@ export default function Checkout() {
       const addTokens = (str: string) => {
         str.split(/[\s,()\/–—\-]+/).forEach((part) => {
           const trimmed = part.trim();
-          if (trimmed.length >= 2) tokens.push(trimmed);
+          if (trimmed.length >= 2) {
+            tokens.push(trimmed);
+            if (BN_TO_EN_MAP[trimmed]) tokens.push(BN_TO_EN_MAP[trimmed]);
+          }
         });
       };
       addTokens(rawDistrict);

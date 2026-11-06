@@ -6,7 +6,7 @@ import { Dimensions, FlatList, Pressable, ScrollView, StyleSheet, Text, View } f
 
 import { ContactLauncher } from '@/components/ContactLauncher';
 import { C, R } from '@/constants/theme';
-import { get, img, discountPercent, effectivePrice, taka, type Product } from '@/lib/api';
+import { get, img, discountPercent, effectivePrice, taka, type Product, type Review } from '@/lib/api';
 import { useCart } from '@/lib/cart';
 
 const W = Dimensions.get('window').width;
@@ -16,12 +16,18 @@ export default function ProductDetail() {
   const router = useRouter();
   const { add } = useCart();
   const [p, setP] = useState<Product | null>(null);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [qty, setQty] = useState(1);
   const [idx, setIdx] = useState(0);
   const [added, setAdded] = useState(false);
 
   useEffect(() => {
-    get<Product | null>(`/products/${slug}/`, null).then(setP);
+    get<Product | null>(`/products/${slug}/`, null).then((prod) => {
+      setP(prod);
+      if (prod?.id) {
+        get<Review[]>(`/reviews/?product=${prod.id}`, []).then(setReviews);
+      }
+    });
   }, [slug]);
 
   if (!p) {
@@ -88,6 +94,44 @@ export default function ProductDetail() {
               <Text style={s.desc}>{p.description.replace(/[#*>`]/g, '')}</Text>
             </>
           )}
+
+          {/* Trust Guarantees Box */}
+          <View style={s.trustBox}>
+            <View style={s.trustRow}>
+              <Ionicons name="shield-checkmark-outline" size={18} color="#059669" />
+              <Text style={s.trustText}>১০০% খাঁটি ও গুণগত মান নিশ্চিত পণ্য</Text>
+            </View>
+            <View style={s.trustRow}>
+              <Ionicons name="car-outline" size={18} color="#059669" />
+              <Text style={s.trustText}>সারা বাংলাদেশে দ্রুত হোম ডেলিভারি</Text>
+            </View>
+            <View style={s.trustRow}>
+              <Ionicons name="cash-outline" size={18} color="#059669" />
+              <Text style={s.trustText}>ক্যাশ অন ডেলিভারি (হাতে পেয়ে মূল্য পরিশোধ)</Text>
+            </View>
+          </View>
+
+          {/* Customer Reviews Section */}
+          {reviews.length > 0 && (
+            <View style={{ marginTop: 20 }}>
+              <Text style={s.h3}>ক্রেতাদের রিভিউ ({reviews.length})</Text>
+              {reviews.map((rev) => (
+                <View key={rev.id} style={s.revCard}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text style={s.revName}>{rev.customer_name}</Text>
+                    <View style={{ flexDirection: 'row', gap: 2 }}>
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <Text key={i} style={{ color: i < rev.rating ? '#eab308' : '#cbd5e1', fontSize: 12 }}>
+                          ★
+                        </Text>
+                      ))}
+                    </View>
+                  </View>
+                  <Text style={s.revComment}>"{rev.comment}"</Text>
+                </View>
+              ))}
+            </View>
+          )}
         </View>
       </ScrollView>
 
@@ -151,5 +195,43 @@ const s = StyleSheet.create({
   ghostT: { color: C.forest, fontWeight: '800', fontSize: 13 },
   solid: { backgroundColor: C.forest },
   solidT: { color: C.white, fontWeight: '800', fontSize: 13 },
+  trustBox: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: C.line,
+    padding: 12,
+    gap: 8,
+    marginTop: 16,
+  },
+  trustRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  trustText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: C.ink,
+  },
+  revCard: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: C.line,
+    padding: 10,
+    marginTop: 8,
+    gap: 4,
+  },
+  revName: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: C.forest,
+  },
+  revComment: {
+    fontSize: 12,
+    color: '#4b5563',
+    lineHeight: 16,
+  },
 });
 
