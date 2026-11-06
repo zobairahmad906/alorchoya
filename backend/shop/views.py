@@ -346,7 +346,31 @@ class CustomerProfileView(APIView):
         return profile
     def get(self, request):
         profile = self.get_profile(request)
-        return Response({"profile": CustomerProfileSerializer(profile).data, "addresses": CustomerAddressSerializer(profile.addresses.all(), many=True).data, "orders": CustomerOrderSerializer(request.user.customer_orders.all()[:20], many=True).data})
+        from django.db.models import Q
+        import re
+
+        order_query = Q(customer=request.user)
+        if request.user.email:
+            order_query |= Q(email__iexact=request.user.email)
+
+        phone = getattr(profile, "phone", "") or ""
+        if phone:
+            clean_p = re.sub(r"\D", "", str(phone))
+            if len(clean_p) >= 10:
+                order_query |= Q(phone__icontains=clean_p[-10:])
+
+        try:
+            Order.objects.filter(order_query, customer__isnull=True).update(customer=request.user)
+        except Exception:
+            pass
+
+        orders = Order.objects.filter(order_query).distinct().order_by("-id")[:30]
+
+        return Response({
+            "profile": CustomerProfileSerializer(profile).data,
+            "addresses": CustomerAddressSerializer(profile.addresses.all(), many=True).data,
+            "orders": CustomerOrderSerializer(orders, many=True).data
+        })
     def patch(self, request):
         profile = self.get_profile(request)
         serializer = CustomerProfileSerializer(profile, data=request.data, partial=True)

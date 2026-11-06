@@ -449,9 +449,17 @@ export default function Checkout() {
 
     setSubmitting(true);
     try {
+      const token = await AsyncStorage.getItem('user-token');
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
       const d = await getJson(`${API}/orders/`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           customer_name: name.trim(),
           email: orderEmail,

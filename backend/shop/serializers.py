@@ -202,7 +202,12 @@ class OrderSerializer(serializers.ModelSerializer):
             "courier_area_id": validated_data.get("courier_area_id", ""),
         }
         with transaction.atomic():
-            order = Order.objects.create(customer=self.context["request"].user if self.context.get("request") and self.context["request"].user.is_authenticated else None, **validated_data)
+            user = self.context["request"].user if self.context.get("request") and self.context["request"].user.is_authenticated else None
+            if not user and validated_data.get("email"):
+                from django.contrib.auth import get_user_model
+                User = get_user_model()
+                user = User.objects.filter(email__iexact=validated_data["email"]).first()
+            order = Order.objects.create(customer=user, **validated_data)
             subtotal = 0
             for row in item_data:
                 try:

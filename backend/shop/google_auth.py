@@ -7,10 +7,12 @@ from urllib.request import Request, urlopen
 from django.conf import settings
 from django.contrib.auth import get_user_model, login
 from django.core import signing
+from django.db.models import Q
 from django.http import JsonResponse, HttpResponse
 from django.middleware.csrf import get_token
 from django.shortcuts import redirect
-from .models import CustomerProfile
+import re
+from .models import CustomerProfile, Order
 from .serializers import CustomerProfileSerializer, CustomerAddressSerializer, CustomerOrderSerializer
 
 
@@ -155,6 +157,25 @@ def auth_me(request):
     if not request.user.is_authenticated:
         return JsonResponse({"authenticated": False})
     profile, _ = CustomerProfile.objects.get_or_create(user=request.user)
+
+    order_query = Q(customer=request.user)
+    if request.user.email:
+        order_query |= Q(email__iexact=request.user.email)
+
+    phone = getattr(profile, "phone", "") or ""
+    if phone:
+        clean_p = re.sub(r"\D", "", str(phone))
+        if len(clean_p) >= 10:
+            order_query |= Q(phone__icontains=clean_p[-10:])
+
+    # Auto-link previously placed guest orders with this email / phone to this customer
+    try:
+        Order.objects.filter(order_query, customer__isnull=True).update(customer=request.user)
+    except Exception:
+        pass
+
+    orders = Order.objects.filter(order_query).distinct().order_by("-id")[:30]
+
     return JsonResponse({
         "authenticated": True,
         "name": request.user.get_full_name() or request.user.email,
@@ -162,7 +183,7 @@ def auth_me(request):
         "avatar_url": profile.avatar_url or "",
         "profile": CustomerProfileSerializer(profile).data,
         "addresses": CustomerAddressSerializer(profile.addresses.all(), many=True).data,
-        "orders": CustomerOrderSerializer(request.user.customer_orders.all()[:20], many=True).data,
+        "orders": CustomerOrderSerializer(orders, many=True).data,
         "session_key": getattr(request.session, "session_key", "") or ""
     })
 
