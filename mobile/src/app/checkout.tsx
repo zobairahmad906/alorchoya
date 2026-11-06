@@ -61,7 +61,15 @@ function normalize(rows: Record<string, unknown>[], level: 'city' | 'zone' | 'ar
 async function getJson(url: string, init?: RequestInit) {
   const res = await fetch(url, init);
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || data.detail || 'অনুরোধ ব্যর্থ হয়েছে।');
+  if (!res.ok) {
+    let msg = data.error || data.detail;
+    if (!msg && typeof data === 'object' && Object.keys(data).length > 0) {
+      msg = Object.entries(data)
+        .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`)
+        .join(' | ');
+    }
+    throw new Error(msg || 'অনুরোধ ব্যর্থ হয়েছে।');
+  }
   return data;
 }
 
@@ -436,6 +444,9 @@ export default function Checkout() {
     const zoneName = zones.find((o) => o.id === zoneId)?.name || '';
     const areaName = areas.find((o) => o.id === areaId)?.name || '';
 
+    const cleanPhone = phone.replace(/\D/g, '') || 'customer';
+    const orderEmail = email.trim() || `${cleanPhone}@customer.alorchoya.com`;
+
     setSubmitting(true);
     try {
       const d = await getJson(`${API}/orders/`, {
@@ -443,7 +454,7 @@ export default function Checkout() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           customer_name: name.trim(),
-          email: email.trim(),
+          email: orderEmail,
           phone: phone.trim(),
           address: address.trim(),
           coupon_code: couponApplied ? couponCode.trim() : '',
@@ -595,6 +606,19 @@ export default function Checkout() {
               keyboardType="phone-pad"
               value={phone}
               onChangeText={setPhone}
+            />
+          </View>
+
+          <View style={s.field}>
+            <Text style={s.label}>ইমেইল (ঐচ্ছিক)</Text>
+            <TextInput
+              style={s.input}
+              placeholder="you@example.com"
+              placeholderTextColor={C.muted}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={email}
+              onChangeText={setEmail}
             />
           </View>
 

@@ -174,6 +174,7 @@ class OrderItemInputSerializer(serializers.Serializer):
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemInputSerializer(many=True, write_only=True)
     total = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    email = serializers.EmailField(required=False, allow_blank=True)
     delivery_zone_id = serializers.PrimaryKeyRelatedField(queryset=DeliveryZone.objects.filter(is_active=True), source="delivery_zone", write_only=True, required=False, allow_null=True)
     coupon_code = serializers.CharField(write_only=True, required=False, allow_blank=True, max_length=40)
     payment_method = serializers.ChoiceField(choices=(("cod", "Cash on delivery"),), default="cod")
@@ -191,6 +192,9 @@ class OrderSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         item_data = validated_data.pop("items")
         coupon_code = validated_data.pop("coupon_code", "").strip().upper()
+        if not validated_data.get("email"):
+            clean_phone = re.sub(r"\D", "", validated_data.get("phone", "")) or "customer"
+            validated_data["email"] = f"{clean_phone}@customer.alorchoya.com"
         delivery_zone = validated_data.get("delivery_zone")
         location_ids = {
             "courier_city_id": validated_data.get("courier_city_id", ""),
