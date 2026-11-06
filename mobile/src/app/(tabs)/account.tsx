@@ -63,6 +63,8 @@ const STATUS_LABELS: Record<string, string> = {
   cancelled: 'বাতিল',
 };
 
+const STEPS = ['pending', 'confirmed', 'processing', 'shipped', 'delivered'];
+
 export default function AccountScreen() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -253,6 +255,43 @@ export default function AccountScreen() {
                           ))}
                         </View>
                       )}
+
+                      {/* Order Progress Timeline */}
+                      <View style={s.orderTimelineWrap}>
+                        <View style={s.timelineStepRow}>
+                          {STEPS.map((step, idx) => {
+                            const curIdx = STEPS.indexOf(order.status);
+                            const isDone = idx <= curIdx && order.status !== 'cancelled';
+                            const isCurrent = idx === curIdx && order.status !== 'cancelled';
+                            return (
+                              <View key={step} style={s.stepMiniCol}>
+                                <View
+                                  style={[
+                                    s.stepMiniCircle,
+                                    isDone && s.stepMiniCircleDone,
+                                    isCurrent && s.stepMiniCircleCurrent,
+                                  ]}>
+                                  <Text
+                                    style={[
+                                      s.stepMiniNum,
+                                      isDone && { color: '#fff' },
+                                    ]}>
+                                    {isDone ? '✓' : idx + 1}
+                                  </Text>
+                                </View>
+                                <Text
+                                  style={[
+                                    s.stepMiniLabel,
+                                    isDone && { color: C.forest, fontWeight: '800' },
+                                  ]}
+                                  numberOfLines={1}>
+                                  {STATUS_LABELS[step]}
+                                </Text>
+                              </View>
+                            );
+                          })}
+                        </View>
+                      </View>
 
                       <View style={s.orderFooter}>
                         <Text style={s.orderTotalLabel}>মোট প্রদেয়:</Text>
@@ -550,6 +589,50 @@ const s = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: C.forest,
+  },
+  orderTimelineWrap: {
+    backgroundColor: '#fbf9f4',
+    borderRadius: 10,
+    padding: 8,
+    marginVertical: 8,
+    borderWidth: 1,
+    borderColor: '#f1ebd9',
+  },
+  timelineStepRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  stepMiniCol: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  stepMiniCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#e2e8f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  stepMiniCircleDone: {
+    backgroundColor: C.forest,
+  },
+  stepMiniCircleCurrent: {
+    backgroundColor: '#059669',
+    borderWidth: 1.5,
+    borderColor: '#a7f3d0',
+  },
+  stepMiniNum: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: C.muted,
+  },
+  stepMiniLabel: {
+    fontSize: 9,
+    color: C.muted,
+    textAlign: 'center',
   },
   orderFooter: {
     flexDirection: 'row',

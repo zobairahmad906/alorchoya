@@ -187,17 +187,24 @@ class CheckoutCouponValidateView(APIView):
 class DeliveryZoneList(generics.ListAPIView):
     queryset = DeliveryZone.objects.filter(is_active=True).order_by("charge")
     serializer_class = DeliveryZoneSerializer
-class OrderTrack(generics.RetrieveAPIView):
-    serializer_class = OrderTrackingSerializer
-    def get_object(self):
-        order_id = self.request.query_params.get("id")
+class OrderTrack(APIView):
+    permission_classes = (permissions.AllowAny,)
+    def get(self, request):
+        order_id = self.request.query_params.get("id", "").strip()
         phone = self.request.query_params.get("phone", "").strip()
-        if not order_id or not phone:
-            raise NotFound("Order id এবং phone দিন।")
-        try:
-            return Order.objects.get(id=order_id, phone=phone)
-        except Order.DoesNotExist:
-            raise NotFound("এই তথ্য দিয়ে কোনো order পাওয়া যায়নি।")
+        if not order_id and not phone:
+            return Response({"detail": "অর্ডার আইডি অথবা ফোন নম্বর দিন।"}, status=400)
+        orders = Order.objects.all().order_by("-created_at")
+        if order_id:
+            orders = orders.filter(id=order_id)
+        if phone:
+            orders = orders.filter(phone=phone)
+        if not orders.exists():
+            return Response({"detail": "এই তথ্য দিয়ে কোনো অর্ডার পাওয়া যায়নি।"}, status=404)
+        first_order = orders.first()
+        data = CustomerOrderSerializer(first_order).data
+        data["orders"] = CustomerOrderSerializer(orders, many=True).data
+        return Response(data)
 
 class ReviewCreate(generics.CreateAPIView):
     serializer_class = ReviewSerializer
