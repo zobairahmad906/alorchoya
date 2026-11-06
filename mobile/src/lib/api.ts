@@ -55,11 +55,12 @@ export async function get<T>(path: string, fallback: T): Promise<T> {
   }
 }
 
-/** Fixes internal docker / insecure media urls so images load on device. */
+/** Fixes internal docker / insecure / duplicated media urls so images load on device. */
 export function img(url?: string | null): string | undefined {
   if (!url) return undefined;
   return url
-    .replace(/^https?:\/\/minio(:9000)?\//i, 'https://minio-alorchoya.newsmartagent.com/')
+    .replace(/minio-alorchoya\.newsmartagent\.com(-alorchoya\.newsmartagent\.com)+/gi, 'minio-alorchoya.newsmartagent.com')
+    .replace(/^https?:\/\/minio(?::9000)?(?=\/|$)/i, 'https://minio-alorchoya.newsmartagent.com')
     .replace(/^http:\/\/minio-alorchoya/i, 'https://minio-alorchoya');
 }
 

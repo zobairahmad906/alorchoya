@@ -19,6 +19,14 @@ function formatPrice(value: string | number) {
   return `৳${Number(value).toLocaleString("bn-BD")}`;
 }
 
+export function cleanImageUrl(url?: string | null): string | undefined {
+  if (!url) return undefined;
+  return url
+    .replace(/minio-alorchoya\.newsmartagent\.com(-alorchoya\.newsmartagent\.com)+/gi, "minio-alorchoya.newsmartagent.com")
+    .replace(/^https?:\/\/minio(?::9000)?(?=\/|$)/i, "https://minio-alorchoya.newsmartagent.com")
+    .replace(/^http:\/\/minio-alorchoya/i, "https://minio-alorchoya");
+}
+
 function CartIcon() {
   return <svg className="cart-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 8.5h12l1 11H5l1-11Z"/><path d="M9 8.5V7a3 3 0 0 1 6 0v1.5"/><path d="M8.5 12h.01M15.5 12h.01"/></svg>;
 }
@@ -174,7 +182,8 @@ export function Header() {
                           তাৎক্ষণিক অনুসন্ধানের ফলাফল ({searchResults.length})
                         </div>
                         {searchResults.map((prod) => {
-                          const img = prod.images.find(x => x.is_primary)?.card_image || prod.images.find(x => x.is_primary)?.hero_desktop || prod.images[0]?.image;
+                          const rawImg = prod.images.find(x => x.is_primary)?.card_image || prod.images.find(x => x.is_primary)?.hero_desktop || prod.images[0]?.image;
+                          const img = cleanImageUrl(rawImg);
                           const price = prod.discount_price || prod.price;
                           return (
                             <Link
@@ -289,7 +298,7 @@ export function ProductCard({ product }: { product: Product }) {
   const t = useTranslations("shop");
   const primaryImage = product.images.find(x => x.is_primary) || product.images[0];
   // Use the generated consistent canvas when it exists.
-  const image = primaryImage?.card_image || primaryImage?.hero_desktop || primaryImage?.image;
+  const image = cleanImageUrl(primaryImage?.card_image || primaryImage?.hero_desktop || primaryImage?.image);
   const currentPrice = product.discount_price || product.price;
   const imageCount = product.images ? product.images.length : 0;
   const isAvailable = product.stock === undefined || product.stock === null || Number(product.stock) > 0;
@@ -565,7 +574,7 @@ export function CategoryFilterCards({ categories }: { categories: CategoryFilter
 function CartDrawer({ open, close }: { open: boolean; close: () => void }) {
   const { items, total, change, remove } = useCart();
   const t = useTranslations("shop");
-  return <div className={`drawer-wrap ${open ? "is-open" : ""}`} aria-hidden={!open}><button className="drawer-backdrop" aria-label={t("close")} onClick={close} /><aside className="drawer"><div className="drawer-head"><div><p>{t("cartTitle")}</p><h2>{items.length ? t("cartItems") : t("cartEmpty")}</h2></div><button onClick={close} aria-label={t("close")}>×</button></div><div className="drawer-items">{items.map(item => <div className="drawer-item" key={item.id}><div className="drawer-thumb">{item.images[0]?.image ? <img src={item.images[0].card_image || item.images[0].hero_desktop || item.images[0].image} alt="" /> : "আ"}</div><div><h3>{item.name}</h3><p>{formatPrice(item.discount_price || item.price)}</p><div className="drawer-quantity"><button onClick={() => change(item.id, item.quantity - 1)}>−</button><span>{item.quantity}</span><button onClick={() => change(item.id, item.quantity + 1)}>+</button><button className="remove" onClick={() => remove(item.id)}>{t("remove")}</button></div></div></div>)}</div>{items.length > 0 ? <div className="drawer-foot"><div><span>{t("subtotal")}</span><strong>{formatPrice(total)}</strong></div><Link className="wide" onClick={close} href="/checkout">{t("checkout")} →</Link></div> : <Link className="wide" onClick={close} href="/shop">{t("shopNow")}</Link>}</aside></div>;
+  return <div className={`drawer-wrap ${open ? "is-open" : ""}`} aria-hidden={!open}><button className="drawer-backdrop" aria-label={t("close")} onClick={close} /><aside className="drawer"><div className="drawer-head"><div><p>{t("cartTitle")}</p><h2>{items.length ? t("cartItems") : t("cartEmpty")}</h2></div><button onClick={close} aria-label={t("close")}>×</button></div><div className="drawer-items">{items.map(item => <div className="drawer-item" key={item.id}><div className="drawer-thumb">{item.images[0]?.image ? <img src={cleanImageUrl(item.images[0].card_image || item.images[0].hero_desktop || item.images[0].image)} alt="" /> : "আ"}</div><div><h3>{item.name}</h3><p>{formatPrice(item.discount_price || item.price)}</p><div className="drawer-quantity"><button onClick={() => change(item.id, item.quantity - 1)}>−</button><span>{item.quantity}</span><button onClick={() => change(item.id, item.quantity + 1)}>+</button><button className="remove" onClick={() => remove(item.id)}>{t("remove")}</button></div></div></div>)}</div>{items.length > 0 ? <div className="drawer-foot"><div><span>{t("subtotal")}</span><strong>{formatPrice(total)}</strong></div><Link className="wide" onClick={close} href="/checkout">{t("checkout")} →</Link></div> : <Link className="wide" onClick={close} href="/shop">{t("shopNow")}</Link>}</aside></div>;
 }
 
 export function MobileBottomNav() {

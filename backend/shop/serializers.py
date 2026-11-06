@@ -32,11 +32,18 @@ def build_media_url(file_field, request=None):
     scheme = "http" if public in ("localhost:9000", "127.0.0.1:9000") else "https"
     public_clean = re.sub(r"^https?://", "", public).rstrip("/")
 
-    cleaned = re.sub(r"^https?://minio(:9000)?", f"{scheme}://{public_clean}", url)
+    cleaned = re.sub(r"^https?://minio(?::9000)?(?=/|$)", f"{scheme}://{public_clean}", url)
     internal = os.getenv("MINIO_ENDPOINT", "minio:9000").strip()
     internal_clean = re.sub(r"^https?://", "", internal).rstrip("/")
     if internal_clean:
-        cleaned = re.sub(r"^https?://" + re.escape(internal_clean), f"{scheme}://{public_clean}", cleaned)
+        cleaned = re.sub(r"^https?://" + re.escape(internal_clean) + r"(?=/|$)", f"{scheme}://{public_clean}", cleaned)
+
+    # Clean any accidental duplicate hostnames
+    cleaned = re.sub(
+        r"minio-alorchoya\.newsmartagent\.com(-alorchoya\.newsmartagent\.com)+",
+        "minio-alorchoya.newsmartagent.com",
+        cleaned,
+    )
 
     if scheme == "https" and cleaned.startswith(f"http://{public_clean}"):
         cleaned = cleaned.replace(f"http://{public_clean}", f"https://{public_clean}")
