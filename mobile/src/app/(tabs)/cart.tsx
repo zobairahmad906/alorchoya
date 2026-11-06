@@ -33,7 +33,8 @@ export default function CartScreen() {
       ) : (
         <>
           <ScrollView
-            contentContainerStyle={{ padding: 14, paddingBottom: 110, gap: 10 }}
+            style={{ flex: 1 }}
+            contentContainerStyle={{ padding: 14, paddingBottom: 20, gap: 10 }}
             showsVerticalScrollIndicator={false}>
             <View style={s.cartHeaderRow}>
               <Text style={s.cartHeaderTitle}>আপনার কার্টের পণ্যসমূহ ({items.length})</Text>
@@ -178,14 +179,10 @@ const s = StyleSheet.create({
     color: C.ink,
   },
   foot: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 10,
     gap: 12,
     backgroundColor: C.white,
     borderTopWidth: 1,

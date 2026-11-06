@@ -20,7 +20,7 @@ const TEASERS = [
   'সরাসরি হোয়াটসঅ্যাপে কথা বলুন',
 ];
 
-export function ContactLauncher() {
+export function ContactLauncher({ bottomOffset }: { bottomOffset?: number } = {}) {
   const insets = useSafeAreaInsets();
   const [open, setOpen] = useState(false);
   const [teaserIdx, setTeaserIdx] = useState(0);
@@ -59,9 +59,10 @@ export function ContactLauncher() {
   };
 
   const bottomPadding = Math.max(insets.bottom, Platform.OS === 'android' ? 24 : 14);
+  const computedBottom = bottomOffset !== undefined ? bottomOffset : 64 + bottomPadding;
 
   return (
-    <View style={[s.wrap, { bottom: 64 + bottomPadding }]}>
+    <View style={[s.wrap, { bottom: computedBottom }]}>
       {/* Typewriter Teaser Bubble */}
       {!open && showTeaser && displayText.length > 0 && (
         <TouchableOpacity

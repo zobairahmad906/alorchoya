@@ -2,7 +2,17 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Dimensions, FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Dimensions,
+  FlatList,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ContactLauncher } from '@/components/ContactLauncher';
 import { C, R } from '@/constants/theme';
@@ -30,6 +40,9 @@ export default function ProductDetail() {
     });
   }, [slug]);
 
+  const insets = useSafeAreaInsets();
+  const bottomPadding = Math.max(insets.bottom, Platform.OS === 'android' ? 24 : 14);
+
   if (!p) {
     return (
       <View style={s.center}>
@@ -44,7 +57,7 @@ export default function ProductDetail() {
 
   return (
     <View style={{ flex: 1, backgroundColor: C.ivory }}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 110 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 110 + bottomPadding }}>
         <View style={{ width: W, height: W, backgroundColor: C.cream }}>
           <FlatList
             data={gallery}
@@ -135,7 +148,7 @@ export default function ProductDetail() {
         </View>
       </ScrollView>
 
-      <View style={s.bar}>
+      <View style={[s.bar, { paddingBottom: bottomPadding + 6 }]}>
         <View style={s.qty}>
           <Pressable onPress={() => setQty((q) => Math.max(1, q - 1))} hitSlop={8}>
             <Ionicons name="remove" size={18} color={C.forest} />
@@ -165,7 +178,7 @@ export default function ProductDetail() {
           <Text style={s.solidT}>অর্ডার করুন</Text>
         </Pressable>
       </View>
-      <ContactLauncher />
+      <ContactLauncher bottomOffset={64 + 46 + bottomPadding} />
     </View>
   );
 }
