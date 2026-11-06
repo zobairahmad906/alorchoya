@@ -7,7 +7,7 @@ from urllib.request import Request, urlopen
 from django.conf import settings
 from django.contrib.auth import get_user_model, login
 from django.core import signing
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.middleware.csrf import get_token
 from django.shortcuts import redirect
 from .models import CustomerProfile
@@ -23,9 +23,20 @@ def _redirect_destination(dest):
         dest.startswith("alorchoya://")
         or dest.startswith("exp://")
         or dest.startswith("exps://")
-        or dest.startswith("http://")
-        or dest.startswith("https://")
     ):
+        html = f"""<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>Redirecting to app...</title></head>
+<body>
+<p style="font-family:sans-serif;text-align:center;margin-top:40px;color:#10b981;font-weight:bold;">লগইন সম্পন্ন হয়েছে, অ্যাপে ফিরে যাচ্ছে...</p>
+<script>window.location.replace({json.dumps(dest)});</script>
+</body>
+</html>"""
+        response = HttpResponse(html, status=302, content_type="text/html; charset=utf-8")
+        response["Location"] = dest
+        return response
+
+    if dest.startswith("http://") or dest.startswith("https://"):
         return redirect(dest)
     return redirect(settings.PUBLIC_APP_URL.rstrip("/") + dest)
 
