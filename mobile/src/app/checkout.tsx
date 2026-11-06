@@ -179,6 +179,13 @@ export default function Checkout() {
   const [submitting, setSubmitting] = useState(false);
   const [doneOrderId, setDoneOrderId] = useState<number | null>(null);
 
+  // Coupon state
+  const [couponCode, setCouponCode] = useState('');
+  const [couponDiscount, setCouponDiscount] = useState(0);
+  const [couponError, setCouponError] = useState('');
+  const [couponApplied, setCouponApplied] = useState(false);
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
+
   // Load User & Saved Addresses
   useEffect(() => {
     (async () => {
@@ -392,6 +399,34 @@ export default function Checkout() {
     };
   }, [provider, cityId, zoneId, areaId, items]);
 
+  const applyCoupon = async () => {
+    setCouponError('');
+    if (!couponCode.trim()) {
+      setCouponError('কুপন কোড লিখুন।');
+      return;
+    }
+    setValidatingCoupon(true);
+    try {
+      const res = await fetch(`${API}/checkout/coupons/validate/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          coupon_code: couponCode.trim(),
+          items: items.map((i) => ({ product_id: i.id, quantity: i.quantity })),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'কুপনটি সঠিক নয় বা মেয়াদ শেষ।');
+      setCouponCode(data.coupon_code || couponCode.trim().toUpperCase());
+      setCouponDiscount(Number(data.discount_amount || 0));
+      setCouponApplied(true);
+    } catch (err: any) {
+      setCouponError(err.message || 'কুপন প্রয়োগ করা যায়নি।');
+    } finally {
+      setValidatingCoupon(false);
+    }
+  };
+
   const submitOrder = async () => {
     setError('');
     if (!name.trim() || !phone.trim() || !address.trim()) return setError('নাম, ফোন ও ঠিকানা আবশ্যক।');
@@ -411,7 +446,7 @@ export default function Checkout() {
           email: email.trim(),
           phone: phone.trim(),
           address: address.trim(),
-          coupon_code: '',
+          coupon_code: couponApplied ? couponCode.trim() : '',
           payment_method: 'cod',
           courier_provider: provider,
           courier_city_id: cityId,
@@ -433,7 +468,7 @@ export default function Checkout() {
     }
   };
 
-  const grandTotal = total + (delivery || 0);
+  const grandTotal = Math.max(0, total + (delivery || 0) - couponDiscount);
 
   if (doneOrderId) {
     return (
@@ -649,12 +684,52 @@ export default function Checkout() {
             </View>
           ))}
 
+          {/* Coupon Input Box */}
+          <View style={s.couponBox}>
+            <Text style={s.couponLabel}>প্রোমো / কুপন কোড</Text>
+            <View style={s.couponInputRow}>
+              <TextInput
+                style={s.couponInput}
+                placeholder="কুপন কোড (যেমন: ALORCHOYA)"
+                placeholderTextColor={C.muted}
+                value={couponCode}
+                onChangeText={setCouponCode}
+                editable={!couponApplied}
+                autoCapitalize="characters"
+              />
+              <TouchableOpacity
+                style={[s.couponBtn, couponApplied && s.couponBtnApplied]}
+                onPress={applyCoupon}
+                disabled={couponApplied || validatingCoupon}
+                activeOpacity={0.8}>
+                {validatingCoupon ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={s.couponBtnText}>{couponApplied ? 'প্রযুক্ত' : 'আবেদন'}</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+            {couponError ? <Text style={s.couponErr}>{couponError}</Text> : null}
+            {couponApplied ? (
+              <Text style={s.couponSuccess}>✓ কুপন ডিসকাউন্ট যুক্ত করা হয়েছে!</Text>
+            ) : null}
+          </View>
+
           <View style={s.divider} />
 
           <View style={s.totalRow}>
             <Text style={s.totalLabel}>পণ্যের মূল্য:</Text>
             <Text style={s.totalVal}>{taka(total)}</Text>
           </View>
+
+          {couponDiscount > 0 && (
+            <View style={s.totalRow}>
+              <Text style={[s.totalLabel, { color: '#059669', fontWeight: '700' }]}>কুপন ছাড়:</Text>
+              <Text style={[s.totalVal, { color: '#059669', fontWeight: '800' }]}>
+                -{taka(couponDiscount)}
+              </Text>
+            </View>
+          )}
 
           <View style={s.totalRow}>
             <Text style={s.totalLabel}>ডেলিভারি চার্জ:</Text>
@@ -907,6 +982,62 @@ const s = StyleSheet.create({
     height: 1,
     backgroundColor: '#f1ebd9',
     marginVertical: 8,
+  },
+  couponBox: {
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#f1ebd9',
+    marginTop: 8,
+  },
+  couponLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: C.muted,
+    marginBottom: 6,
+  },
+  couponInputRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  couponInput: {
+    flex: 1,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: '#fbf9f4',
+    borderWidth: 1,
+    borderColor: C.line,
+    paddingHorizontal: 12,
+    fontSize: 13,
+    color: C.ink,
+    fontWeight: '700',
+  },
+  couponBtn: {
+    paddingHorizontal: 16,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: C.forest,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  couponBtnApplied: {
+    backgroundColor: '#059669',
+  },
+  couponBtnText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  couponErr: {
+    color: '#b3261e',
+    fontSize: 11,
+    fontWeight: '700',
+    marginTop: 4,
+  },
+  couponSuccess: {
+    color: '#059669',
+    fontSize: 11,
+    fontWeight: '800',
+    marginTop: 4,
   },
   totalRow: {
     flexDirection: 'row',
