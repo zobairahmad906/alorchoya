@@ -17,31 +17,54 @@ def _frontend(path="/checkout"):
     return redirect(settings.PUBLIC_APP_URL.rstrip("/") + path)
 
 
+def _redirect_destination(dest):
+    if dest.startswith("alorchoya://"):
+        return redirect(dest)
+    return _frontend(dest)
+
+
 def google_start(request):
     next_path = request.GET.get("next", "/checkout")
-    if not next_path.startswith("/") or next_path.startswith("//"): next_path = "/checkout"
+    valid_scheme = next_path.startswith("alorchoya://") or (next_path.startswith("/") and not next_path.startswith("//"))
+    if not valid_scheme:
+        next_path = "/checkout"
     request.session["google_oauth_next"] = next_path
     if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_REDIRECT_URI:
         return JsonResponse({"detail": "Google OAuth is not configured."}, status=503)
     state = secrets.token_urlsafe(32)
     request.session["google_oauth_state"] = state
-    params = {"client_id": settings.GOOGLE_CLIENT_ID, "redirect_uri": settings.GOOGLE_REDIRECT_URI, "response_type": "code", "scope": "openid email profile", "state": state, "prompt": "select_account"}
+    params = {
+        "client_id": settings.GOOGLE_CLIENT_ID,
+        "redirect_uri": settings.GOOGLE_REDIRECT_URI,
+        "response_type": "code",
+        "scope": "openid email profile",
+        "state": state,
+        "prompt": "select_account"
+    }
     return redirect("https://accounts.google.com/o/oauth2/v2/auth?" + urlencode(params))
 
 
 def google_callback(request):
     next_path = request.session.pop("google_oauth_next", "/checkout")
+    sep = "&" if "?" in next_path else "?"
+
     if request.GET.get("error"):
-        return _frontend(next_path + "?google_error=cancelled")
+        return _redirect_destination(f"{next_path}{sep}google_error=cancelled")
     state = request.GET.get("state")
     expected = request.session.pop("google_oauth_state", None)
     if not state or not expected or not secrets.compare_digest(state, expected):
-        return _frontend(next_path + "?google_error=invalid_state")
+        return _redirect_destination(f"{next_path}{sep}google_error=invalid_state")
     code = request.GET.get("code")
     if not code:
-        return _frontend(next_path + "?google_error=missing_code")
+        return _redirect_destination(f"{next_path}{sep}google_error=missing_code")
     try:
-        token_body = urlencode({"code": code, "client_id": settings.GOOGLE_CLIENT_ID, "client_secret": settings.GOOGLE_CLIENT_SECRET, "redirect_uri": settings.GOOGLE_REDIRECT_URI, "grant_type": "authorization_code"}).encode()
+        token_body = urlencode({
+            "code": code,
+            "client_id": settings.GOOGLE_CLIENT_ID,
+            "client_secret": settings.GOOGLE_CLIENT_SECRET,
+            "redirect_uri": settings.GOOGLE_REDIRECT_URI,
+            "grant_type": "authorization_code"
+        }).encode()
         token_request = Request("https://oauth2.googleapis.com/token", data=token_body, headers={"Content-Type": "application/x-www-form-urlencoded"}, method="POST")
         with urlopen(token_request, timeout=10) as response:
             token = json.loads(response.read().decode())
@@ -58,16 +81,24 @@ def google_callback(request):
         user = User.objects.filter(email=email).order_by("id").first()
         created = user is None
         if created:
-            user = User(username="google_" + secrets.token_hex(8), email=email, first_name=profile.get("given_name", "")[:150], last_name=profile.get("family_name", "")[:150])
-            user.set_unusable_password(); user.save()
+            user = User(
+                username="google_" + secrets.token_hex(8),
+                email=email,
+                first_name=profile.get("given_name", "")[:150],
+                last_name=profile.get("family_name", "")[:150]
+            )
+            user.set_unusable_password()
+            user.save()
         login(request, user)
         profile_obj, _ = CustomerProfile.objects.get_or_create(user=user)
         profile_obj.google_sub = profile.get("sub", "") or profile_obj.google_sub
         profile_obj.avatar_url = profile.get("picture", "") or profile_obj.avatar_url
         profile_obj.save(update_fields=("google_sub", "avatar_url", "updated_at"))
-        return _frontend(next_path + "?google=success")
+        
+        session_key = getattr(request.session, "session_key", "") or ""
+        return _redirect_destination(f"{next_path}{sep}google=success&session_key={session_key}")
     except (HTTPError, URLError, ValueError, json.JSONDecodeError):
-        return _frontend(next_path + "?google_error=provider")
+        return _redirect_destination(f"{next_path}{sep}google_error=provider")
 
 
 def auth_me(request):
@@ -81,7 +112,8 @@ def auth_me(request):
         "avatar_url": profile.avatar_url or "",
         "profile": CustomerProfileSerializer(profile).data,
         "addresses": CustomerAddressSerializer(profile.addresses.all(), many=True).data,
-        "orders": CustomerOrderSerializer(request.user.customer_orders.all()[:20], many=True).data
+        "orders": CustomerOrderSerializer(request.user.customer_orders.all()[:20], many=True).data,
+        "session_key": getattr(request.session, "session_key", "") or ""
     })
 
 

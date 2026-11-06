@@ -15,6 +15,7 @@ MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware", "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware", "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware", "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "shop.middleware.BearerSessionMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware", "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 ROOT_URLCONF = "config.urls"
@@ -86,6 +87,10 @@ CSRF_TRUSTED_ORIGINS = [
     "http://api-alorchoya.newsmartagent.com",
 ]
 REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "shop.middleware.BearerSessionAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
+    ],
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.AllowAny"],
     "DEFAULT_THROTTLE_CLASSES": ["rest_framework.throttling.AnonRateThrottle", "rest_framework.throttling.ScopedRateThrottle"],
     "DEFAULT_THROTTLE_RATES": {"anon": "120/minute", "orders": "10/minute", "reviews": "10/hour"},
