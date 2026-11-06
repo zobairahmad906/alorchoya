@@ -2,9 +2,9 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Image } from 'expo-image';
 import * as Linking from 'expo-linking';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -150,10 +150,22 @@ export default function AccountScreen() {
   useEffect(() => {
     loadAccount();
 
+    // Check if app was opened with a deep link URL
+    Linking.getInitialURL().then(async (url) => {
+      if (url && url.includes('session_key=')) {
+        const match = url.match(/[?&#]session_key=([^&#]+)/);
+        if (match && match[1]) {
+          await AsyncStorage.setItem('user-token', decodeURIComponent(match[1]));
+          setNotice('Google দিয়ে সফলভাবে লগইন হয়েছে!');
+          await loadAccount();
+        }
+      }
+    });
+
     // Deep link listener for OAuth redirect callback
     const sub = Linking.addEventListener('url', async (event) => {
       if (event.url && event.url.includes('session_key=')) {
-        const match = event.url.match(/session_key=([^&]+)/);
+        const match = event.url.match(/[?&#]session_key=([^&#]+)/);
         if (match && match[1]) {
           await AsyncStorage.setItem('user-token', decodeURIComponent(match[1]));
           setNotice('Google দিয়ে সফলভাবে লগইন হয়েছে!');
@@ -165,6 +177,13 @@ export default function AccountScreen() {
     return () => sub.remove();
   }, []);
 
+  // Reload account state whenever tab is focused
+  useFocusEffect(
+    useCallback(() => {
+      loadAccount();
+    }, [])
+  );
+
   const handleGoogleLogin = async () => {
     try {
       setAuthLoading(true);
@@ -174,7 +193,7 @@ export default function AccountScreen() {
       const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUrl);
 
       if (result.type === 'success' && result.url) {
-        const match = result.url.match(/session_key=([^&]+)/);
+        const match = result.url.match(/[?&#]session_key=([^&#]+)/);
         if (match && match[1]) {
           await AsyncStorage.setItem('user-token', decodeURIComponent(match[1]));
           setNotice('Google দিয়ে সফলভাবে লগইন হয়েছে!');

@@ -6,6 +6,7 @@ from urllib.request import Request, urlopen
 
 from django.conf import settings
 from django.contrib.auth import get_user_model, login
+from django.core import signing
 from django.http import JsonResponse
 from django.middleware.csrf import get_token
 from django.shortcuts import redirect
@@ -13,26 +14,44 @@ from .models import CustomerProfile
 from .serializers import CustomerProfileSerializer, CustomerAddressSerializer, CustomerOrderSerializer
 
 
-def _frontend(path="/checkout"):
+def _frontend(path="/account"):
     return redirect(settings.PUBLIC_APP_URL.rstrip("/") + path)
 
 
 def _redirect_destination(dest):
-    if dest.startswith("alorchoya://"):
+    if (
+        dest.startswith("alorchoya://")
+        or dest.startswith("exp://")
+        or dest.startswith("exps://")
+        or dest.startswith("http://")
+        or dest.startswith("https://")
+    ):
         return redirect(dest)
-    return _frontend(dest)
+    return redirect(settings.PUBLIC_APP_URL.rstrip("/") + dest)
 
 
 def google_start(request):
-    next_path = request.GET.get("next", "/checkout")
-    valid_scheme = next_path.startswith("alorchoya://") or (next_path.startswith("/") and not next_path.startswith("//"))
-    if not valid_scheme:
-        next_path = "/checkout"
-    request.session["google_oauth_next"] = next_path
+    next_path = (request.GET.get("next") or "").strip()
+    valid_prefix = (
+        next_path.startswith("alorchoya://")
+        or next_path.startswith("exp://")
+        or next_path.startswith("exps://")
+        or (next_path.startswith("/") and not next_path.startswith("//"))
+    )
+    if not valid_prefix:
+        next_path = "/account"
+
     if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_REDIRECT_URI:
         return JsonResponse({"detail": "Google OAuth is not configured."}, status=503)
-    state = secrets.token_urlsafe(32)
+
+    state_payload = {
+        "token": secrets.token_urlsafe(16),
+        "next": next_path
+    }
+    state = signing.dumps(state_payload)
     request.session["google_oauth_state"] = state
+    request.session["google_oauth_next"] = next_path
+
     params = {
         "client_id": settings.GOOGLE_CLIENT_ID,
         "redirect_uri": settings.GOOGLE_REDIRECT_URI,
@@ -45,18 +64,38 @@ def google_start(request):
 
 
 def google_callback(request):
-    next_path = request.session.pop("google_oauth_next", "/checkout")
+    state = request.GET.get("state", "")
+    next_path = "/account"
+
+    # Decode next_path from cryptographically signed state
+    state_valid = False
+    if state:
+        try:
+            state_payload = signing.loads(state, max_age=600)
+            next_path = state_payload.get("next") or "/account"
+            state_valid = True
+        except Exception:
+            pass
+
+    if not state_valid:
+        # Fallback to session state if available
+        expected = request.session.pop("google_oauth_state", None)
+        next_path = request.session.pop("google_oauth_next", "/account")
+        if state and expected and secrets.compare_digest(state, expected):
+            state_valid = True
+
     sep = "&" if "?" in next_path else "?"
 
     if request.GET.get("error"):
         return _redirect_destination(f"{next_path}{sep}google_error=cancelled")
-    state = request.GET.get("state")
-    expected = request.session.pop("google_oauth_state", None)
-    if not state or not expected or not secrets.compare_digest(state, expected):
+
+    if not state_valid:
         return _redirect_destination(f"{next_path}{sep}google_error=invalid_state")
+
     code = request.GET.get("code")
     if not code:
         return _redirect_destination(f"{next_path}{sep}google_error=missing_code")
+
     try:
         token_body = urlencode({
             "code": code,

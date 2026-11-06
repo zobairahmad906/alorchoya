@@ -83,6 +83,10 @@ export default function AccountPage() {
   };
 
   useEffect(() => {
+    if (typeof window !== "undefined" && window.location.search.includes("google=success")) {
+      setNotice("Google অ্যাকাউন্ট দিয়ে সফলভাবে লগইন হয়েছে।");
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
     fetch(API + "/auth/csrf/", { credentials: "include" })
       .then((res) => res.json())
       .then((data) => setCsrfToken(data.csrfToken || ""))
