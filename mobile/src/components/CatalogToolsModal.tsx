@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -85,11 +86,13 @@ export function CatalogToolsModal({ categories, filters, onApply, onReset }: Pro
     setModalOpen(false);
   };
 
+  const bottomPadding = Math.max(insets.bottom, Platform.OS === 'android' ? 24 : 14);
+
   return (
     <>
       {/* Floating Filter FAB */}
       <TouchableOpacity
-        style={[s.fab, { bottom: 82 + insets.bottom }]}
+        style={[s.fab, { bottom: 64 + bottomPadding }]}
         onPress={handleOpen}
         activeOpacity={0.85}>
         <Ionicons name="options-outline" size={22} color={C.ivory} />

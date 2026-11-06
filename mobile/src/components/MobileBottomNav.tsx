@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import {
   Linking,
   Modal,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -28,6 +29,9 @@ export function MobileBottomNav() {
   const isCart = pathname.startsWith('/cart');
   const isAccount = pathname.startsWith('/account');
 
+  // Guarantee ample clearance above Android 3-button navigation / iPhone home indicator
+  const bottomPadding = Math.max(insets.bottom, Platform.OS === 'android' ? 24 : 14);
+
   const navigateTo = (path: any) => {
     setMoreOpen(false);
     router.push(path);
@@ -43,7 +47,7 @@ export function MobileBottomNav() {
       {/* ⋯ আরও Popover Bottom Sheet */}
       <Modal visible={moreOpen} transparent animationType="fade" onRequestClose={() => setMoreOpen(false)}>
         <Pressable style={s.modalOverlay} onPress={() => setMoreOpen(false)}>
-          <View style={[s.morePopover, { bottom: 76 + insets.bottom }]}>
+          <View style={[s.morePopover, { bottom: 64 + bottomPadding }]}>
             <TouchableOpacity
               style={s.moreItem}
               onPress={() => navigateTo('/offers')}
@@ -80,7 +84,7 @@ export function MobileBottomNav() {
       </Modal>
 
       {/* Main 5-Item Bottom Bar */}
-      <View style={[s.navContainer, { paddingBottom: Math.max(insets.bottom, 6) }]}>
+      <View style={[s.navContainer, { paddingBottom: bottomPadding }]}>
         {/* 1. শপ */}
         <TouchableOpacity
           style={s.tabItem}
@@ -158,8 +162,7 @@ const s = StyleSheet.create({
     backgroundColor: C.ivory,
     borderTopWidth: 1,
     borderTopColor: C.line,
-    height: 68,
-    paddingTop: 6,
+    paddingTop: 8,
     zIndex: 70,
     ...shadow,
   },
@@ -167,7 +170,7 @@ const s = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    height: '100%',
+    paddingVertical: 2,
   },
   iconWrap: {
     position: 'relative',

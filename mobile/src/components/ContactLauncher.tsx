@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import {
   Linking,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -57,8 +58,10 @@ export function ContactLauncher() {
     Linking.openURL(url).catch(() => undefined);
   };
 
+  const bottomPadding = Math.max(insets.bottom, Platform.OS === 'android' ? 24 : 14);
+
   return (
-    <View style={[s.wrap, { bottom: 82 + insets.bottom }]}>
+    <View style={[s.wrap, { bottom: 64 + bottomPadding }]}>
       {/* Typewriter Teaser Bubble */}
       {!open && showTeaser && displayText.length > 0 && (
         <TouchableOpacity
