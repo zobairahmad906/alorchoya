@@ -145,6 +145,19 @@ export default function Home() {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.forest} />
         }>
+        {/* 0. Announcement Banner */}
+        {discounted.length > 0 && (
+          <View style={s.announceBanner}>
+            <Text style={s.announceIcon}>🏷️</Text>
+            <Text style={s.announceText}>
+              বিশেষ অফার: নির্বাচিত পণ্যে আকর্ষণীয় ছাড় চলছে!
+            </Text>
+            <TouchableOpacity onPress={() => router.push('/offers')}>
+              <Text style={s.announceAction}>অফার দেখুন ➔</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* 1. Hero Carousel */}
         {heroItems.length > 0 && (
           <View style={s.heroWrap}>
@@ -332,6 +345,17 @@ export default function Home() {
             contentContainerStyle={s.reviewScroll}>
             {(reviews.length ? reviews : FALLBACK_REVIEWS).map((r) => (
               <View key={r.id} style={s.reviewCard}>
+                <View style={s.revUserRow}>
+                  <View style={s.revAvatar}>
+                    <Text style={s.revAvatarText}>
+                      {r.customer_name ? r.customer_name.charAt(0).toUpperCase() : 'U'}
+                    </Text>
+                  </View>
+                  <View>
+                    <Text style={s.revAuthor}>{r.customer_name}</Text>
+                    <Text style={s.verifiedBadge}>✓ ভেরিফাইড ক্রেতা</Text>
+                  </View>
+                </View>
                 <View style={s.ratingRow}>
                   {Array.from({ length: 5 }).map((_, i) => (
                     <Text
@@ -342,10 +366,26 @@ export default function Home() {
                   ))}
                 </View>
                 <Text style={s.reviewComment}>"{r.comment}"</Text>
-                <Text style={s.reviewAuthor}>— {r.customer_name}</Text>
               </View>
             ))}
           </ScrollView>
+        </View>
+
+        {/* 7. Footer Info */}
+        <View style={s.footerCard}>
+          <Text style={s.footerBrand}>আলোর ছোঁয়া মার্ট</Text>
+          <Text style={s.footerTagline}>
+            আপনার ঘর, আপনার রুচির প্রতিচ্ছবি — বাংলাদেশের বিশ্বস্ত হোম ডেকর ও প্রাকৃতিক পণ্য ব্র্যান্ড।
+          </Text>
+          <View style={s.footerContactRow}>
+            <TouchableOpacity
+              style={s.footerContactBtn}
+              onPress={() => Linking.openURL(WHATSAPP)}>
+              <Ionicons name="logo-whatsapp" size={16} color="#25D366" />
+              <Text style={s.footerContactText}>WhatsApp: 01302 111188</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={s.copyrightText}>© 2026 আলোর ছোঁয়া মার্ট · সর্বস্বত্ব সংরক্ষিত</Text>
         </View>
       </ScrollView>
 
@@ -571,10 +611,106 @@ const s = StyleSheet.create({
     color: C.ink,
     lineHeight: 17,
   },
-  reviewAuthor: {
+  announceBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fef3c7',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#fde68a',
+    gap: 6,
+  },
+  announceIcon: {
+    fontSize: 14,
+  },
+  announceText: {
+    flex: 1,
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#92400e',
+  },
+  announceAction: {
     fontSize: 11,
     fontWeight: '800',
     color: C.forest,
-    marginTop: 8,
+  },
+  revUserRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 6,
+  },
+  revAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#059669',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  revAvatarText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  revAuthor: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: C.ink,
+  },
+  verifiedBadge: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#059669',
+  },
+  footerCard: {
+    marginTop: 24,
+    marginHorizontal: 14,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: C.line,
+    padding: 16,
+    alignItems: 'center',
+    ...shadow,
+  },
+  footerBrand: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: C.forest,
+  },
+  footerTagline: {
+    fontSize: 11,
+    color: C.muted,
+    textAlign: 'center',
+    marginTop: 4,
+    lineHeight: 16,
+  },
+  footerContactRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 10,
+  },
+  footerContactBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#f0fdf4',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: R.pill,
+    borderWidth: 1,
+    borderColor: '#bbf7d0',
+  },
+  footerContactText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#15803d',
+  },
+  copyrightText: {
+    fontSize: 10,
+    color: C.muted,
+    marginTop: 12,
   },
 });
