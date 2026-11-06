@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Dimensions, FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { ContactLauncher } from '@/components/ContactLauncher';
 import { C, R } from '@/constants/theme';
 import { get, img, discountPercent, effectivePrice, taka, type Product } from '@/lib/api';
 import { useCart } from '@/lib/cart';
@@ -120,6 +121,7 @@ export default function ProductDetail() {
           <Text style={s.solidT}>অর্ডার করুন</Text>
         </Pressable>
       </View>
+      <ContactLauncher />
     </View>
   );
 }

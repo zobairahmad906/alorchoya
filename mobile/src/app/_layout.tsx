@@ -1,5 +1,6 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import React from 'react';
 
 import { C } from '@/constants/theme';
 import { CartProvider } from '@/lib/cart';
@@ -18,6 +19,9 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="product/[slug]" options={{ title: 'পণ্যের বিবরণ' }} />
         <Stack.Screen name="checkout" options={{ title: 'চেকআউট' }} />
+        <Stack.Screen name="offers" options={{ headerShown: false }} />
+        <Stack.Screen name="categories" options={{ headerShown: false }} />
+        <Stack.Screen name="track-order" options={{ headerShown: false }} />
       </Stack>
     </CartProvider>
   );

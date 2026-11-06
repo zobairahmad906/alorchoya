@@ -1,36 +1,40 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   FlatList,
   Linking,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   useWindowDimensions,
   View,
-  Pressable,
 } from 'react-native';
 
+import { ContactLauncher } from '@/components/ContactLauncher';
+import { MobileHeader } from '@/components/Header';
 import { ProductCard } from '@/components/ProductCard';
 import { C, R, shadow } from '@/constants/theme';
 import {
+  discountPercent,
   get,
   img,
   productImage,
+  taka,
   WHATSAPP,
-  discountPercent,
   type HeroSlide,
   type Product,
   type Review,
 } from '@/lib/api';
 
 const FALLBACK_REVIEWS: Review[] = [
-  { id: -1, customer_name: 'নুসরাত জাহান', rating: 5, comment: 'শেলফটির কোয়ালিটি অসাধারণ, ডেলিভারিও দ্রুত পেয়েছি।' },
+  { id: -1, customer_name: 'নুসরাত জাহান', rating: 5, comment: 'পণ্যটির কোয়ালিটি অসাধারণ, ডেলিভারিও দ্রুত পেয়েছি।' },
   { id: -2, customer_name: 'রাকিবুল হাসান', rating: 5, comment: 'দাম অনুযায়ী পণ্যের মান খুবই ভালো, আবার অর্ডার করব।' },
-  { id: -3, customer_name: 'ফারহানা আক্তার', rating: 5, comment: 'ঘরের চেহারাই বদলে গেছে, খুব সুন্দর ডিজাইন।' },
+  { id: -3, customer_name: 'ফারহানা আক্তার', rating: 5, comment: 'খাঁটি ও প্রাকৃতিক পণ্য, প্যাকেজিং দারুণ ছিল।' },
 ];
 
 export default function Home() {
@@ -65,7 +69,32 @@ export default function Home() {
   };
 
   const discounted = useMemo(() => products.filter((p) => discountPercent(p) > 0), [products]);
-  const maxOff = discounted.length ? Math.max(...discounted.map(discountPercent)) : 0;
+
+  // Extract categories with counts
+  const categories = useMemo(() => {
+    const map = new Map<string, { name: string; slug: string; image?: string; count: number }>();
+    for (const p of products) {
+      if (!p.category?.slug) continue;
+      const primaryImg = productImage(p);
+      const existing = map.get(p.category.slug);
+      if (existing) {
+        existing.count += 1;
+        if (!existing.image && primaryImg) existing.image = primaryImg;
+      } else {
+        map.set(p.category.slug, {
+          name: p.category.name,
+          slug: p.category.slug,
+          image: primaryImg,
+          count: 1,
+        });
+      }
+    }
+    return Array.from(map.values());
+  }, [products]);
+
+  const totalProductCount = products.length;
+
+  const toBn = (n: number) => n.toString().replace(/\d/g, (d) => '০১২৩৪৫৬৭৮৯'[+d]);
 
   const heroItems = useMemo(() => {
     if (slides.length) {
@@ -79,7 +108,10 @@ export default function Home() {
         slug: s.product_slug || undefined,
       }));
     }
-    const base = (products.filter((p) => p.is_featured).length ? products.filter((p) => p.is_featured) : products).slice(0, 5);
+    const base = (products.filter((p) => p.is_featured).length
+      ? products.filter((p) => p.is_featured)
+      : products
+    ).slice(0, 5);
     return base.map((p) => ({
       key: `p${p.id}`,
       eyebrow: p.category?.name,
@@ -99,226 +131,450 @@ export default function Home() {
         heroRef.current?.scrollToIndex({ index: n, animated: true });
         return n;
       });
-    }, 5000);
+    }, 4500);
     return () => clearInterval(t);
   }, [heroItems.length]);
 
-  const categories = useMemo(() => {
-    const map = new Map<string, { name: string; slug: string; image?: string; count: number }>();
-    for (const p of products) {
-      if (!p.category?.slug) continue;
-      const e = map.get(p.category.slug);
-      if (e) {
-        e.count += 1;
-        e.image ||= productImage(p);
-      } else {
-        map.set(p.category.slug, { name: p.category.name, slug: p.category.slug, image: productImage(p), count: 1 });
-      }
-    }
-    return Array.from(map.values());
-  }, [products]);
-
-  const heroW = width - 32;
-  const shown = reviews.length ? reviews : FALLBACK_REVIEWS;
-
   return (
-    <ScrollView
-      style={{ backgroundColor: C.ivory }}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.forest} />}>
-      {discounted.length > 0 && (
-        <View style={s.announce}>
-          <Text style={s.announceText}>
-            {discounted.length}টি পণ্যে ছাড় — সর্বোচ্চ {maxOff}% পর্যন্ত!
-          </Text>
-        </View>
-      )}
+    <View style={{ flex: 1, backgroundColor: C.ivory }}>
+      <MobileHeader />
 
-      {/* Hero */}
-      {heroItems.length > 0 && (
-        <View style={{ marginTop: 14 }}>
-          <FlatList
-            ref={heroRef}
-            data={heroItems}
-            horizontal
-            pagingEnabled={false}
-            snapToInterval={heroW + 12}
-            decelerationRate="fast"
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}
-            keyExtractor={(i) => i.key}
-            getItemLayout={(_, index) => ({ length: heroW + 12, offset: (heroW + 12) * index, index })}
-            onMomentumScrollEnd={(e) => setSlideIdx(Math.round(e.nativeEvent.contentOffset.x / (heroW + 12)))}
-            renderItem={({ item }) => (
-              <Pressable
-                style={[s.hero, { width: heroW }]}
-                onPress={() =>
-                  item.slug
-                    ? router.push({ pathname: '/product/[slug]', params: { slug: item.slug } })
-                    : router.push('/shop')
-                }>
-                {item.image && <Image source={{ uri: item.image }} style={StyleSheet.absoluteFill} contentFit="cover" />}
-                <View style={s.heroShade} />
-                <View style={s.heroText}>
-                  {!!item.eyebrow && <Text style={s.heroEyebrow}>{item.eyebrow}</Text>}
-                  <Text style={s.heroTitle} numberOfLines={2}>
-                    {item.title}
-                  </Text>
-                  <View style={s.heroBtn}>
-                    <Text style={s.heroBtnText}>{item.cta}</Text>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 90 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.forest} />
+        }>
+        {/* 1. Hero Carousel */}
+        {heroItems.length > 0 && (
+          <View style={s.heroWrap}>
+            <FlatList
+              ref={heroRef}
+              data={heroItems}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              onMomentumScrollEnd={(e) => {
+                const i = Math.round(e.nativeEvent.contentOffset.x / width);
+                setSlideIdx(i);
+              }}
+              keyExtractor={(it) => it.key}
+              renderItem={({ item }) => (
+                <View style={[s.heroSlide, { width }]}>
+                  {item.image ? (
+                    <Image source={{ uri: item.image }} style={s.heroImg} contentFit="cover" />
+                  ) : (
+                    <View style={[s.heroImg, { backgroundColor: C.forest }]} />
+                  )}
+                  <View style={s.heroGrad} />
+                  <View style={s.heroTextWrap}>
+                    {item.eyebrow ? <Text style={s.heroEyebrow}>{item.eyebrow}</Text> : null}
+                    <Text style={s.heroTitle} numberOfLines={2}>
+                      {item.title}
+                    </Text>
+                    {item.sub ? (
+                      <Text style={s.heroSub} numberOfLines={2}>
+                        {item.sub}
+                      </Text>
+                    ) : null}
+                    <TouchableOpacity
+                      style={s.heroCta}
+                      activeOpacity={0.85}
+                      onPress={() => {
+                        if (item.slug) {
+                          router.push({ pathname: '/product/[slug]', params: { slug: item.slug } });
+                        } else {
+                          router.push('/shop');
+                        }
+                      }}>
+                      <Text style={s.heroCtaText}>{item.cta} →</Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
-              </Pressable>
+              )}
+            />
+            {/* Dots */}
+            {heroItems.length > 1 && (
+              <View style={s.dotsRow}>
+                {heroItems.map((_, i) => (
+                  <View key={i} style={[s.dot, i === slideIdx && s.dotActive]} />
+                ))}
+              </View>
             )}
-          />
-          {heroItems.length > 1 && (
-            <View style={s.dots}>
-              {heroItems.map((h, i) => (
-                <View key={h.key} style={[s.dot, i === slideIdx && s.dotActive]} />
-              ))}
-            </View>
-          )}
-        </View>
-      )}
+          </View>
+        )}
 
-      {/* Categories */}
-      {categories.length > 0 && (
-        <View style={s.section}>
-          <Text style={s.h2}>ক্যাটাগরি</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingRight: 16 }}>
+        {/* 2. Category Circles Rail */}
+        <View style={s.catRailSec}>
+          <View style={s.secHeader}>
+            <Text style={s.secTitle}>ক্যাটাগরি</Text>
+            <TouchableOpacity onPress={() => router.push('/categories')}>
+              <Text style={s.seeAll}>সবগুলো দেখুন ➔</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={s.catRailScroll}>
+            {/* All Category Pill */}
+            <TouchableOpacity
+              style={s.catCircleCard}
+              onPress={() => router.push('/shop')}
+              activeOpacity={0.8}>
+              <View style={s.catRing}>
+                <View style={[s.catInner, { backgroundColor: C.forest }]}>
+                  <Ionicons name="grid" size={24} color={C.gold} />
+                </View>
+              </View>
+              <Text style={s.catCardTitle} numberOfLines={1}>
+                সব ক্যাটাগরি
+              </Text>
+              <Text style={s.catCardCount}>{toBn(totalProductCount)}টি পণ্য</Text>
+            </TouchableOpacity>
+
+            {/* Individual categories */}
             {categories.map((c) => (
-              <Pressable
+              <TouchableOpacity
                 key={c.slug}
-                style={s.cat}
-                onPress={() => router.push({ pathname: '/shop', params: { category: c.slug } })}>
-                {c.image ? (
-                  <Image source={{ uri: c.image }} style={s.catImg} contentFit="cover" />
-                ) : (
-                  <View style={[s.catImg, { backgroundColor: C.cream }]} />
-                )}
-                <Text style={s.catName} numberOfLines={1}>
+                style={s.catCircleCard}
+                onPress={() => router.push({ pathname: '/shop', params: { category: c.slug } })}
+                activeOpacity={0.8}>
+                <View style={s.catRing}>
+                  <View style={s.catInner}>
+                    {c.image ? (
+                      <Image source={{ uri: c.image }} style={s.catImg} contentFit="cover" />
+                    ) : (
+                      <Text style={s.catGlyph}>{c.name.slice(0, 1)}</Text>
+                    )}
+                  </View>
+                </View>
+                <Text style={s.catCardTitle} numberOfLines={1}>
                   {c.name}
                 </Text>
-                <Text style={s.catCount}>{c.count}টি পণ্য</Text>
-              </Pressable>
+                <Text style={s.catCardCount}>{toBn(c.count)}টি পণ্য</Text>
+              </TouchableOpacity>
             ))}
           </ScrollView>
         </View>
-      )}
 
-      {/* Products */}
-      <View style={s.section}>
-        <View style={s.grid}>
-          {products.slice(0, 12).map((p) => (
-            <View key={p.id} style={s.cell}>
-              <ProductCard product={p} />
-            </View>
-          ))}
-        </View>
-        {products.length > 12 && (
-          <Pressable style={s.more} onPress={() => router.push('/shop')}>
-            <Text style={s.moreText}>সব পণ্য দেখুন</Text>
-            <Ionicons name="arrow-forward" size={16} color={C.forest} />
-          </Pressable>
-        )}
-      </View>
-
-      {/* Reviews */}
-      <View style={s.section}>
-        <Text style={s.h2}>ক্রেতাদের মতামত</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingRight: 16 }}>
-          {shown.map((r) => (
-            <View key={r.id} style={s.review}>
-              <View style={s.rHead}>
-                <View style={s.avatar}>
-                  <Text style={s.avatarText}>{r.customer_name?.charAt(0).toUpperCase() || 'U'}</Text>
-                </View>
-                <View>
-                  <Text style={s.rName}>{r.customer_name}</Text>
-                  <Text style={s.rVerified}>✓ ভেরিফাইড ক্রেতা</Text>
-                </View>
+        {/* 3. Discount Offers Horizontal Carousel (if any) */}
+        {discounted.length > 0 && (
+          <View style={s.sec}>
+            <View style={s.secHeader}>
+              <View>
+                <Text style={s.secKicker}>সীমিত সময়ের ছাড়</Text>
+                <Text style={s.secTitle}>বিশেষ অফার ও ডিল</Text>
               </View>
-              <Text style={s.stars}>{'★'.repeat(r.rating)}</Text>
-              <Text style={s.rText}>“{r.comment}”</Text>
+              <TouchableOpacity onPress={() => router.push('/offers')}>
+                <Text style={s.seeAll}>সব অফার ➔</Text>
+              </TouchableOpacity>
             </View>
-          ))}
-        </ScrollView>
-      </View>
-
-      {/* WhatsApp CTA */}
-      <View style={s.cta}>
-        <View style={{ flex: 1 }}>
-          <Text style={s.ctaTitle}>কোনো প্রশ্ন আছে?</Text>
-          <Text style={s.ctaSub}>হোয়াটসঅ্যাপে সরাসরি আমাদের সাথে কথা বলুন</Text>
-        </View>
-        <Pressable style={s.ctaBtn} onPress={() => Linking.openURL(WHATSAPP)}>
-          <Ionicons name="logo-whatsapp" size={18} color={C.forest} />
-        </Pressable>
-      </View>
-
-      {/* Why us */}
-      <View style={s.section}>
-        <Text style={s.h2}>কেন আলোর ছোঁয়া?</Text>
-        {[
-          ['প্রিমিয়াম মান', 'প্রতিটি পণ্য যত্নসহকারে নির্বাচিত ও পরীক্ষিত।'],
-          ['নিরাপদ অর্ডার', 'ক্যাশ অন ডেলিভারি ও নিরাপদ পেমেন্ট সুবিধা।'],
-          ['নির্ভরযোগ্য ডেলিভারি', 'সারা বাংলাদেশে দ্রুত ও নিরাপদ ডেলিভারি।'],
-        ].map(([t, d]) => (
-          <View key={t} style={s.why}>
-            <Text style={s.whyT}>{t}</Text>
-            <Text style={s.whyD}>{d}</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={s.dealsScroll}>
+              {discounted.slice(0, 6).map((item) => (
+                <View key={item.id} style={{ width: 170, marginRight: 12 }}>
+                  <ProductCard product={item} />
+                </View>
+              ))}
+            </ScrollView>
           </View>
-        ))}
-      </View>
+        )}
 
-      <View style={s.footer}>
-        <Text style={s.footBrand}>আলোর ছোঁয়া মার্ট</Text>
-        <Text style={s.footText}>আপনার ঘর, আপনার রুচির প্রতিচ্ছবি—বাংলাদেশের প্রিমিয়াম হোম ডেকর ব্র্যান্ড।</Text>
-        <Text style={s.footText}>01302 111188</Text>
-        <Text style={[s.footText, { opacity: 0.6, marginTop: 8 }]}>© 2026 আলোর ছোঁয়া মার্ট</Text>
-      </View>
-    </ScrollView>
+        {/* 4. Featured Products Grid */}
+        <View style={s.sec}>
+          <View style={s.secHeader}>
+            <View>
+              <Text style={s.secKicker}>খাঁটি ও স্বাস্থ্যকর</Text>
+              <Text style={s.secTitle}>আমাদের সেরা পণ্যসমূহ</Text>
+            </View>
+            <TouchableOpacity onPress={() => router.push('/shop')}>
+              <Text style={s.seeAll}>সব পণ্য ➔</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={s.productGrid}>
+            {products.slice(0, 8).map((item) => (
+              <View key={item.id} style={{ width: '50%', padding: 5 }}>
+                <ProductCard product={item} />
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {/* 5. Trust / Value Proposition Badges */}
+        <View style={s.trustWrap}>
+          <View style={s.trustItem}>
+            <Text style={s.trustIcon}>🌿</Text>
+            <Text style={s.trustTitle}>১০০% খাঁটি পণ্য</Text>
+            <Text style={s.trustSub}>প্রাকৃতিক ও ভেজালমুক্ত</Text>
+          </View>
+          <View style={s.trustItem}>
+            <Text style={s.trustIcon}>🚚</Text>
+            <Text style={s.trustTitle}>দ্রুত ডেলিভারি</Text>
+            <Text style={s.trustSub}>সারাদেশে হোম ডেলিভারি</Text>
+          </View>
+          <View style={s.trustItem}>
+            <Text style={s.trustIcon}>💵</Text>
+            <Text style={s.trustTitle}>ক্যাশ অন ডেলিভারি</Text>
+            <Text style={s.trustSub}>পণ্য দেখে মূল্য পরিশোধ</Text>
+          </View>
+        </View>
+
+        {/* 6. Customer Reviews */}
+        <View style={s.sec}>
+          <View style={s.secHeader}>
+            <Text style={s.secTitle}>গ্রাহকদের মন্তব্য</Text>
+          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={s.reviewScroll}>
+            {(reviews.length ? reviews : FALLBACK_REVIEWS).map((r) => (
+              <View key={r.id} style={s.reviewCard}>
+                <View style={s.ratingRow}>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Text
+                      key={i}
+                      style={[s.star, { color: i < r.rating ? '#eab308' : '#cbd5e1' }]}>
+                      ★
+                    </Text>
+                  ))}
+                </View>
+                <Text style={s.reviewComment}>"{r.comment}"</Text>
+                <Text style={s.reviewAuthor}>— {r.customer_name}</Text>
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+      </ScrollView>
+
+      {/* Floating Typewriter Contact Launcher */}
+      <ContactLauncher />
+    </View>
   );
 }
 
 const s = StyleSheet.create({
-  announce: { backgroundColor: C.forest, paddingVertical: 8, alignItems: 'center' },
-  announceText: { color: C.cream, fontSize: 12, fontWeight: '700' },
-  hero: { height: 210, borderRadius: R.lg + 4, overflow: 'hidden', backgroundColor: C.forest, justifyContent: 'flex-end' },
-  heroShade: { ...StyleSheet.absoluteFill as object, backgroundColor: 'rgba(23,63,53,0.45)' },
-  heroText: { padding: 16, gap: 6 },
-  heroEyebrow: { color: C.gold, fontWeight: '800', fontSize: 12, letterSpacing: 0.5 },
-  heroTitle: { color: C.white, fontSize: 22, fontWeight: '800' },
-  heroBtn: { alignSelf: 'flex-start', backgroundColor: C.cream, borderRadius: R.pill, paddingHorizontal: 16, paddingVertical: 8, marginTop: 4 },
-  heroBtnText: { color: C.forest, fontWeight: '800', fontSize: 13 },
-  dots: { flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: 10 },
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: C.line },
-  dotActive: { width: 18, backgroundColor: C.forest },
-  section: { paddingHorizontal: 16, marginTop: 24 },
-  h2: { fontSize: 20, fontWeight: '800', color: C.forest, marginBottom: 12 },
-  cat: { width: 104, alignItems: 'center' },
-  catImg: { width: 104, height: 104, borderRadius: R.lg, backgroundColor: C.cream },
-  catName: { marginTop: 6, fontWeight: '700', color: C.ink, fontSize: 13 },
-  catCount: { fontSize: 11, color: C.muted },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -6 },
-  cell: { width: '50%', padding: 6 },
-  more: { flexDirection: 'row', alignSelf: 'center', alignItems: 'center', gap: 6, marginTop: 14, paddingVertical: 10, paddingHorizontal: 20, borderRadius: R.pill, borderWidth: 1.5, borderColor: C.forest },
-  moreText: { color: C.forest, fontWeight: '800' },
-  review: { width: 260, backgroundColor: C.white, borderRadius: R.lg, padding: 14, gap: 8, ...shadow },
-  rHead: { flexDirection: 'row', gap: 10, alignItems: 'center' },
-  avatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: C.emerald, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { color: C.white, fontWeight: '800', fontSize: 16 },
-  rName: { fontWeight: '700', color: C.ink },
-  rVerified: { fontSize: 11, color: C.emerald },
-  stars: { color: C.star, letterSpacing: 2 },
-  rText: { color: '#374151', lineHeight: 20, fontSize: 13 },
-  cta: { flexDirection: 'row', alignItems: 'center', gap: 12, margin: 16, marginTop: 24, padding: 18, borderRadius: R.lg, backgroundColor: C.forest },
-  ctaTitle: { color: C.white, fontWeight: '800', fontSize: 17 },
-  ctaSub: { color: C.cream, fontSize: 12, marginTop: 2 },
-  ctaBtn: { width: 46, height: 46, borderRadius: 23, backgroundColor: C.cream, alignItems: 'center', justifyContent: 'center' },
-  why: { backgroundColor: C.cream, borderRadius: R.md, padding: 14, marginBottom: 10 },
-  whyT: { fontWeight: '800', color: C.forest, fontSize: 15 },
-  whyD: { color: C.muted, marginTop: 2, fontSize: 13 },
-  footer: { backgroundColor: C.forest, padding: 20, marginTop: 24, gap: 4 },
-  footBrand: { color: C.white, fontWeight: '800', fontSize: 18 },
-  footText: { color: C.cream, fontSize: 12, lineHeight: 18 },
+  heroWrap: {
+    position: 'relative',
+    height: 240,
+  },
+  heroSlide: {
+    height: 240,
+    position: 'relative',
+  },
+  heroImg: {
+    width: '100%',
+    height: '100%',
+  },
+  heroGrad: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(23, 63, 53, 0.55)',
+  },
+  heroTextWrap: {
+    position: 'absolute',
+    left: 20,
+    right: 20,
+    bottom: 24,
+  },
+  heroEyebrow: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: C.gold,
+    letterSpacing: 1,
+    marginBottom: 2,
+    textTransform: 'uppercase',
+  },
+  heroTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: C.ivory,
+    lineHeight: 26,
+  },
+  heroSub: {
+    fontSize: 12,
+    color: '#e2e8f0',
+    marginTop: 2,
+    lineHeight: 16,
+  },
+  heroCta: {
+    alignSelf: 'flex-start',
+    backgroundColor: C.gold,
+    paddingHorizontal: 16,
+    paddingVertical: 7,
+    borderRadius: R.pill,
+    marginTop: 8,
+  },
+  heroCtaText: {
+    color: C.forest,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  dotsRow: {
+    position: 'absolute',
+    bottom: 8,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    gap: 6,
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+  },
+  dotActive: {
+    width: 18,
+    backgroundColor: C.gold,
+  },
+  catRailSec: {
+    marginTop: 14,
+    paddingHorizontal: 14,
+  },
+  sec: {
+    marginTop: 18,
+    paddingHorizontal: 14,
+  },
+  secHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    marginBottom: 10,
+  },
+  secKicker: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#b83f4b',
+  },
+  secTitle: {
+    fontSize: 17,
+    fontWeight: '900',
+    color: C.forest,
+  },
+  seeAll: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: C.emerald,
+  },
+  catRailScroll: {
+    paddingVertical: 4,
+    gap: 12,
+  },
+  catCircleCard: {
+    alignItems: 'center',
+    width: 78,
+  },
+  catRing: {
+    width: 66,
+    height: 66,
+    borderRadius: 33,
+    backgroundColor: '#fff',
+    borderWidth: 2,
+    borderColor: C.line,
+    padding: 2,
+    marginBottom: 4,
+    ...shadow,
+  },
+  catInner: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 31,
+    overflow: 'hidden',
+    backgroundColor: '#f7f1e5',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  catImg: {
+    width: '100%',
+    height: '100%',
+  },
+  catGlyph: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: C.forest,
+  },
+  catCardTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: C.forest,
+    textAlign: 'center',
+  },
+  catCardCount: {
+    fontSize: 9,
+    color: C.muted,
+    marginTop: 1,
+  },
+  dealsScroll: {
+    paddingVertical: 4,
+  },
+  productGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: -5,
+  },
+  trustWrap: {
+    flexDirection: 'row',
+    marginHorizontal: 14,
+    marginTop: 20,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: C.line,
+    padding: 12,
+    ...shadow,
+  },
+  trustItem: {
+    flex: 1,
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  trustIcon: {
+    fontSize: 22,
+    marginBottom: 4,
+  },
+  trustTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: C.forest,
+    textAlign: 'center',
+  },
+  trustSub: {
+    fontSize: 9,
+    color: C.muted,
+    textAlign: 'center',
+    marginTop: 1,
+  },
+  reviewScroll: {
+    paddingVertical: 4,
+    gap: 12,
+  },
+  reviewCard: {
+    width: 250,
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: C.line,
+    ...shadow,
+  },
+  ratingRow: {
+    flexDirection: 'row',
+    gap: 2,
+    marginBottom: 6,
+  },
+  star: {
+    fontSize: 13,
+  },
+  reviewComment: {
+    fontSize: 12,
+    color: C.ink,
+    lineHeight: 17,
+  },
+  reviewAuthor: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: C.forest,
+    marginTop: 8,
+  },
 });
