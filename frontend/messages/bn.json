@@ -63,7 +63,10 @@
     "question": "কোনো প্রশ্ন আছে?",
     "whatsapp": "হোয়াটসঅ্যাপে কথা বলুন",
     "whatsappSub": "হোয়াটসঅ্যাপে সরাসরি আমাদের সাথে কথা বলুন",
-    "announce": "সীমিত সময়ের অফার — {count}টি নির্বাচিত পণ্যে {discount}% পর্যন্ত ছাড়"
+    "announce": "সীমিত সময়ের অফার — {count}টি নির্বাচিত পণ্যে {discount}% পর্যন্ত ছাড়",
+    "viewAllProducts": "সব পণ্য দেখুন",
+    "orderNowCta": "এখনই অর্ডার করুন →",
+    "discountOff": "{discount}% ছাড়"
   },
   "shop": {
     "kicker": "আলোর ছোঁয়া মার্ট",

@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useCart } from "./cart";
 import type { Product } from "./types";
 import { useLocale, useTranslations } from "next-intl";
+import { setUserLocale } from "./actions";
 
 function SearchIcon({ size = 20 }: { size?: number }) {
   return (
@@ -118,9 +119,14 @@ export function Header() {
     return () => clearTimeout(timer);
   }, [query]);
 
-  const setLanguage = (newLocale: "bn" | "en") => {
+  const setLanguage = async (newLocale: "bn" | "en") => {
     if (locale === newLocale) return;
-    document.cookie = "NEXT_LOCALE=" + newLocale + "; path=/; max-age=31536000";
+    document.cookie = `NEXT_LOCALE=${newLocale}; path=/; max-age=31536000; SameSite=Lax`;
+    try {
+      await setUserLocale(newLocale);
+    } catch {
+      // fallback to document.cookie
+    }
     window.location.reload();
   };
 
@@ -608,9 +614,14 @@ export function MobileBottomNav() {
   const profileLabel = account?.name || t("account");
   const closeMore = () => setMoreOpen(false);
 
-  const setLanguage = (newLocale: "bn" | "en") => {
+  const setLanguage = async (newLocale: "bn" | "en") => {
     if (locale === newLocale) return;
-    document.cookie = "NEXT_LOCALE=" + newLocale + "; path=/; max-age=31536000";
+    document.cookie = `NEXT_LOCALE=${newLocale}; path=/; max-age=31536000; SameSite=Lax`;
+    try {
+      await setUserLocale(newLocale);
+    } catch {
+      // fallback to document.cookie
+    }
     window.location.reload();
   };
 

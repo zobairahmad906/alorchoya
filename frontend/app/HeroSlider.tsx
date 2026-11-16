@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import type { Product, HeroSlide } from "./types";
+import { useLocale, useTranslations } from "next-intl";
+import { formatPrice } from "./components";
 
 interface HeroSliderProps {
   products: Product[];
@@ -32,11 +34,18 @@ type UnifiedSlide = {
 export function HeroSlider({
   products,
   heroSlides = [],
-  eyebrow = "আভিজাত্য ও নান্দনিকতার মিলনমেলা",
-  defaultTitle = "আপনার ঘরের সৌন্দর্য বাড়ান প্রিমিয়াম হোম ডেকোরে",
-  defaultLede = "অভিজ্ঞ কারিগরদের তৈরি বুকশেলফ, ওয়াল শেলফ ও ডেকোরেটিভ ফার্নিচারের বিশ্বস্ত অনলাইন শপ।",
-  shopButtonText = "কেনাকাটা শুরু করুন",
+  eyebrow,
+  defaultTitle,
+  defaultLede,
+  shopButtonText,
 }: HeroSliderProps) {
+  const locale = useLocale();
+  const tHome = useTranslations("home");
+  const fallbackEyebrow = eyebrow || tHome("eyebrow");
+  const fallbackTitle = defaultTitle || tHome("title");
+  const fallbackLede = defaultLede || tHome("lede");
+  const fallbackButtonText = shopButtonText || tHome("shop");
+
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     const media = window.matchMedia("(max-width: 640px)");
@@ -66,16 +75,16 @@ export function HeroSlider({
 
         return {
           id: `slide-${slide.id}`,
-          eyebrow: slide.eyebrow || eyebrow,
-          catTag: slide.product_name ? "প্রোডাক্ট অফার" : undefined,
-          title: slide.title || slide.product_name || defaultTitle,
-          desc: slide.subtitle || defaultLede,
+          eyebrow: slide.eyebrow || fallbackEyebrow,
+          catTag: slide.product_name ? (locale === "en" ? "Offer" : "প্রোডাক্ট অফার") : undefined,
+          title: slide.title || slide.product_name || fallbackTitle,
+          desc: slide.subtitle || fallbackLede,
           image: isMobile && slide.mobile_image ? slide.mobile_image : slide.image,
           hasPrice: Boolean(slide.product_price),
           currentPrice: slide.product_discount_price || slide.product_price,
           oldPrice: hasDiscount ? slide.product_price : null,
           discountPercent: discountPct,
-          buttonText: slide.button_text || shopButtonText,
+          buttonText: slide.button_text || fallbackButtonText,
           buttonLink:
             slide.button_link ||
             (slide.product_slug ? `/products/${slide.product_slug}` : "#shop"),
@@ -102,18 +111,18 @@ export function HeroSlider({
 
         return {
           id: `prod-${p.id}`,
-          eyebrow: eyebrow,
-          catTag: p.category?.name || "হোম ডেকর",
+          eyebrow: fallbackEyebrow,
+          catTag: p.category?.name || (locale === "en" ? "Home Decor" : "হোম ডেকর"),
           title: p.name,
           desc: p.description
             ? p.description.slice(0, 120) + (p.description.length > 120 ? "..." : "")
-            : defaultLede,
+            : fallbackLede,
           image: imgUrl,
           hasPrice: true,
           currentPrice: p.discount_price || p.price,
           oldPrice: hasDiscount ? p.price : null,
           discountPercent: discountPct,
-          buttonText: "এখনই অর্ডার করুন →",
+          buttonText: tHome("orderNowCta"),
           buttonLink: `/products/${p.slug}`,
         };
       });
@@ -196,16 +205,16 @@ export function HeroSlider({
             {activeSlide.hasPrice && activeSlide.currentPrice && (
               <div className="hero-price-row">
                 <span className="hero-current-price">
-                  ৳{Number(activeSlide.currentPrice).toLocaleString("bn-BD")}
+                  {formatPrice(activeSlide.currentPrice, locale)}
                 </span>
                 {activeSlide.oldPrice && (
                   <span className="hero-old-price">
-                    ৳{Number(activeSlide.oldPrice).toLocaleString("bn-BD")}
+                    {formatPrice(activeSlide.oldPrice, locale)}
                   </span>
                 )}
                 {activeSlide.discountPercent ? (
                   <span className="hero-save-badge">
-                    {activeSlide.discountPercent}% ছাড়
+                    {tHome("discountOff", { discount: activeSlide.discountPercent })}
                   </span>
                 ) : null}
               </div>
@@ -222,7 +231,7 @@ export function HeroSlider({
                 </Link>
               )}
               <a className="btn btn-ghost" href="#shop">
-                সব পণ্য দেখুন
+                {tHome("viewAllProducts")}
               </a>
             </div>
           </div>

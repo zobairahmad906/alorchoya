@@ -63,7 +63,10 @@
     "question": "Have a question?",
     "whatsapp": "Message on WhatsApp",
     "whatsappSub": "Reach out directly via WhatsApp for quick assistance.",
-    "announce": "Limited-time offer — up to {discount}% off on {count} selected pieces"
+    "announce": "Limited-time offer — up to {discount}% off on {count} selected pieces",
+    "viewAllProducts": "View All Products",
+    "orderNowCta": "Order Now →",
+    "discountOff": "{discount}% OFF"
   },
   "shop": {
     "kicker": "Alor Chhoya Mart",
