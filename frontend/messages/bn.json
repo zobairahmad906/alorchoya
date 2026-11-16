@@ -153,5 +153,33 @@
     "contact": "যোগাযোগ",
     "copyright": "© 2026 আলোর ছোঁয়া মার্ট",
     "allRightsReserved": "সকল স্বত্ব সংরক্ষিত"
+  },
+  "product": {
+    "noImage": "ছবি পাওয়া যায়নি",
+    "premiumGuarantee": "✨ প্রিমিয়াম গ্যারান্টি",
+    "viewLarger": "🔍 বড় করে দেখুন",
+    "prevImage": "আগের ছবি",
+    "nextImage": "পরের ছবি",
+    "inStockNotice": "✓ ইন-স্টক (তাৎক্ষণিক ডেলিভারি)",
+    "reviewsCount": "({count}টি রিভিউ)",
+    "discountOff": "{amount} ছাড়",
+    "shortDescription": "পণ্যের সংক্ষিপ্ত বিবরণ:",
+    "defaultDescription": "আপনার ঘরের জন্য যত্নসহকারে নির্বাচিত আসল ও মানসম্মত পণ্য। আলোর ছোঁয়া মার্ট থেকে কেনাকাটায় ১০০% গুণমান নিশ্চিত।",
+    "selectQuantity": "পরিমাণ নির্বাচন করুন:",
+    "remainingStock": "(অবশিষ্ট স্টক: {count})",
+    "available": "উপলব্ধ",
+    "addToCart": "🛒 কার্টে যোগ করুন",
+    "buyNow": "⚡ সরাসরি অর্ডার করুন",
+    "outOfStock": "স্টক শেষ",
+    "codTitle": "ক্যাশ অন ডেলিভারি",
+    "codDesc": "পণ্য দেখে টাকা পরিশোধের সুযোগ",
+    "originalTitle": "১০০% অরিজিনাল পণ্য",
+    "originalDesc": "গুণমান নিশ্চিতকৃত সেরা সামগ্রী",
+    "returnTitle": "সহজ রিটার্ন পলিসি",
+    "returnDesc": "পছন্দ না হলে সহজে পরিবর্তন",
+    "closeLightbox": "বন্ধ করুন",
+    "zoomIn": "বড় করুন",
+    "zoomOut": "ছোট করুন",
+    "resetZoom": "রিসেট"
   }
 }

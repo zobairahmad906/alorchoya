@@ -5,9 +5,13 @@ import { useCart } from "../../cart";
 import type { Product } from "../../types";
 import { ProductReviews } from "./reviews";
 import { MarkdownPreview } from "../../markdown";
+import { useLocale, useTranslations } from "next-intl";
+import { formatPrice, formatNumber } from "../../components";
 
 export default function ProductClient({ product: initialProduct }: { product: Product }) {
   const { add } = useCart();
+  const locale = useLocale();
+  const t = useTranslations("product");
   const [product] = useState<Product>(initialProduct);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
@@ -79,15 +83,15 @@ export default function ProductClient({ product: initialProduct }: { product: Pr
             ) : (
               <div className="placeholder-stage">
                 <span className="placeholder-logo">আ</span>
-                <p>ছবি পাওয়া যায়নি</p>
+                <p>{t("noImage")}</p>
               </div>
             )}
 
             {/* Badges & Overlay Tools */}
             <div className="image-badges">
-              {currentImage.is_primary && <span className="primary-badge">✨ প্রিমিয়াম গ্যারান্টি</span>}
+              {currentImage.is_primary && <span className="primary-badge">{t("premiumGuarantee")}</span>}
               <span className="count-badge">
-                📷 {selectedIndex + 1} / {images.length}
+                📷 {formatNumber(selectedIndex + 1, locale)} / {formatNumber(images.length, locale)}
               </span>
             </div>
 
@@ -97,9 +101,9 @@ export default function ProductClient({ product: initialProduct }: { product: Pr
                 setIsLightboxOpen(true);
                 setZoomLevel(1);
               }}
-              title="সম্পূর্ণ বড় করে দেখুন"
+              title={t("viewLarger")}
             >
-              🔍 বড় করে দেখুন
+              {t("viewLarger")}
             </button>
 
             {images.length > 1 && (
@@ -110,7 +114,7 @@ export default function ProductClient({ product: initialProduct }: { product: Pr
                     e.stopPropagation();
                     setSelectedIndex(prev => (prev > 0 ? prev - 1 : images.length - 1));
                   }}
-                  aria-label="আগের ছবি"
+                  aria-label={t("prevImage")}
                 >
                   ‹
                 </button>
@@ -120,7 +124,7 @@ export default function ProductClient({ product: initialProduct }: { product: Pr
                     e.stopPropagation();
                     setSelectedIndex(prev => (prev < images.length - 1 ? prev + 1 : 0));
                   }}
-                  aria-label="পরের ছবি"
+                  aria-label={t("nextImage")}
                 >
                   ›
                 </button>
@@ -156,7 +160,7 @@ export default function ProductClient({ product: initialProduct }: { product: Pr
           <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px" }}>
             <span className="cat-chip">{product.category.name}</span>
             <span style={{ fontSize: "0.82rem", color: "#10b981", fontWeight: 700, backgroundColor: "#ecfdf5", padding: "3px 10px", borderRadius: "12px", border: "1px solid #a7f3d0" }}>
-              ✓ ইন-স্টক (তাৎক্ষণিক ডেলিভারি)
+              {t("inStockNotice")}
             </span>
           </div>
 
@@ -168,34 +172,34 @@ export default function ProductClient({ product: initialProduct }: { product: Pr
               {"★".repeat(Math.round(product.average_rating || 5))}
             </div>
             <strong style={{ fontSize: "0.95rem", color: "#1e293b" }}>
-              {product.average_rating ? Number(product.average_rating).toFixed(1) : "5.0"}
+              {product.average_rating ? (locale === "en" ? Number(product.average_rating).toFixed(1) : formatNumber(Number(product.average_rating).toFixed(1), "bn")) : (locale === "en" ? "5.0" : "৫.০")}
             </strong>
             <span style={{ fontSize: "0.85rem", color: "#64748b" }}>
-              ({product.total_reviews !== undefined ? product.total_reviews : (product.reviews?.length || 0)}টি রিভিউ)
+              {t("reviewsCount", { count: formatNumber(product.total_reviews !== undefined ? product.total_reviews : (product.reviews?.length || 0), locale) })}
             </span>
           </div>
           
           <div className="price-box">
-            <span className="current-price">৳{Number(price).toLocaleString("bn-BD")}</span>
+            <span className="current-price">{formatPrice(price, locale)}</span>
             {product.discount_price && (
-              <del className="original-price">৳{Number(product.price).toLocaleString("bn-BD")}</del>
+              <del className="original-price">{formatPrice(product.price, locale)}</del>
             )}
             {product.discount_price && (
               <span className="discount-tag">
-                ৳{(Number(product.price) - Number(product.discount_price)).toLocaleString("bn-BD")} ছাড়
+                {t("discountOff", { amount: formatPrice(Number(product.price) - Number(product.discount_price), locale) })}
               </span>
             )}
           </div>
 
           <div style={{ backgroundColor: "#ffffff", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0", marginBottom: "24px" }}>
-            <h4 style={{ margin: "0 0 6px", fontSize: "0.9rem", color: "#334155", fontWeight: 700 }}>পণ্যের সংক্ষিপ্ত বিবরণ:</h4>
-            <MarkdownPreview value={product.description || "আপনার ঘরের জন্য যত্নসহকারে নির্বাচিত আসল ও মানসম্মত পণ্য। আলোর ছোঁয়া মার্ট থেকে কেনাকাটায় ১০০% গুণমান নিশ্চিত।"} className="description-text" />
+            <h4 style={{ margin: "0 0 6px", fontSize: "0.9rem", color: "#334155", fontWeight: 700 }}>{t("shortDescription")}</h4>
+            <MarkdownPreview value={product.description || t("defaultDescription")} className="description-text" />
           </div>
 
           {/* Quantity Selector */}
           <div style={{ marginBottom: "22px" }}>
             <label style={{ display: "block", fontSize: "0.9rem", fontWeight: 700, color: "#1e293b", marginBottom: "8px" }}>
-              পরিমাণ নির্বাচন করুন:
+              {t("selectQuantity")}
             </label>
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               <div style={{ display: "inline-flex", alignItems: "center", border: "1px solid #cbd5e1", borderRadius: "8px", backgroundColor: "#ffffff", overflow: "hidden" }}>
@@ -207,7 +211,7 @@ export default function ProductClient({ product: initialProduct }: { product: Pr
                   −
                 </button>
                 <span style={{ padding: "8px 20px", fontWeight: 700, fontSize: "1rem", color: "#0f172a" }}>
-                  {quantity}
+                  {formatNumber(quantity, locale)}
                 </span>
                 <button
                   type="button"
@@ -218,7 +222,7 @@ export default function ProductClient({ product: initialProduct }: { product: Pr
                 </button>
               </div>
               <span style={{ fontSize: "0.85rem", color: "#64748b" }}>
-                (অবশিষ্ট স্টক: {product.stock || "উপলব্ধ"})
+                {t("remainingStock", { count: product.stock ? formatNumber(product.stock, locale) : t("available") })}
               </span>
             </div>
           </div>
@@ -252,7 +256,7 @@ export default function ProductClient({ product: initialProduct }: { product: Pr
                     gap: "8px"
                   }}
                 >
-                  {isAvailable ? "🛒 কার্টে যোগ করুন" : "স্টক শেষ"}
+                  {isAvailable ? t("addToCart") : t("outOfStock")}
                 </button>
 
                 <button
@@ -280,7 +284,7 @@ export default function ProductClient({ product: initialProduct }: { product: Pr
                     gap: "8px"
                   }}
                 >
-                  {isAvailable ? "⚡ সরাসরি অর্ডার করুন" : "স্টক শেষ"}
+                  {isAvailable ? t("buyNow") : t("outOfStock")}
                 </button>
               </div>
             );
@@ -291,22 +295,22 @@ export default function ProductClient({ product: initialProduct }: { product: Pr
             <div className="trust-item">
               <span className="trust-icon">🚚</span>
               <div>
-                <strong>ক্যাশ অন ডেলিভারি</strong>
-                <p>পণ্য দেখে টাকা পরিশোধের সুযোগ</p>
+                <strong>{t("codTitle")}</strong>
+                <p>{t("codDesc")}</p>
               </div>
             </div>
             <div className="trust-item">
               <span className="trust-icon">🛡️</span>
               <div>
-                <strong>১০০% অরিজিনাল পণ্য</strong>
-                <p>গুণমান নিশ্চিতকৃত সেরা সামগ্রী</p>
+                <strong>{t("originalTitle")}</strong>
+                <p>{t("originalDesc")}</p>
               </div>
             </div>
             <div className="trust-item">
               <span className="trust-icon">🔄</span>
               <div>
-                <strong>সহজ রিটার্ন পলিসি</strong>
-                <p>পছন্দ না হলে সহজে পরিবর্তন</p>
+                <strong>{t("returnTitle")}</strong>
+                <p>{t("returnDesc")}</p>
               </div>
             </div>
           </div>
@@ -337,14 +341,14 @@ export default function ProductClient({ product: initialProduct }: { product: Pr
                 </button>
                 <button 
                   onClick={() => setZoomLevel(1)}
-                  title="রিসেট জুম"
+                  title={t("resetZoom")}
                   className="tool-btn"
                 >
                   🔄
                 </button>
                 <button 
                   onClick={() => setZoomLevel(prev => Math.max(prev - 0.25, 0.5))}
-                  title="জুম আউট (-)"
+                  title={t("zoomOut")}
                   className="tool-btn"
                 >
                   ➖
@@ -354,7 +358,7 @@ export default function ProductClient({ product: initialProduct }: { product: Pr
                     setIsLightboxOpen(false);
                     setZoomLevel(1);
                   }}
-                  title="বন্ধ করুন (Esc)"
+                  title={t("closeLightbox")}
                   className="close-btn"
                 >
                   ✕

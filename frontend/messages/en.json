@@ -153,5 +153,33 @@
     "contact": "Contact Us",
     "copyright": "© 2026 Alor Chhoya Mart",
     "allRightsReserved": "All rights reserved"
+  },
+  "product": {
+    "noImage": "Image unavailable",
+    "premiumGuarantee": "✨ Premium Guarantee",
+    "viewLarger": "🔍 View Larger",
+    "prevImage": "Previous image",
+    "nextImage": "Next image",
+    "inStockNotice": "✓ In-Stock (Immediate Delivery)",
+    "reviewsCount": "({count} reviews)",
+    "discountOff": "{amount} OFF",
+    "shortDescription": "Product Overview:",
+    "defaultDescription": "Carefully curated authentic and premium quality decor piece for your home. 100% quality satisfaction guaranteed.",
+    "selectQuantity": "Select Quantity:",
+    "remainingStock": "(Remaining stock: {count})",
+    "available": "Available",
+    "addToCart": "🛒 Add to Cart",
+    "buyNow": "⚡ Order Now",
+    "outOfStock": "Out of Stock",
+    "codTitle": "Cash on Delivery",
+    "codDesc": "Pay after inspecting your delivery",
+    "originalTitle": "100% Authentic Product",
+    "originalDesc": "Quality tested and assured",
+    "returnTitle": "Easy Returns Policy",
+    "returnDesc": "Hassle-free exchange policy",
+    "closeLightbox": "Close",
+    "zoomIn": "Zoom In",
+    "zoomOut": "Zoom Out",
+    "resetZoom": "Reset"
   }
 }
