@@ -1,4 +1,12 @@
 {
+  "common": {
+    "currencySymbol": "৳",
+    "close": "Close",
+    "loading": "Loading...",
+    "brandName": "Alor Chhoya Mart",
+    "brandSub": "Home Decor & Living",
+    "verifiedBuyer": "✓ Verified Buyer"
+  },
   "nav": {
     "home": "Home",
     "shop": "Shop",
@@ -6,7 +14,31 @@
     "offers": "Offers",
     "cart": "Cart",
     "language": "বাংলা",
-    "tracking": "Track order"
+    "tracking": "Track order",
+    "account": "Profile",
+    "signUp": "Sign up",
+    "admin": "Admin Dashboard"
+  },
+  "mobileNav": {
+    "home": "Home",
+    "shop": "Shop",
+    "cart": "Cart",
+    "account": "Account",
+    "more": "More",
+    "offers": "Offers",
+    "categories": "Categories",
+    "tracking": "Track Order",
+    "contact": "Contact",
+    "language": "Language"
+  },
+  "search": {
+    "placeholder": "Search products (e.g., Honey, Ghee, Oil)...",
+    "searching": "Searching...",
+    "instantResults": "Instant search results ({count})",
+    "viewAll": "View all results ({query}) ➔",
+    "noResults": "Sorry, no products found!",
+    "resultFor": "Search results for: \"{query}\"",
+    "clear": "Clear"
   },
   "home": {
     "eyebrow": "HOME DECOR & FURNITURE",
@@ -21,12 +53,22 @@
     "popular": "Featured products",
     "popularText": "A selection of our most-loved pieces",
     "why": "Why choose Alor Chhoya Mart?",
+    "whyQualityTitle": "Premium Quality",
+    "whyQualityDesc": "Every piece is carefully curated and inspected.",
+    "whySecureTitle": "Secure Ordering",
+    "whySecureDesc": "Cash on delivery and reliable payment methods.",
+    "whyDeliveryTitle": "Reliable Delivery",
+    "whyDeliveryDesc": "Fast and safe delivery across Bangladesh.",
     "reviews": "Customer reviews",
     "question": "Have a question?",
     "whatsapp": "Message on WhatsApp",
+    "whatsappSub": "Reach out directly via WhatsApp for quick assistance.",
     "announce": "Limited-time offer — up to {discount}% off on {count} selected pieces"
   },
   "shop": {
+    "kicker": "Alor Chhoya Mart",
+    "title": "All Products",
+    "subtitle": "Discover curated pieces designed for your living space.",
     "featured": "Featured",
     "view": "View",
     "addToCart": "Add to cart",
@@ -49,6 +91,64 @@
     "checkout": "Checkout",
     "shopNow": "Start shopping",
     "searchTitle": "Search products",
-    "search": "Search"
+    "search": "Search",
+    "photos": "{count} photos",
+    "filterTools": "Filter Tools",
+    "filterAndSort": "Filter & Sort",
+    "filtersActive": "{count} filters active",
+    "filterResetNotice": "Filters reset after 1 day",
+    "sortPopular": "Most Popular",
+    "sortLow": "Price: Low to High",
+    "sortHigh": "Price: High to Low",
+    "sortDiscount": "Biggest Discount",
+    "minPrice": "Min price",
+    "discountOnly": "Discount items only",
+    "stockOnly": "In stock only",
+    "reset": "Reset",
+    "apply": "Apply"
+  },
+  "categories": {
+    "kicker": "Alor Chhoya Mart",
+    "title": "Categories",
+    "subtitle": "Explore our curated catalog by category.",
+    "viewProducts": "View Products",
+    "productCount": "{count} products"
+  },
+  "offers": {
+    "kicker": "Special Offers",
+    "title": "Offers & Discounts",
+    "subtitle": "Exclusive savings on selected pieces for a limited time.",
+    "emptyTitle": "No active offers right now",
+    "emptyDesc": "Check back soon for new discounts and deals."
+  },
+  "cart": {
+    "kicker": "Shopping Cart",
+    "title": "Your Cart Items",
+    "emptyTitle": "Your cart is currently empty",
+    "continueShopping": "← Continue Shopping",
+    "itemsTitle": "Items ({count})",
+    "priceAndQty": "Price & Quantity",
+    "emptyPrompt": "Your cart is currently empty!",
+    "emptySub": "Discover and add decor and lifestyle pieces to your cart to begin shopping.",
+    "startShopping": "Start Shopping",
+    "summaryTitle": "Order Summary",
+    "itemsTotal": "Items Subtotal",
+    "deliveryCharge": "Delivery Charge",
+    "deliveryCalc": "Calculated at checkout",
+    "grandTotal": "Total",
+    "proceedCheckout": "Proceed to Checkout →",
+    "inStock": "✓ In Stock",
+    "remove": "Remove",
+    "trustBadge": "Safe & secure order process"
+  },
+  "footer": {
+    "brandDesc": "Your home is a reflection of your taste — premium home decor and lifestyle brand in Bangladesh.",
+    "customerService": "Customer Service",
+    "shippingPolicy": "Shipping Policy",
+    "returnPolicy": "Return Policy",
+    "refundPolicy": "Refund Policy",
+    "contact": "Contact Us",
+    "copyright": "© 2026 Alor Chhoya Mart",
+    "allRightsReserved": "All rights reserved"
   }
 }

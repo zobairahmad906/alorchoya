@@ -2,10 +2,13 @@
 
 import Link from "next/link";
 import { useCart } from "../cart";
-import { Header } from "../components";
+import { Header, formatPrice, formatNumber } from "../components";
+import { useLocale, useTranslations } from "next-intl";
 
 export default function CartPage() {
   const { items, total, change, remove } = useCart();
+  const locale = useLocale();
+  const t = useTranslations("cart");
 
   return (
     <>
@@ -17,14 +20,14 @@ export default function CartPage() {
           <div className="cart-header-bar">
             <div>
               <span className="cart-kicker">
-                শপিং কার্ট
+                {t("kicker")}
               </span>
               <h1 className="cart-main-title">
-                {items.length ? "আপনার পছন্দের পণ্যসমূহ" : "আপনার কার্ট বর্তমানে খালি"}
+                {items.length ? t("title") : t("emptyTitle")}
               </h1>
             </div>
             <Link href="/#shop" className="continue-shopping-btn">
-              ← কেনাকাটা চালিয়ে যান
+              {t("continueShopping")}
             </Link>
           </div>
 
@@ -35,9 +38,9 @@ export default function CartPage() {
               <section className="cart-items-section">
                 <div className="cart-section-head">
                   <h2>
-                    আইটেমসমূহ ({items.length})
+                    {t("itemsTitle", { count: locale === "en" ? items.length : formatNumber(items.length, "bn") })}
                   </h2>
-                  <span className="cart-head-sub">মূল্য ও পরিমাণ</span>
+                  <span className="cart-head-sub">{t("priceAndQty")}</span>
                 </div>
 
                 <div className="cart-items-stack">
@@ -69,20 +72,20 @@ export default function CartPage() {
                             {item.discount_price ? (
                               <>
                                 <strong>
-                                  ৳{Number(item.discount_price).toLocaleString("bn-BD")}
+                                  {formatPrice(item.discount_price, locale)}
                                 </strong>
                                 <del>
-                                  ৳{Number(item.price).toLocaleString("bn-BD")}
+                                  {formatPrice(item.price, locale)}
                                 </del>
                               </>
                             ) : (
                               <strong>
-                                ৳{Number(item.price).toLocaleString("bn-BD")}
+                                {formatPrice(item.price, locale)}
                               </strong>
                             )}
                           </div>
                           <span className="in-stock-badge">
-                            ✓ ইন স্টক
+                            {t("inStock")}
                           </span>
                         </div>
 
@@ -92,16 +95,16 @@ export default function CartPage() {
                           <div className="quantity-counter">
                             <button
                               onClick={() => change(item.id, item.quantity - 1)}
-                              aria-label="কমিয়ে দিন"
+                              aria-label="-"
                             >
                               −
                             </button>
                             <span>
-                              {item.quantity}
+                              {formatNumber(item.quantity, locale)}
                             </span>
                             <button
                               onClick={() => change(item.id, item.quantity + 1)}
-                              aria-label="বাড়িয়ে দিন"
+                              aria-label="+"
                             >
                               +
                             </button>
@@ -110,13 +113,13 @@ export default function CartPage() {
                           {/* Subtotal & Delete */}
                           <div className="cart-item-totals">
                             <span className="line-total-price">
-                              ৳{lineTotal.toLocaleString("bn-BD")}
+                              {formatPrice(lineTotal, locale)}
                             </span>
                             <button
                               onClick={() => remove(item.id)}
                               className="remove-item-btn"
                             >
-                              🗑️ সরান
+                              🗑️ {t("remove")}
                             </button>
                           </div>
                         </div>
@@ -129,31 +132,31 @@ export default function CartPage() {
               {/* Order Summary Sidebar */}
               <aside className="cart-summary-sidebar">
                 <h2 className="summary-title">
-                  অর্ডার সারাংশ
+                  {t("summaryTitle")}
                 </h2>
 
                 <div className="summary-rows">
                   <div className="summary-row">
-                    <span>আইটেম মোট</span>
-                    <span>৳{total.toLocaleString("bn-BD")}</span>
+                    <span>{t("itemsTotal")}</span>
+                    <span>{formatPrice(total, locale)}</span>
                   </div>
                   <div className="summary-row">
-                    <span>ডেলিভারি চার্জ</span>
-                    <span className="free-tag">চেকআউটে হিসেব হবে</span>
+                    <span>{t("deliveryCharge")}</span>
+                    <span className="free-tag">{t("deliveryCalc")}</span>
                   </div>
                   <hr className="summary-divider" />
                   <div className="summary-row grand-total">
-                    <span>সর্বমোট</span>
-                    <span className="total-amount">৳{total.toLocaleString("bn-BD")}</span>
+                    <span>{t("grandTotal")}</span>
+                    <span className="total-amount">{formatPrice(total, locale)}</span>
                   </div>
                 </div>
 
                 <Link href="/checkout" className="checkout-btn">
-                  অর্ডার সম্পন্ন করতে এগিয়ে যান →
+                  {t("proceedCheckout")}
                 </Link>
 
                 <div className="trust-badge">
-                  🛡️ <span>নিরাপদ ও সহজ অর্ডার প্রক্রিয়া</span>
+                  🛡️ <span>{t("trustBadge")}</span>
                 </div>
               </aside>
             </div>
@@ -162,13 +165,13 @@ export default function CartPage() {
             <section className="empty-cart-view">
               <div className="empty-icon">🛒</div>
               <h2>
-                আপনার কার্ট এখনো খালি!
+                {t("emptyPrompt")}
               </h2>
               <p>
-                পছন্দের হোম ডেকর ও প্রয়োজনীয় পণ্য কার্টে যোগ করে কেনাকাটা শুরু করুন।
+                {t("emptySub")}
               </p>
               <Link href="/#shop" className="start-shopping-btn">
-                শপিং শুরু করুন
+                {t("startShopping")}
               </Link>
             </section>
           )}

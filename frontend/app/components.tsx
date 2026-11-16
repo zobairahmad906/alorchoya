@@ -15,8 +15,14 @@ function SearchIcon({ size = 20 }: { size?: number }) {
   );
 }
 
-function formatPrice(value: string | number) {
-  return `৳${Number(value).toLocaleString("bn-BD")}`;
+export function formatPrice(value: string | number, locale: string = "bn") {
+  const num = Number(value) || 0;
+  return locale === "en" ? `৳${num.toLocaleString("en-US")}` : `৳${num.toLocaleString("bn-BD")}`;
+}
+
+export function formatNumber(value: number | string, locale: string = "bn") {
+  const str = String(value);
+  return locale === "en" ? str : str.replace(/\d/g, digit => "০১২৩৪৫৬৭৮৯"[Number(digit)]);
 }
 
 export function cleanImageUrl(url?: string | null): string | undefined {
@@ -87,6 +93,8 @@ export function Header() {
   const [account, setAccount] = useState<{ authenticated: boolean; name?: string; profile?: { avatar_url?: string } } | null>(null);
   const locale = useLocale();
   const t = useTranslations("nav");
+  const tSearch = useTranslations("search");
+  const tCommon = useTranslations("common");
 
   useEffect(() => {
     fetch(API + "/auth/me/", { credentials: "include" }).then(response => response.json()).then(setAccount).catch(() => setAccount({ authenticated: false }));
@@ -130,9 +138,9 @@ export function Header() {
       <header>
         <div className="wrap nav">
           <Link href="/" className="brand">
-            <img className="brand-logo" src="/alorchoya-logo.jpeg" alt="আলোর ছোঁয়া মার্ট" />
+            <img className="brand-logo" src="/alorchoya-logo.jpeg" alt={tCommon("brandName")} />
             <span className="brand-name">
-              আলোর ছোঁয়া মার্ট<small>Alor Chhoya Mart</small>
+              {tCommon("brandName")}<small>{tCommon("brandSub")}</small>
             </span>
           </Link>
           <nav className="links">
@@ -150,10 +158,10 @@ export function Header() {
                     autoFocus
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
-                    placeholder="পণ্য খুঁজুন (যেমন: মধু, ঘি, তেল)..."
-                    aria-label="পণ্য খুঁজুন"
+                    placeholder={tSearch("placeholder")}
+                    aria-label={tSearch("placeholder")}
                   />
-                  <button type="button" onClick={() => { setSearchOpen(false); setQuery(""); setSearchResults([]); }} aria-label="বন্ধ করুন">×</button>
+                  <button type="button" onClick={() => { setSearchOpen(false); setQuery(""); setSearchResults([]); }} aria-label={tCommon("close")}>×</button>
                 </form>
 
                 {/* Instant Search Suggestions Dropdown */}
@@ -174,12 +182,12 @@ export function Header() {
                   >
                     {loadingSearch ? (
                       <div style={{ padding: "14px", fontSize: "0.85rem", color: "#64748b", textAlign: "center" }}>
-                        খোঁজা হচ্ছে...
+                        {tSearch("searching")}
                       </div>
                     ) : searchResults.length > 0 ? (
                       <div>
                         <div style={{ padding: "8px 14px", backgroundColor: "#f8fafc", fontSize: "0.75rem", fontWeight: 700, color: "#64748b", borderBottom: "1px solid #e2e8f0" }}>
-                          তাৎক্ষণিক অনুসন্ধানের ফলাফল ({searchResults.length})
+                          {tSearch("instantResults", { count: locale === "en" ? searchResults.length : formatNumber(searchResults.length, "bn") })}
                         </div>
                         {searchResults.map((prod) => {
                           const rawImg = prod.images.find(x => x.is_primary)?.card_image || prod.images.find(x => x.is_primary)?.hero_desktop || prod.images[0]?.image;
@@ -208,7 +216,7 @@ export function Header() {
                                   {prod.name}
                                 </div>
                                 <div style={{ fontSize: "0.8rem", color: "#059669", fontWeight: 700, marginTop: "2px" }}>
-                                  ৳{Number(price).toLocaleString("bn-BD")}
+                                  {formatPrice(price, locale)}
                                 </div>
                               </div>
                             </Link>
@@ -229,12 +237,12 @@ export function Header() {
                             textAlign: "center"
                           }}
                         >
-                          সব ফলাফল দেখুন ({query}) ➔
+                          {tSearch("viewAll", { query })}
                         </button>
                       </div>
                     ) : (
                       <div style={{ padding: "16px", fontSize: "0.88rem", color: "#64748b", textAlign: "center" }}>
-                        মাফ করবেন, কোনো পণ্য পাওয়া যায়নি!
+                        {tSearch("noResults")}
                       </div>
                     )}
                   </div>
@@ -245,23 +253,23 @@ export function Header() {
                 type="button"
                 className="icon-btn search-trigger"
                 onClick={() => setSearchOpen(true)}
-                aria-label={t("searchPlaceholder") || "Search"}
-                title={t("searchPlaceholder") || "পণ্য খুঁজুন"}
+                aria-label={tSearch("placeholder")}
+                title={tSearch("placeholder")}
               >
                 <SearchIcon size={20} />
               </button>
             )}
             {account?.authenticated ? (
               <>
-                <Link className="profile-nav" href="/dashboard" title="Admin Dashboard" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "32px", height: "32px", borderRadius: "50%", backgroundColor: "#0f172a", color: "#38bdf8", fontSize: "0.8rem", fontWeight: 800, textDecoration: "none", border: "1px solid #0284c7" }}>
+                <Link className="profile-nav" href="/dashboard" title={t("admin")} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "32px", height: "32px", borderRadius: "50%", backgroundColor: "#0f172a", color: "#38bdf8", fontSize: "0.8rem", fontWeight: 800, textDecoration: "none", border: "1px solid #0284c7" }}>
                   ⚙️
                 </Link>
-                <Link className="profile-nav" href="/account" title={account.name || "Profile"}>
+                <Link className="profile-nav" href="/account" title={account.name || t("account")}>
                   {account.profile?.avatar_url ? <img src={account.profile.avatar_url} alt="" /> : <span>{(account.name || "A").slice(0, 1)}</span>}
                 </Link>
               </>
             ) : (
-              <Link className="account-link" href="/account">Sign up</Link>
+              <Link className="account-link" href="/account">{t("signUp")}</Link>
             )}
             <div className="lang-switch-group" role="group" aria-label="Language selection">
               <button
@@ -269,6 +277,7 @@ export function Header() {
                 className={`lang-pill-btn ${locale === "bn" ? "active" : ""}`}
                 onClick={() => setLanguage("bn")}
                 title="বাংলা ভাষা"
+                aria-pressed={locale === "bn"}
               >
                 <span className="lang-full">বাংলা</span>
                 <span className="lang-short">বাং</span>
@@ -278,6 +287,7 @@ export function Header() {
                 className={`lang-pill-btn ${locale === "en" ? "active" : ""}`}
                 onClick={() => setLanguage("en")}
                 title="English"
+                aria-pressed={locale === "en"}
               >
                 EN
               </button>
@@ -295,6 +305,7 @@ export function Header() {
 export function ProductCard({ product }: { product: Product }) {
   const router = useRouter();
   const { add } = useCart();
+  const locale = useLocale();
   const t = useTranslations("shop");
   const primaryImage = product.images.find(x => x.is_primary) || product.images[0];
   // Use the generated consistent canvas when it exists.
@@ -333,7 +344,7 @@ export function ProductCard({ product }: { product: Product }) {
           <div className="product-monogram">আ</div>
         )}
         {product.is_featured && <span className="badge">{t("featured")}</span>}
-        {imageCount > 1 && <span className="gallery-badge">📷 {imageCount}টি ছবি</span>}
+        {imageCount > 1 && <span className="gallery-badge">📷 {t("photos", { count: locale === "en" ? imageCount : formatNumber(imageCount, "bn") })}</span>}
       </Link>
       <div className="prod-body">
         <Link href={`/products/${product.slug}`}>
@@ -345,8 +356,8 @@ export function ProductCard({ product }: { product: Product }) {
           <span className="review-count">({product.total_reviews !== undefined ? product.total_reviews : (product.reviews?.length || 0)})</span>
         </div>
         <div className="prod-price">
-          <span className="now">{formatPrice(currentPrice)}</span>
-          {product.discount_price && <span className="old">{formatPrice(product.price)}</span>}
+          <span className="now">{formatPrice(currentPrice, locale)}</span>
+          {product.discount_price && <span className="old">{formatPrice(product.price, locale)}</span>}
         </div>
         <div className="prod-actions" onClick={(e) => e.stopPropagation()}>
           <button
@@ -354,18 +365,18 @@ export function ProductCard({ product }: { product: Product }) {
             className="btn btn-ghost btn-add-cart"
             onClick={handleAddToCart}
             disabled={!isAvailable}
-            title={isAvailable ? (t("addToCart") || "কার্টে যোগ") : (t("outOfStock") || "স্টক শেষ")}
+            title={isAvailable ? (t("addToCart") || "Add to cart") : (t("outOfStock") || "Out of stock")}
           >
-            {isAvailable ? (t("addToCart") || "কার্টে যোগ") : (t("outOfStock") || "স্টক শেষ")}
+            {isAvailable ? (t("addToCart") || "Add to cart") : (t("outOfStock") || "Out of stock")}
           </button>
           <button
             type="button"
             className="btn btn-primary btn-order-now"
             onClick={handleOrderNow}
             disabled={!isAvailable}
-            title={isAvailable ? (t("orderNow") || "অর্ডার করুন") : (t("outOfStock") || "স্টক শেষ")}
+            title={isAvailable ? (t("orderNow") || "Order now") : (t("outOfStock") || "Out of stock")}
           >
-            {isAvailable ? (t("orderNow") || "অর্ডার করুন") : (t("outOfStock") || "স্টক শেষ")}
+            {isAvailable ? (t("orderNow") || "Order now") : (t("outOfStock") || "Out of stock")}
           </button>
         </div>
       </div>
@@ -386,7 +397,9 @@ export function ProductCatalog({ products, initialCategory = "all" }: { products
   const [position, setPosition] = useState({ right: 18, bottom: 92 });
   const drag = useRef<{ id: number; x: number; y: number; right: number; bottom: number } | null>(null);
   const pageSize = 8;
+  const locale = useLocale();
   const t = useTranslations("shop");
+  const tSearch = useTranslations("search");
   const categories = Array.from(new Map(products.map(product => [product.category.slug, product.category])).values());
   useEffect(() => {
     try { const saved = JSON.parse(localStorage.getItem("catalog-tools-position") || "null"); if (saved && Number.isFinite(saved.right) && Number.isFinite(saved.bottom)) setPosition({ right: saved.right, bottom: saved.bottom }); } catch { /* use default position */ }
@@ -419,22 +432,22 @@ export function ProductCatalog({ products, initialCategory = "all" }: { products
   return <>
     {query.trim() && (
       <div className="catalog-active-query-badge">
-        <span>অনুসন্ধান ফলাফল: <strong>&ldquo;{query}&rdquo;</strong></span>
-        <button type="button" onClick={() => update(setQuery, "")} aria-label="মুছে ফেলুন">✕</button>
+        <span>{tSearch("resultFor", { query })}</span>
+        <button type="button" onClick={() => update(setQuery, "")} aria-label={tSearch("clear")}>✕</button>
       </div>
     )}
-    <button type="button" className="filter-fab" onClick={() => setToolsOpen(open => !open)} aria-label="ফিল্টার টুলস"><ToolsIcon /><span>{activeFilters || "Tools"}</span></button>
-    {toolsOpen && <div className="catalog-tools-panel" style={{ right: position.right, bottom: position.bottom + 60 }} role="dialog" aria-label="ফিল্টার ও সাজানো">
-      <div className="catalog-tools-head"><div><strong>ফিল্টার ও সাজানো</strong><small>{activeFilters ? `${activeFilters}টি filter সক্রিয়` : "ফিল্টার ১ দিন পর reset হবে"}</small></div><button type="button" onClick={() => setToolsOpen(false)} aria-label="বন্ধ করুন">×</button></div>
-      <select value={category} onChange={event => update(setCategory, event.target.value)} aria-label={t("filterCategory")}><option value="all">সব ক্যাটাগরি</option>{categories.map(item => <option key={item.slug} value={item.slug}>{item.name}</option>)}</select>
-      <select value={sort} onChange={event => update(setSort, event.target.value)} aria-label="সাজান"><option value="popular">জনপ্রিয়</option><option value="low">কম দাম আগে</option><option value="high">বেশি দাম আগে</option><option value="discount">বেশি ছাড় আগে</option></select>
-      <div className="price-filter-row"><input type="number" min="0" value={minPrice} onChange={event => update(setMinPrice, event.target.value)} placeholder="সর্বনিম্ন দাম" /><input type="number" min="0" value={maxPrice} onChange={event => update(setMaxPrice, event.target.value)} placeholder="সর্বোচ্চ দাম" /></div>
-      <label className="filter-check"><input type="checkbox" checked={discountOnly} onChange={event => { setDiscountOnly(event.target.checked); setPage(1); }} /> শুধু discount পণ্য</label>
-      <label className="filter-check"><input type="checkbox" checked={stockOnly} onChange={event => { setStockOnly(event.target.checked); setPage(1); }} /> শুধু stock available</label>
-      <div className="catalog-tools-actions"><button type="button" className="btn btn-ghost" onClick={() => { setCategory("all"); setMinPrice(""); setMaxPrice(""); setSort("popular"); setDiscountOnly(false); setStockOnly(false); setPage(1); }}>Reset</button><button type="button" className="btn btn-primary" onClick={() => setToolsOpen(false)}>Apply</button></div>
+    <button type="button" className="filter-fab" onClick={() => setToolsOpen(open => !open)} aria-label={t("filterTools")}><ToolsIcon /><span>{activeFilters || "Tools"}</span></button>
+    {toolsOpen && <div className="catalog-tools-panel" style={{ right: position.right, bottom: position.bottom + 60 }} role="dialog" aria-label={t("filterAndSort")}>
+      <div className="catalog-tools-head"><div><strong>{t("filterAndSort")}</strong><small>{activeFilters ? t("filtersActive", { count: locale === "en" ? activeFilters : formatNumber(activeFilters, "bn") }) : t("filterResetNotice")}</small></div><button type="button" onClick={() => setToolsOpen(false)} aria-label={t("close")}>×</button></div>
+      <select value={category} onChange={event => update(setCategory, event.target.value)} aria-label={t("filterCategory")}><option value="all">{t("allCategories")}</option>{categories.map(item => <option key={item.slug} value={item.slug}>{item.name}</option>)}</select>
+      <select value={sort} onChange={event => update(setSort, event.target.value)} aria-label="Sort"><option value="popular">{t("sortPopular")}</option><option value="low">{t("sortLow")}</option><option value="high">{t("sortHigh")}</option><option value="discount">{t("sortDiscount")}</option></select>
+      <div className="price-filter-row"><input type="number" min="0" value={minPrice} onChange={event => update(setMinPrice, event.target.value)} placeholder={t("minPrice")} /><input type="number" min="0" value={maxPrice} onChange={event => update(setMaxPrice, event.target.value)} placeholder={t("maxPrice")} /></div>
+      <label className="filter-check"><input type="checkbox" checked={discountOnly} onChange={event => { setDiscountOnly(event.target.checked); setPage(1); }} /> {t("discountOnly")}</label>
+      <label className="filter-check"><input type="checkbox" checked={stockOnly} onChange={event => { setStockOnly(event.target.checked); setPage(1); }} /> {t("stockOnly")}</label>
+      <div className="catalog-tools-actions"><button type="button" className="btn btn-ghost" onClick={() => { setCategory("all"); setMinPrice(""); setMaxPrice(""); setSort("popular"); setDiscountOnly(false); setStockOnly(false); setPage(1); }}>{t("reset")}</button><button type="button" className="btn btn-primary" onClick={() => setToolsOpen(false)}>{t("apply")}</button></div>
     </div>}
     {visible.length ? <div className="prod-grid">{visible.map(product => <ProductCard key={product.id} product={product} />)}</div> : <p className="empty-results">{t("noResults")}</p>}
-    {sorted.length > pageSize && <div className="pagination"><button className="btn btn-ghost" disabled={page === 1} onClick={() => setPage(current => current - 1)}>{t("previous")}</button><span>{page} / {pageCount}</span><button className="btn btn-ghost" disabled={page === pageCount} onClick={() => setPage(current => current + 1)}>{t("next")}</button></div>}
+    {sorted.length > pageSize && <div className="pagination"><button className="btn btn-ghost" disabled={page === 1} onClick={() => setPage(current => current - 1)}>{t("previous")}</button><span>{formatNumber(page, locale)} / {formatNumber(pageCount, locale)}</span><button className="btn btn-ghost" disabled={page === pageCount} onClick={() => setPage(current => current + 1)}>{t("next")}</button></div>}
   </>;
 }
 
@@ -450,6 +463,9 @@ export function CategoryFilterCards({ categories }: { categories: CategoryFilter
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+  const locale = useLocale();
+  const tCat = useTranslations("categories");
+  const tShop = useTranslations("shop");
 
   useEffect(() => {
     const onCategory = (event: Event) => {
@@ -486,7 +502,6 @@ export function CategoryFilterCards({ categories }: { categories: CategoryFilter
     document.getElementById("shop")?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const toBn = (n: number) => n.toString().replace(/\d/g, d => "০১২৩৪৫৬৭৮৯"[+d]);
   const totalCount = categories.reduce((sum, item) => sum + (item.count || 1), 0);
 
   return (
@@ -496,7 +511,7 @@ export function CategoryFilterCards({ categories }: { categories: CategoryFilter
           className="cat-scroll-btn cat-scroll-prev"
           type="button"
           onClick={() => scroll("left")}
-          aria-label="আগের ক্যাটাগরি"
+          aria-label={tShop("previous")}
         >
           ‹
         </button>
@@ -521,8 +536,8 @@ export function CategoryFilterCards({ categories }: { categories: CategoryFilter
             </div>
             {activeCat === "all" && <span className="cat-active-dot" />}
           </div>
-          <span className="cat-title">সব ক্যাটাগরি</span>
-          <span className="cat-count">{toBn(totalCount)}টি পণ্য</span>
+          <span className="cat-title">{tShop("allCategories")}</span>
+          <span className="cat-count">{tCat("productCount", { count: locale === "en" ? totalCount : formatNumber(totalCount, "bn") })}</span>
         </button>
 
         {categories.map((category) => {
@@ -550,7 +565,7 @@ export function CategoryFilterCards({ categories }: { categories: CategoryFilter
               </div>
               <span className="cat-title">{category.name}</span>
               <span className="cat-count">
-                {category.count ? `${toBn(category.count)}টি পণ্য` : "পণ্য দেখুন"}
+                {category.count ? tCat("productCount", { count: locale === "en" ? category.count : formatNumber(category.count, "bn") }) : tCat("viewProducts")}
               </span>
             </button>
           );
@@ -562,7 +577,7 @@ export function CategoryFilterCards({ categories }: { categories: CategoryFilter
           className="cat-scroll-btn cat-scroll-next"
           type="button"
           onClick={() => scroll("right")}
-          aria-label="পরের ক্যাটাগরি"
+          aria-label={tShop("next")}
         >
           ›
         </button>
@@ -573,8 +588,9 @@ export function CategoryFilterCards({ categories }: { categories: CategoryFilter
 
 function CartDrawer({ open, close }: { open: boolean; close: () => void }) {
   const { items, total, change, remove } = useCart();
+  const locale = useLocale();
   const t = useTranslations("shop");
-  return <div className={`drawer-wrap ${open ? "is-open" : ""}`} aria-hidden={!open}><button className="drawer-backdrop" aria-label={t("close")} onClick={close} /><aside className="drawer"><div className="drawer-head"><div><p>{t("cartTitle")}</p><h2>{items.length ? t("cartItems") : t("cartEmpty")}</h2></div><button onClick={close} aria-label={t("close")}>×</button></div><div className="drawer-items">{items.map(item => <div className="drawer-item" key={item.id}><div className="drawer-thumb">{item.images[0]?.image ? <img src={cleanImageUrl(item.images[0].card_image || item.images[0].hero_desktop || item.images[0].image)} alt="" /> : "আ"}</div><div><h3>{item.name}</h3><p>{formatPrice(item.discount_price || item.price)}</p><div className="drawer-quantity"><button onClick={() => change(item.id, item.quantity - 1)}>−</button><span>{item.quantity}</span><button onClick={() => change(item.id, item.quantity + 1)}>+</button><button className="remove" onClick={() => remove(item.id)}>{t("remove")}</button></div></div></div>)}</div>{items.length > 0 ? <div className="drawer-foot"><div><span>{t("subtotal")}</span><strong>{formatPrice(total)}</strong></div><Link className="wide" onClick={close} href="/checkout">{t("checkout")} →</Link></div> : <Link className="wide" onClick={close} href="/shop">{t("shopNow")}</Link>}</aside></div>;
+  return <div className={`drawer-wrap ${open ? "is-open" : ""}`} aria-hidden={!open}><button className="drawer-backdrop" aria-label={t("close")} onClick={close} /><aside className="drawer"><div className="drawer-head"><div><p>{t("cartTitle")}</p><h2>{items.length ? t("cartItems") : t("cartEmpty")}</h2></div><button onClick={close} aria-label={t("close")}>×</button></div><div className="drawer-items">{items.map(item => <div className="drawer-item" key={item.id}><div className="drawer-thumb">{item.images[0]?.image ? <img src={cleanImageUrl(item.images[0].card_image || item.images[0].hero_desktop || item.images[0].image)} alt="" /> : "আ"}</div><div><h3>{item.name}</h3><p>{formatPrice(item.discount_price || item.price, locale)}</p><div className="drawer-quantity"><button onClick={() => change(item.id, item.quantity - 1)}>−</button><span>{formatNumber(item.quantity, locale)}</span><button onClick={() => change(item.id, item.quantity + 1)}>+</button><button className="remove" onClick={() => remove(item.id)}>{t("remove")}</button></div></div></div>)}</div>{items.length > 0 ? <div className="drawer-foot"><div><span>{t("subtotal")}</span><strong>{formatPrice(total, locale)}</strong></div><Link className="wide" onClick={close} href="/checkout">{t("checkout")} →</Link></div> : <Link className="wide" onClick={close} href="/shop">{t("shopNow")}</Link>}</aside></div>;
 }
 
 export function MobileBottomNav() {
@@ -585,9 +601,18 @@ export function MobileBottomNav() {
   const { count } = useCart();
   const [moreOpen, setMoreOpen] = useState(false);
   const [account, setAccount] = useState<{ authenticated: boolean; name?: string; profile?: { avatar_url?: string } } | null>(null);
+  const locale = useLocale();
+  const t = useTranslations("mobileNav");
+
   useEffect(() => { fetch(API + "/auth/me/", { credentials: "include" }).then(response => response.json()).then(setAccount).catch(() => setAccount({ authenticated: false })); }, []);
-  const profileLabel = account?.name || "অ্যাকাউন্ট";
+  const profileLabel = account?.name || t("account");
   const closeMore = () => setMoreOpen(false);
+
+  const setLanguage = (newLocale: "bn" | "en") => {
+    if (locale === newLocale) return;
+    document.cookie = "NEXT_LOCALE=" + newLocale + "; path=/; max-age=31536000";
+    window.location.reload();
+  };
 
   useEffect(() => {
     if (!moreOpen) return;
@@ -602,16 +627,39 @@ export function MobileBottomNav() {
   }, [moreOpen]);
 
   return <nav className="mobile-bottom-nav" aria-label="Mobile navigation">
-    <Link href="/shop"><ShopIcon /><span>শপ</span></Link>
-    <Link href="/cart"><CartIcon /><b>{count}</b><span>কার্ট</span></Link>
-    <Link className="mobile-home" href="/">⌂<span>হোম</span></Link>
-    <Link className="mobile-account" href="/account" title={profileLabel}>{account?.authenticated && account.profile?.avatar_url ? <img src={account.profile.avatar_url} alt={profileLabel} /> : account?.authenticated ? <strong>{(account.name || "A").slice(0, 1)}</strong> : "◉"}<span>অ্যাকাউন্ট</span></Link>
-    <button className={`mobile-more-trigger${moreOpen ? " is-open" : ""}`} type="button" onClick={() => setMoreOpen(open => !open)} aria-expanded={moreOpen} aria-haspopup="menu"><span className="mobile-more-icon">⋯</span><span>আরও</span></button>
+    <Link href="/shop"><ShopIcon /><span>{t("shop")}</span></Link>
+    <Link href="/cart"><CartIcon /><b>{formatNumber(count, locale)}</b><span>{t("cart")}</span></Link>
+    <Link className="mobile-home" href="/">⌂<span>{t("home")}</span></Link>
+    <Link className="mobile-account" href="/account" title={profileLabel}>{account?.authenticated && account.profile?.avatar_url ? <img src={account.profile.avatar_url} alt={profileLabel} /> : account?.authenticated ? <strong>{(account.name || "A").slice(0, 1)}</strong> : "◉"}<span>{t("account")}</span></Link>
+    <button className={`mobile-more-trigger${moreOpen ? " is-open" : ""}`} type="button" onClick={() => setMoreOpen(open => !open)} aria-expanded={moreOpen} aria-haspopup="menu"><span className="mobile-more-icon">⋯</span><span>{t("more")}</span></button>
     {moreOpen && <div className="mobile-more-menu" role="menu">
-      <Link href="/offers" onClick={closeMore} role="menuitem">🏷️ <span>অফার</span></Link>
-      <Link href="/categories" onClick={closeMore} role="menuitem">▦ <span>ক্যাটাগরি</span></Link>
-      <Link href="/track-order" onClick={closeMore} role="menuitem">⌁ <span>অর্ডার ট্র্যাক</span></Link>
-      <a href="#contact" onClick={closeMore} role="menuitem">✉ <span>যোগাযোগ</span></a>
+      <Link href="/offers" onClick={closeMore} role="menuitem">🏷️ <span>{t("offers")}</span></Link>
+      <Link href="/categories" onClick={closeMore} role="menuitem">▦ <span>{t("categories")}</span></Link>
+      <Link href="/track-order" onClick={closeMore} role="menuitem">⌁ <span>{t("tracking")}</span></Link>
+      <a href="#contact" onClick={closeMore} role="menuitem">✉ <span>{t("contact")}</span></a>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", borderTop: "1px solid #f1f5f9", marginTop: "4px" }}>
+        <span style={{ fontSize: "0.82rem", color: "#64748b", fontWeight: 700 }}>🌐 {t("language")}</span>
+        <div className="lang-switch-group" role="group" aria-label="Language selection">
+          <button
+            type="button"
+            className={`lang-pill-btn ${locale === "bn" ? "active" : ""}`}
+            onClick={() => setLanguage("bn")}
+            title="বাংলা ভাষা"
+            aria-pressed={locale === "bn"}
+          >
+            বাং
+          </button>
+          <button
+            type="button"
+            className={`lang-pill-btn ${locale === "en" ? "active" : ""}`}
+            onClick={() => setLanguage("en")}
+            title="English"
+            aria-pressed={locale === "en"}
+          >
+            EN
+          </button>
+        </div>
+      </div>
     </div>}
   </nav>;
 }

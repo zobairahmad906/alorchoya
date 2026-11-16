@@ -1,4 +1,12 @@
 {
+  "common": {
+    "currencySymbol": "৳",
+    "close": "বন্ধ করুন",
+    "loading": "লোড হচ্ছে...",
+    "brandName": "আলোর ছোঁয়া মার্ট",
+    "brandSub": "Alor Chhoya Mart",
+    "verifiedBuyer": "✓ ভেরিফাইড ক্রেতা"
+  },
   "nav": {
     "home": "হোম",
     "shop": "শপ",
@@ -6,7 +14,31 @@
     "offers": "অফার",
     "cart": "কার্ট",
     "language": "English",
-    "tracking": "অর্ডার ট্র্যাক"
+    "tracking": "অর্ডার ট্র্যাক",
+    "account": "প্রোফাইল",
+    "signUp": "সাইন আপ",
+    "admin": "অ্যাডমিন ড্যাশবোর্ড"
+  },
+  "mobileNav": {
+    "home": "হোম",
+    "shop": "শপ",
+    "cart": "কার্ট",
+    "account": "অ্যাকাউন্ট",
+    "more": "আরও",
+    "offers": "অফার",
+    "categories": "ক্যাটাগরি",
+    "tracking": "অর্ডার ট্র্যাক",
+    "contact": "যোগাযোগ",
+    "language": "ভাষা"
+  },
+  "search": {
+    "placeholder": "পণ্য খুঁজুন (যেমন: মধু, ঘি, তেল)...",
+    "searching": "খোঁজা হচ্ছে...",
+    "instantResults": "তাৎক্ষণিক অনুসন্ধানের ফলাফল ({count})",
+    "viewAll": "সব ফলাফল দেখুন ({query}) ➔",
+    "noResults": "মাফ করবেন, কোনো পণ্য পাওয়া যায়নি!",
+    "resultFor": "অনুসন্ধান ফলাফল: \"{query}\"",
+    "clear": "মুছে ফেলুন"
   },
   "home": {
     "eyebrow": "হোম ডেকর ও ফার্নিচার",
@@ -21,12 +53,22 @@
     "popular": "জনপ্রিয় পণ্য",
     "popularText": "আমাদের সবচেয়ে পছন্দের কিছু পণ্য দেখুন",
     "why": "কেন আলোর ছোঁয়া মার্ট?",
+    "whyQualityTitle": "প্রিমিয়াম মান",
+    "whyQualityDesc": "প্রতিটি পণ্য যত্নসহকারে নির্বাচিত ও পরীক্ষিত।",
+    "whySecureTitle": "নিরাপদ অর্ডার",
+    "whySecureDesc": "ক্যাশ অন ডেলিভারি ও নিরাপদ পেমেন্ট সুবিধা।",
+    "whyDeliveryTitle": "নির্ভরযোগ্য ডেলিভারি",
+    "whyDeliveryDesc": "সারা বাংলাদেশে দ্রুত ও নিরাপদ ডেলিভারি।",
     "reviews": "গ্রাহকদের মতামত",
     "question": "কোনো প্রশ্ন আছে?",
     "whatsapp": "হোয়াটসঅ্যাপে কথা বলুন",
+    "whatsappSub": "হোয়াটসঅ্যাপে সরাসরি আমাদের সাথে কথা বলুন",
     "announce": "সীমিত সময়ের অফার — {count}টি নির্বাচিত পণ্যে {discount}% পর্যন্ত ছাড়"
   },
   "shop": {
+    "kicker": "আলোর ছোঁয়া মার্ট",
+    "title": "সব পণ্য",
+    "subtitle": "আপনার ঘরের জন্য পছন্দের পণ্য খুঁজে নিন।",
     "featured": "জনপ্রিয়",
     "view": "দেখুন",
     "addToCart": "কার্টে যোগ",
@@ -49,6 +91,64 @@
     "checkout": "চেকআউটে যান",
     "shopNow": "শপিং শুরু করুন",
     "searchTitle": "পণ্য খুঁজুন",
-    "search": "খুঁজুন"
+    "search": "খুঁজুন",
+    "photos": "{count}টি ছবি",
+    "filterTools": "ফিল্টার টুলস",
+    "filterAndSort": "ফিল্টার ও সাজানো",
+    "filtersActive": "{count}টি filter সক্রিয়",
+    "filterResetNotice": "ফিল্টার ১ দিন পর reset হবে",
+    "sortPopular": "জনপ্রিয়",
+    "sortLow": "কম দাম আগে",
+    "sortHigh": "বেশি দাম আগে",
+    "sortDiscount": "বেশি ছাড় আগে",
+    "minPrice": "সর্বনিম্ন দাম",
+    "discountOnly": "শুধু ছাড়যুক্ত পণ্য",
+    "stockOnly": "শুধু স্টকে আছে",
+    "reset": "রিসেট",
+    "apply": "প্রয়োগ করুন"
+  },
+  "categories": {
+    "kicker": "আলোর ছোঁয়া মার্ট",
+    "title": "ক্যাটাগরি",
+    "subtitle": "আপনার পছন্দের পণ্য খুঁজে নিন ক্যাটাগরি অনুযায়ী।",
+    "viewProducts": "পণ্য দেখুন",
+    "productCount": "{count}টি পণ্য"
+  },
+  "offers": {
+    "kicker": "বিশেষ অফার",
+    "title": "অফার ও ডিসকাউন্ট",
+    "subtitle": "সীমিত সময়ের জন্য নির্বাচিত পণ্যে সাশ্রয়ী দাম।",
+    "emptyTitle": "এই মুহূর্তে কোনো অফার নেই",
+    "emptyDesc": "নতুন অফারের জন্য আবার ফিরে আসুন।"
+  },
+  "cart": {
+    "kicker": "শপিং কার্ট",
+    "title": "আপনার পছন্দের পণ্যসমূহ",
+    "emptyTitle": "আপনার কার্ট বর্তমানে খালি",
+    "continueShopping": "← কেনাকাটা চালিয়ে যান",
+    "itemsTitle": "আইটেমসমূহ ({count})",
+    "priceAndQty": "মূল্য ও পরিমাণ",
+    "emptyPrompt": "আপনার কার্ট এখনো খালি!",
+    "emptySub": "পছন্দের হোম ডেকর ও প্রয়োজনীয় পণ্য কার্টে যোগ করে কেনাকাটা শুরু করুন।",
+    "startShopping": "শপিং শুরু করুন",
+    "summaryTitle": "অর্ডার সারাংশ",
+    "itemsTotal": "আইটেম মোট",
+    "deliveryCharge": "ডেলিভারি চার্জ",
+    "deliveryCalc": "চেকআউটে হিসেব হবে",
+    "grandTotal": "সর্বমোট",
+    "proceedCheckout": "অর্ডার সম্পন্ন করতে এগিয়ে যান →",
+    "inStock": "✓ ইন স্টক",
+    "remove": "সরান",
+    "trustBadge": "নিরাপদ ও সহজ অর্ডার প্রক্রিয়া"
+  },
+  "footer": {
+    "brandDesc": "আপনার ঘর, আপনার রুচির প্রতিচ্ছবি—বাংলাদেশের প্রিমিয়াম হোম ডেকর ব্র্যান্ড।",
+    "customerService": "কাস্টমার সার্ভিস",
+    "shippingPolicy": "শিপিং পলিসি",
+    "returnPolicy": "রিটার্ন পলিসি",
+    "refundPolicy": "রিফান্ড পলিসি",
+    "contact": "যোগাযোগ",
+    "copyright": "© 2026 আলোর ছোঁয়া মার্ট",
+    "allRightsReserved": "সকল স্বত্ব সংরক্ষিত"
   }
 }

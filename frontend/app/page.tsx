@@ -52,6 +52,8 @@ export default async function Home() {
   const reviewsToDisplay = featuredReviews.length > 0 ? featuredReviews : fallbackReviews;
 
   const t = await getTranslations("home");
+  const tCommon = await getTranslations("common");
+  const tFooter = await getTranslations("footer");
   const categoryMap = new Map<string, { name: string; slug: string; image?: string; count: number }>();
   for (const product of allProds) {
     const cat = product.category;
@@ -126,7 +128,7 @@ export default async function Home() {
                   )}
                   <div>
                     <div style={{ fontWeight: 600, fontSize: "0.95rem" }}>{rev.customer_name}</div>
-                    <div style={{ fontSize: "0.75rem", color: "#10b981" }}>✓ ভেরিফাইড ক্রেতা</div>
+                    <div style={{ fontSize: "0.75rem", color: "#10b981" }}>{tCommon("verifiedBuyer")}</div>
                   </div>
                 </div>
                 <div className="stars" style={{ color: "#f59e0b", letterSpacing: "2px" }}>
@@ -164,9 +166,9 @@ export default async function Home() {
           </div>
         </div>
       </section>
-      <section id="contact"><div className="wrap"><div className="cta-band"><div><h3>{t("question")}</h3><p>হোয়াটসঅ্যাপে সরাসরি আমাদের সাথে কথা বলুন</p></div><a className="btn btn-primary" href="https://wa.me/8801302111188" target="_blank">{t("whatsapp")}</a></div></div></section>
+      <section id="contact"><div className="wrap"><div className="cta-band"><div><h3>{t("question")}</h3><p>{t("whatsappSub")}</p></div><a className="btn btn-primary" href="https://wa.me/8801302111188" target="_blank">{t("whatsapp")}</a></div></div></section>
     </main>
-      <section><div className="wrap"><div className="section-head"><h2>{t("why")}</h2></div><div className="why-grid"><div className="why-item"><h3>প্রিমিয়াম মান</h3><p>প্রতিটি পণ্য যত্নসহকারে নির্বাচিত ও পরীক্ষিত।</p></div><div className="why-item"><h3>নিরাপদ অর্ডার</h3><p>ক্যাশ অন ডেলিভারি ও নিরাপদ পেমেন্ট সুবিধা।</p></div><div className="why-item"><h3>নির্ভরযোগ্য ডেলিভারি</h3><p>সারা বাংলাদেশে দ্রুত ও নিরাপদ ডেলিভারি।</p></div></div></div></section>
-    <footer><div className="wrap foot-grid"><div><div className="footer-brand">আলোর ছোঁয়া মার্ট</div><p>আপনার ঘর, আপনার রুচির প্রতিচ্ছবি—বাংলাদেশের প্রিমিয়াম হোম ডেকর ব্র্যান্ড।</p></div><div><h4>কাস্টমার সার্ভিস</h4><ul><li>শিপিং পলিসি</li><li>রিটার্ন পলিসি</li><li>রিফান্ড পলিসি</li></ul></div><div><h4>যোগাযোগ</h4><ul><li>01302 111188</li><li>WhatsApp: +8801302111188</li><li>Facebook · Instagram</li></ul></div></div><div className="wrap foot-bottom">© 2026 আলোর ছোঁয়া মার্ট <span>সকল স্বত্ব সংরক্ষিত</span></div></footer><ContactActions />
+      <section><div className="wrap"><div className="section-head"><h2>{t("why")}</h2></div><div className="why-grid"><div className="why-item"><h3>{t("whyQualityTitle")}</h3><p>{t("whyQualityDesc")}</p></div><div className="why-item"><h3>{t("whySecureTitle")}</h3><p>{t("whySecureDesc")}</p></div><div className="why-item"><h3>{t("whyDeliveryTitle")}</h3><p>{t("whyDeliveryDesc")}</p></div></div></div></section>
+    <footer><div className="wrap foot-grid"><div><div className="footer-brand">{tCommon("brandName")}</div><p>{tFooter("brandDesc")}</p></div><div><h4>{tFooter("customerService")}</h4><ul><li>{tFooter("shippingPolicy")}</li><li>{tFooter("returnPolicy")}</li><li>{tFooter("refundPolicy")}</li></ul></div><div><h4>{tFooter("contact")}</h4><ul><li>01302 111188</li><li>WhatsApp: +8801302111188</li><li>Facebook · Instagram</li></ul></div></div><div className="wrap foot-bottom">{tFooter("copyright")} <span>{tFooter("allRightsReserved")}</span></div></footer><ContactActions />
   </>;
 }
