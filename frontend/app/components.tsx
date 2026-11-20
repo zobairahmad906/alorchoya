@@ -97,7 +97,7 @@ export function Header({ currentLayout }: { currentLayout?: HomepageLayout } = {
     } else if (typeof window !== "undefined") {
       const p = new URLSearchParams(window.location.search);
       const urlLayout = p.get("layout") || p.get("model");
-      if (urlLayout && ["model1", "model2", "model3", "model4"].includes(urlLayout)) {
+      if (urlLayout && ["model1", "model2", "model3"].includes(urlLayout)) {
         setActiveLayout(urlLayout as HomepageLayout);
       }
     }
@@ -326,9 +326,8 @@ export function Header({ currentLayout }: { currentLayout?: HomepageLayout } = {
               </span>
               {[
                 { id: "model1", label: "১", title: "মডেল ১: ড্যাশবোর্ড পোর্টাল" },
-                { id: "model2", label: "২", title: "মডেল ২: আল্ট্রা-ওয়াইড মেগাস্টোর" },
-                { id: "model3", label: "৩", title: "মডেল ৩: স্প্লিট-স্ক্রিন আধুনিক স্টুডিও" },
-                { id: "model4", label: "৪", title: "মডেল ৪: মাইক্রো-ডক ক্যানভাস" },
+                { id: "model2", label: "২", title: "মডেল ২: স্প্লিট-স্ক্রিন আধুনিক স্টুডিও" },
+                { id: "model3", label: "৩", title: "মডেল ৩: সিনেমাটিক ক্যানভাস" },
               ].map((m) => {
                 const isActive = activeLayout === m.id;
                 return (

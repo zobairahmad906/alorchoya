@@ -2,9 +2,8 @@ import { Header, ProductCatalog, CategoryFilterCards, ContactActions } from "./c
 import { HeroSlider } from "./HeroSlider";
 import { ShopTheLook } from "./ShopTheLook";
 import { Model1DashboardPortal } from "./models/Model1DashboardPortal";
-import { Model2UltraWideMegastore } from "./models/Model2UltraWideMegastore";
-import { Model3SplitCanvasStudio } from "./models/Model3SplitCanvasStudio";
-import { Model4MicroDockCanvas } from "./models/Model4MicroDockCanvas";
+import { Model2SplitCanvasStudio } from "./models/Model2SplitCanvasStudio";
+import { Model3MicroDockCanvas } from "./models/Model3MicroDockCanvas";
 import type { Product, Review, HeroSlide, Category, SiteSettings, HomepageLayout } from "./types";
 import { getTranslations } from "next-intl/server";
 
@@ -139,7 +138,7 @@ export default async function Home({ searchParams }: PageProps) {
   }
   const categories = Array.from(categoryMap.values()).sort((a, b) => (a.display_order || 99) - (b.display_order || 99));
 
-  const validLayouts: HomepageLayout[] = ["model1", "model2", "model3", "model4"];
+  const validLayouts: HomepageLayout[] = ["model1", "model2", "model3"];
   const activeLayout = (queryParamModel && validLayouts.includes(queryParamModel as HomepageLayout))
     ? (queryParamModel as HomepageLayout)
     : ((siteSettings?.homepage_layout && validLayouts.includes(siteSettings.homepage_layout)) ? siteSettings.homepage_layout : "model1");
@@ -149,9 +148,9 @@ export default async function Home({ searchParams }: PageProps) {
     <Header currentLayout={activeLayout} />
     {discountedProducts.length > 0 && <div className="announce">{t("announce", { count: discountedProducts.length, discount: maxDiscount })}</div>}
     <main style={{ width: "100%", overflowX: "hidden" }}>
-      {/* 4 Full-Screen Edge-to-Edge Models Switcher */}
+      {/* 3 Full-Screen Edge-to-Edge Models Switcher */}
       {activeLayout === "model2" ? (
-        <Model2UltraWideMegastore
+        <Model2SplitCanvasStudio
           products={allProds}
           categories={categories}
           heroSlides={heroSlides}
@@ -159,15 +158,7 @@ export default async function Home({ searchParams }: PageProps) {
           discountedProducts={discountedProducts}
         />
       ) : activeLayout === "model3" ? (
-        <Model3SplitCanvasStudio
-          products={allProds}
-          categories={categories}
-          heroSlides={heroSlides}
-          reviews={reviewsToDisplay}
-          discountedProducts={discountedProducts}
-        />
-      ) : activeLayout === "model4" ? (
-        <Model4MicroDockCanvas
+        <Model3MicroDockCanvas
           products={allProds}
           categories={categories}
           heroSlides={heroSlides}

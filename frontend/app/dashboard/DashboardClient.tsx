@@ -525,8 +525,8 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
   const [categories, setCategories] = useState<CategoryItem[]>([]);
 
-  // Homepage Layout Theme State (4 Full-Screen Models)
-  const [currentHomepageLayout, setCurrentHomepageLayout] = useState<"model1" | "model2" | "model3" | "model4">("model1");
+  // Homepage Layout Theme State (3 Full-Screen Models)
+  const [currentHomepageLayout, setCurrentHomepageLayout] = useState<"model1" | "model2" | "model3">("model1");
   const [savingLayout, setSavingLayout] = useState<boolean>(false);
 
   // Category Management State
@@ -1835,8 +1835,8 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
   };
 
-  // HOMEPAGE LAYOUT THEME SWITCHER (4 Full-Screen Models)
-  const handleSwitchHomepageLayout = async (layout: "model1" | "model2" | "model3" | "model4") => {
+  // HOMEPAGE LAYOUT THEME SWITCHER (3 Full-Screen Models)
+  const handleSwitchHomepageLayout = async (layout: "model1" | "model2" | "model3") => {
     try {
       setSavingLayout(true);
       const res = await fetch(getApiUrl("/admin/site-settings/"), {
@@ -1853,9 +1853,8 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
         setCurrentHomepageLayout(data.homepage_layout);
         const modelNames: Record<string, string> = {
           model1: "মডেল ১ (ড্যাশবোর্ড পোর্টাল)",
-          model2: "মডেল ২ (আল্ট্রা-ওয়াইড মেগাস্টোর)",
-          model3: "মডেল ৩ (স্প্লিট-স্ক্রিন স্টুডিও)",
-          model4: "মডেল ৪ (মাইক্রো-ডক ক্যানভাস)",
+          model2: "মডেল ২ (স্প্লিট-স্ক্রিন আধুনিক স্টুডিও)",
+          model3: "মডেল ৩ (সিনেমাটিক ক্যানভাস)",
         };
         const activeName = modelNames[layout] || layout;
         toast((t) => (
@@ -3144,7 +3143,7 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                 <span>{tDash("layout")}</span>
               </div>
               <span className="admin-nav-badge success" style={{ textTransform: "uppercase" }}>
-                {currentHomepageLayout === "model1" ? "মডেল ১" : currentHomepageLayout === "model2" ? "মডেল ২" : currentHomepageLayout === "model3" ? "মডেল ৩" : "মডেল ৪"}
+                {currentHomepageLayout === "model1" ? "মডেল ১" : currentHomepageLayout === "model2" ? "মডেল ২" : "মডেল ৩"}
               </span>
             </Link>
 
@@ -3408,14 +3407,13 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                 <ExternalLink size={11} style={{ opacity: 0.7 }} />
               </a>
 
-              {/* Quick Homepage Theme Switcher Pill (4 Models) */}
+              {/* Quick Homepage Theme Switcher Pill (3 Models) */}
               <div style={{ display: "flex", alignItems: "center", gap: "3px", backgroundColor: "#f1f5f9", padding: "3px 6px", borderRadius: "10px", border: "1px solid #cbd5e1" }}>
                 <span style={{ fontSize: "11px", fontWeight: 700, color: "#64748b", paddingLeft: "4px" }}>🏠 মডেল:</span>
                 {[
                   { id: "model1", label: "১", title: "মডেল ১: ড্যাশবোর্ড পোর্টাল ও সাইডবার" },
-                  { id: "model2", label: "২", title: "মডেল ২: আল্ট্রা-ওয়াইড মেগাস্টোর" },
-                  { id: "model3", label: "৩", title: "মডেল ৩: স্প্লিট-স্ক্রিন আধুনিক স্টুডিও" },
-                  { id: "model4", label: "৪", title: "মডেল ৪: মাইক্রো-ডক ও সিনেমাটিক ক্যানভাস" },
+                  { id: "model2", label: "২", title: "মডেল ২: স্প্লিট-স্ক্রিন আধুনিক স্টুডিও" },
+                  { id: "model3", label: "৩", title: "মডেল ৩: সিনেমাটিক ক্যানভাস ও স্থায়ী প্যানেল" },
                 ].map((m) => (
                   <button
                     key={m.id}
@@ -5596,85 +5594,17 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                     flexDirection: "column",
                   }}
                 >
-                  <div style={{ position: "relative", height: "180px", backgroundColor: "#0284c7", overflow: "hidden" }}>
+                  <div style={{ position: "relative", height: "180px", backgroundColor: "#1c1917", overflow: "hidden" }}>
                     <img
-                      src="/ecommerce_megastore_fullbleed_laptop_final_1795181222164.jpg"
+                      src="/lookbook-living-room.jpg"
                       alt="Model 2"
                       style={{ width: "100%", height: "100%", objectFit: "cover" }}
                       onError={(e) => { (e.target as HTMLElement).style.display = "none"; }}
                     />
-                    <div style={{ position: "absolute", top: "12px", left: "12px", backgroundColor: "#0369a1", color: "#e0f2fe", padding: "4px 10px", borderRadius: "8px", fontWeight: 800, fontSize: "12px" }}>
+                    <div style={{ position: "absolute", top: "12px", left: "12px", backgroundColor: "#1c1917", color: "#fef08a", padding: "4px 10px", borderRadius: "8px", fontWeight: 800, fontSize: "12px" }}>
                       মডেল ২
                     </div>
                     {currentHomepageLayout === "model2" && (
-                      <div style={{ position: "absolute", top: "12px", right: "12px", backgroundColor: "#10b981", color: "#fff", padding: "4px 12px", borderRadius: "20px", fontWeight: 800, fontSize: "12px", display: "flex", alignItems: "center", gap: "4px" }}>
-                        ✓ সক্রিয় মডেল
-                      </div>
-                    )}
-                  </div>
-
-                  <div style={{ padding: "20px", flex: 1, display: "flex", flexDirection: "column" }}>
-                    <h4 style={{ fontSize: "18px", fontWeight: 800, color: "#0f172a", margin: "0 0 6px" }}>
-                      আল্ট্রা-ওয়াইড মেগাস্টোর
-                    </h4>
-                    <span style={{ fontSize: "12px", color: "#0284c7", fontWeight: 700, marginBottom: "12px" }}>
-                      Flipkart VIP / Ultra-Wide 100vw Style
-                    </span>
-                    <ul style={{ margin: "0 0 20px", paddingLeft: "18px", fontSize: "13px", color: "#475569", lineHeight: 1.6 }}>
-                      <li>শীর্ষে এজ-টু-এজ বড় বৃত্তাকার ক্যাটাগরি স্টোরিজ বাবল</li>
-                      <li>২১:৯ সিনেমা-ওয়াইড মেগা ব্যানার ও ট্রাস্ট ব্যাজ বার</li>
-                      <li>প্রান্ত-থেকে-প্রান্ত ৬ কলামের ফ্লুইড ও রেসপন্সিভ গ্রিড</li>
-                    </ul>
-
-                    <button
-                      type="button"
-                      onClick={() => handleSwitchHomepageLayout("model2")}
-                      disabled={savingLayout || currentHomepageLayout === "model2"}
-                      style={{
-                        marginTop: "auto",
-                        width: "100%",
-                        padding: "12px",
-                        borderRadius: "10px",
-                        border: "none",
-                        fontWeight: 800,
-                        fontSize: "14px",
-                        cursor: currentHomepageLayout === "model2" ? "default" : "pointer",
-                        backgroundColor: currentHomepageLayout === "model2" ? "#10b981" : "#0284c7",
-                        color: "#ffffff",
-                        transition: "all 0.2s ease",
-                      }}
-                    >
-                      {currentHomepageLayout === "model2" ? "✓ বর্তমানে সক্রিয় রয়েছে" : "এই মডেলটি সক্রিয় করুন"}
-                    </button>
-                    <a href="/?layout=model2" target="_blank" rel="noreferrer" className="admin-btn-secondary" style={{ marginTop: "8px", width: "100%", justifyContent: "center", fontSize: "12px", fontWeight: 700, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "6px", padding: "8px 12px" }}>
-                      <ExternalLink size={13} /> মডেল ২ এর লাইভ প্রিভিউ
-                    </a>
-                  </div>
-                </div>
-
-                {/* Model 3 Card (Formerly Model 4) */}
-                <div
-                  style={{
-                    borderRadius: "16px",
-                    border: currentHomepageLayout === "model3" ? "3px solid #10b981" : "1px solid #e2e8f0",
-                    backgroundColor: currentHomepageLayout === "model3" ? "#f0fdf4" : "#ffffff",
-                    boxShadow: "0 4px 16px rgba(0,0,0,0.06)",
-                    overflow: "hidden",
-                    display: "flex",
-                    flexDirection: "column",
-                  }}
-                >
-                  <div style={{ position: "relative", height: "180px", backgroundColor: "#1c1917", overflow: "hidden" }}>
-                    <img
-                      src="/lookbook-living-room.jpg"
-                      alt="Model 3"
-                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                      onError={(e) => { (e.target as HTMLElement).style.display = "none"; }}
-                    />
-                    <div style={{ position: "absolute", top: "12px", left: "12px", backgroundColor: "#1c1917", color: "#fef08a", padding: "4px 10px", borderRadius: "8px", fontWeight: 800, fontSize: "12px" }}>
-                      মডেল ৩
-                    </div>
-                    {currentHomepageLayout === "model3" && (
                       <div style={{ position: "absolute", top: "12px", right: "12px", backgroundColor: "#10b981", color: "#fff", padding: "4px 12px", borderRadius: "20px", fontWeight: 800, fontSize: "12px", display: "flex", alignItems: "center", gap: "4px" }}>
                         ✓ সক্রিয় মডেল
                       </div>
@@ -5696,6 +5626,74 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
                     <button
                       type="button"
+                      onClick={() => handleSwitchHomepageLayout("model2")}
+                      disabled={savingLayout || currentHomepageLayout === "model2"}
+                      style={{
+                        marginTop: "auto",
+                        width: "100%",
+                        padding: "12px",
+                        borderRadius: "10px",
+                        border: "none",
+                        fontWeight: 800,
+                        fontSize: "14px",
+                        cursor: currentHomepageLayout === "model2" ? "default" : "pointer",
+                        backgroundColor: currentHomepageLayout === "model2" ? "#10b981" : "#1c1917",
+                        color: "#ffffff",
+                        transition: "all 0.2s ease",
+                      }}
+                    >
+                      {currentHomepageLayout === "model2" ? "✓ বর্তমানে সক্রিয় রয়েছে" : "এই মডেলটি সক্রিয় করুন"}
+                    </button>
+                    <a href="/?layout=model2" target="_blank" rel="noreferrer" className="admin-btn-secondary" style={{ marginTop: "8px", width: "100%", justifyContent: "center", fontSize: "12px", fontWeight: 700, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "6px", padding: "8px 12px" }}>
+                      <ExternalLink size={13} /> মডেল ২ এর লাইভ প্রিভিউ
+                    </a>
+                  </div>
+                </div>
+
+                {/* Model 3 Card */}
+                <div
+                  style={{
+                    borderRadius: "16px",
+                    border: currentHomepageLayout === "model3" ? "3px solid #10b981" : "1px solid #e2e8f0",
+                    backgroundColor: currentHomepageLayout === "model3" ? "#f0fdf4" : "#ffffff",
+                    boxShadow: "0 4px 16px rgba(0,0,0,0.06)",
+                    overflow: "hidden",
+                    display: "flex",
+                    flexDirection: "column",
+                  }}
+                >
+                  <div style={{ position: "relative", height: "180px", backgroundColor: "#0f172a", overflow: "hidden" }}>
+                    <img
+                      src="/alorsoya_widescreen_ui_mockup_v2_1795181192737.jpg"
+                      alt="Model 3"
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                      onError={(e) => { (e.target as HTMLElement).style.display = "none"; }}
+                    />
+                    <div style={{ position: "absolute", top: "12px", left: "12px", backgroundColor: "#0f172a", color: "#38bdf8", padding: "4px 10px", borderRadius: "8px", fontWeight: 800, fontSize: "12px" }}>
+                      মডেল ৩
+                    </div>
+                    {currentHomepageLayout === "model3" && (
+                      <div style={{ position: "absolute", top: "12px", right: "12px", backgroundColor: "#10b981", color: "#fff", padding: "4px 12px", borderRadius: "20px", fontWeight: 800, fontSize: "12px", display: "flex", alignItems: "center", gap: "4px" }}>
+                        ✓ সক্রিয় মডেল
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ padding: "20px", flex: 1, display: "flex", flexDirection: "column" }}>
+                    <h4 style={{ fontSize: "18px", fontWeight: 800, color: "#0f172a", margin: "0 0 6px" }}>
+                      সিনেমাটিক ক্যানভাস ও স্থায়ী প্যানেল
+                    </h4>
+                    <span style={{ fontSize: "12px", color: "#0284c7", fontWeight: 700, marginBottom: "12px" }}>
+                      Linear / Dark Canvas Style
+                    </span>
+                    <ul style={{ margin: "0 0 20px", paddingLeft: "18px", fontSize: "13px", color: "#475569", lineHeight: 1.6 }}>
+                      <li>বামে স্থায়ী ক্যাটাগরি প্যানেল (ছবি ও পূর্ণ নাম সর্বদা দৃশ্যমান)</li>
+                      <li>বাকি অংশে সিনেমাটিক ডার্ক ক্যানভাস প্রোডাক্ট ডিসপ্লে</li>
+                      <li>৬ থেকে ৭ কলামের আল্ট্রা-ওয়াইড আধুনিক প্রোডাক্ট গ্রিড</li>
+                    </ul>
+
+                    <button
+                      type="button"
                       onClick={() => handleSwitchHomepageLayout("model3")}
                       disabled={savingLayout || currentHomepageLayout === "model3"}
                       style={{
@@ -5707,7 +5705,7 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                         fontWeight: 800,
                         fontSize: "14px",
                         cursor: currentHomepageLayout === "model3" ? "default" : "pointer",
-                        backgroundColor: currentHomepageLayout === "model3" ? "#10b981" : "#1c1917",
+                        backgroundColor: currentHomepageLayout === "model3" ? "#10b981" : "#0f172a",
                         color: "#ffffff",
                         transition: "all 0.2s ease",
                       }}
@@ -5716,74 +5714,6 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                     </button>
                     <a href="/?layout=model3" target="_blank" rel="noreferrer" className="admin-btn-secondary" style={{ marginTop: "8px", width: "100%", justifyContent: "center", fontSize: "12px", fontWeight: 700, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "6px", padding: "8px 12px" }}>
                       <ExternalLink size={13} /> মডেল ৩ এর লাইভ প্রিভিউ
-                    </a>
-                  </div>
-                </div>
-
-                {/* Model 4 Card (Formerly Model 5) */}
-                <div
-                  style={{
-                    borderRadius: "16px",
-                    border: currentHomepageLayout === "model4" ? "3px solid #10b981" : "1px solid #e2e8f0",
-                    backgroundColor: currentHomepageLayout === "model4" ? "#f0fdf4" : "#ffffff",
-                    boxShadow: "0 4px 16px rgba(0,0,0,0.06)",
-                    overflow: "hidden",
-                    display: "flex",
-                    flexDirection: "column",
-                  }}
-                >
-                  <div style={{ position: "relative", height: "180px", backgroundColor: "#0f172a", overflow: "hidden" }}>
-                    <img
-                      src="/alorsoya_widescreen_ui_mockup_v2_1795181192737.jpg"
-                      alt="Model 4"
-                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                      onError={(e) => { (e.target as HTMLElement).style.display = "none"; }}
-                    />
-                    <div style={{ position: "absolute", top: "12px", left: "12px", backgroundColor: "#0f172a", color: "#38bdf8", padding: "4px 10px", borderRadius: "8px", fontWeight: 800, fontSize: "12px" }}>
-                      মডেল ৪
-                    </div>
-                    {currentHomepageLayout === "model4" && (
-                      <div style={{ position: "absolute", top: "12px", right: "12px", backgroundColor: "#10b981", color: "#fff", padding: "4px 12px", borderRadius: "20px", fontWeight: 800, fontSize: "12px", display: "flex", alignItems: "center", gap: "4px" }}>
-                        ✓ সক্রিয় মডেল
-                      </div>
-                    )}
-                  </div>
-
-                  <div style={{ padding: "20px", flex: 1, display: "flex", flexDirection: "column" }}>
-                    <h4 style={{ fontSize: "18px", fontWeight: 800, color: "#0f172a", margin: "0 0 6px" }}>
-                      মাইক্রো-ডক ও সিনেমাটিক ক্যানভাস
-                    </h4>
-                    <span style={{ fontSize: "12px", color: "#0284c7", fontWeight: 700, marginBottom: "12px" }}>
-                      Linear / MacOS Floating Micro-Dock
-                    </span>
-                    <ul style={{ margin: "0 0 20px", paddingLeft: "18px", fontSize: "13px", color: "#475569", lineHeight: 1.6 }}>
-                      <li>বামে স্লিম আইকন ডক (মাউস নিলেই বিস্তারিত নাম প্রসারিত হয়)</li>
-                      <li>বাকি ৯৫% স্ক্রিন জুড়ে সিনেমাটিক ডার্ক ক্যানভাস ডিসপ্লে</li>
-                      <li>৬ থেকে ৭ কলামের আল্ট্রা-ওয়াইড আধুনিক প্রোডাক্ট গ্রিড</li>
-                    </ul>
-
-                    <button
-                      type="button"
-                      onClick={() => handleSwitchHomepageLayout("model4")}
-                      disabled={savingLayout || currentHomepageLayout === "model4"}
-                      style={{
-                        marginTop: "auto",
-                        width: "100%",
-                        padding: "12px",
-                        borderRadius: "10px",
-                        border: "none",
-                        fontWeight: 800,
-                        fontSize: "14px",
-                        cursor: currentHomepageLayout === "model4" ? "default" : "pointer",
-                        backgroundColor: currentHomepageLayout === "model4" ? "#10b981" : "#0f172a",
-                        color: "#ffffff",
-                        transition: "all 0.2s ease",
-                      }}
-                    >
-                      {currentHomepageLayout === "model4" ? "✓ বর্তমানে সক্রিয় রয়েছে" : "এই মডেলটি সক্রিয় করুন"}
-                    </button>
-                    <a href="/?layout=model4" target="_blank" rel="noreferrer" className="admin-btn-secondary" style={{ marginTop: "8px", width: "100%", justifyContent: "center", fontSize: "12px", fontWeight: 700, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "6px", padding: "8px 12px" }}>
-                      <ExternalLink size={13} /> মডেল ৪ এর লাইভ প্রিভিউ
                     </a>
                   </div>
                 </div>

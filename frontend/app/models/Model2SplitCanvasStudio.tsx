@@ -14,7 +14,7 @@ interface ModelProps {
   discountedProducts: Product[];
 }
 
-export function Model3SplitCanvasStudio({
+export function Model2SplitCanvasStudio({
   products,
   categories,
   heroSlides,
