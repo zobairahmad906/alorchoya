@@ -61,9 +61,11 @@ export type Category = {
   count?: number;
 };
 
+export type HomepageLayout = "model1" | "model2" | "model3" | "model4" | "model5" | "model6";
+
 export type SiteSettings = {
   id?: number;
-  homepage_layout: "model1" | "model3" | "model4";
+  homepage_layout: HomepageLayout;
   layout_name?: string;
   site_title?: string;
   announcement_text?: string;

@@ -272,9 +272,12 @@ class CourierConfig(models.Model):
 
 class SiteSettings(models.Model):
     LAYOUT_CHOICES = (
-        ("model1", "Model 1 - Mega Marketplace (Amazon/Daraz Style)"),
-        ("model3", "Model 3 - Department Hub (Target Style)"),
-        ("model4", "Model 4 - Responsive Megastore (Flipkart Style)"),
+        ("model1", "Model 1 - Dashboard Portal & Sidebar (ড্যাশবোর্ড পোর্টাল)"),
+        ("model2", "Model 2 - Ultra-Wide Megastore (আল্ট্রা-ওয়াইড মেগাস্টোর)"),
+        ("model3", "Model 3 - Multi-Widget Dashboard Hub (মাল্টি-উইজেট ড্যাশবোর্ড হাব)"),
+        ("model4", "Model 4 - Split-Canvas Studio 30/70 (স্প্লিট-স্ক্রিন স্টুডিও)"),
+        ("model5", "Model 5 - Micro-Dock & Cinematic Canvas (মাইক্রো-ডক ক্যানভাস)"),
+        ("model6", "Model 6 - High-Density Grid & Side Drawer (মেগা গ্রিড ও সাইড ড্রয়ার)"),
     )
     homepage_layout = models.CharField(max_length=20, choices=LAYOUT_CHOICES, default="model1", help_text="সক্রিয় হোমপেজ মডেল")
     site_title = models.CharField(max_length=150, blank=True, default="আলোর ছোঁয়া মার্ট")
