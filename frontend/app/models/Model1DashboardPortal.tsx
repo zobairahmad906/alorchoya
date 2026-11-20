@@ -368,8 +368,46 @@ export function Model1DashboardPortal({
             })}
           </div>
 
-          {/* Panoramic Widescreen Hero Banner */}
-          <div style={{ borderRadius: "16px", overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.06)" }}>
+          {/* Mobile Emerald Promo Banner (Exact to reference image) */}
+          <div className="model1-mobile-promo">
+            <div style={{
+              background: "linear-gradient(135deg, #064e3b 0%, #047857 50%, #065f46 100%)",
+              borderRadius: "16px",
+              padding: "20px 16px",
+              textAlign: "center",
+              color: "#ffffff",
+              boxShadow: "0 6px 20px rgba(6, 78, 59, 0.25)",
+              border: "1px solid rgba(201, 164, 92, 0.4)",
+              position: "relative",
+              overflow: "hidden"
+            }}>
+              <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, opacity: 0.12, backgroundImage: "radial-gradient(#c9a45c 1.5px, transparent 1.5px)", backgroundSize: "12px 12px" }}></div>
+              <div style={{ position: "relative", zIndex: 2 }}>
+                <h3 style={{ margin: "0 0 10px", fontSize: "17px", fontWeight: 900, color: "#fef08a", letterSpacing: "0.3px" }}>
+                  ঈদ স্পেশাল অফার - ৫০% পর্যন্ত ছাড়
+                </h3>
+                <a
+                  href="#shop"
+                  style={{
+                    display: "inline-block",
+                    backgroundColor: "#ffffff",
+                    color: "#064e3b",
+                    padding: "7px 22px",
+                    borderRadius: "24px",
+                    fontWeight: 900,
+                    fontSize: "12px",
+                    textDecoration: "none",
+                    boxShadow: "0 3px 8px rgba(0,0,0,0.15)"
+                  }}
+                >
+                  এখনই কিনুন
+                </a>
+              </div>
+            </div>
+          </div>
+
+          {/* Panoramic Widescreen Hero Banner (Desktop Only) */}
+          <div className="desktop-only-hero" style={{ borderRadius: "16px", overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.06)" }}>
             <HeroSlider
               products={products.slice(0, 5)}
               heroSlides={heroSlides}
@@ -381,11 +419,11 @@ export function Model1DashboardPortal({
             />
           </div>
 
-          {/* Flash Deals Edge-to-Edge Strip */}
+          {/* Flash Deals Edge-to-Edge Strip (Desktop Only) */}
           {flashProducts.length > 0 && (
             <section
               id="offers"
-              className="model1-section-card"
+              className="model1-section-card desktop-only-flash"
               style={{
                 backgroundColor: "#ffffff",
                 borderRadius: "16px",

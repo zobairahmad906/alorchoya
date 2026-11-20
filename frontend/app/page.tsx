@@ -144,8 +144,14 @@ export default async function Home({ searchParams }: PageProps) {
 
   return <>
     <div id="top" />
-    <Header currentLayout={activeLayout} />
-    {discountedProducts.length > 0 && <div className="announce">{t("announce", { count: discountedProducts.length, discount: maxDiscount })}</div>}
+    <div className="desktop-only-header">
+      <Header currentLayout={activeLayout} />
+    </div>
+    {discountedProducts.length > 0 && (
+      <div className="announce desktop-only-announce">
+        {t("announce", { count: discountedProducts.length, discount: maxDiscount })}
+      </div>
+    )}
     <main style={{ width: "100%", overflowX: "hidden" }}>
       {/* 2 Full-Screen Edge-to-Edge Models Switcher */}
       {activeLayout === "model2" ? (
@@ -166,11 +172,13 @@ export default async function Home({ searchParams }: PageProps) {
         />
       )}
 
-      {/* Common Curated Look section */}
-      <ShopTheLook products={allProds} />
+      {/* Desktop-only extra sections (kept clean on mobile) */}
+      <div className="desktop-only-sections">
+        {/* Common Curated Look section */}
+        <ShopTheLook products={allProds} />
 
-      {/* Customer Reviews Section */}
-      <section className="reviews">
+        {/* Customer Reviews Section */}
+        <section className="reviews">
         <div className="wrap">
           <div className="section-head">
             <h2>{t("reviews")}</h2>
@@ -243,9 +251,10 @@ export default async function Home({ searchParams }: PageProps) {
           </div>
         </div>
       </section>
-      <section id="contact"><div className="wrap"><div className="cta-band"><div><h3>{t("question")}</h3><p>{t("whatsappSub")}</p></div><a className="btn btn-primary" href="https://wa.me/8801302111188" target="_blank">{t("whatsapp")}</a></div></div></section>
+        <section id="contact"><div className="wrap"><div className="cta-band"><div><h3>{t("question")}</h3><p>{t("whatsappSub")}</p></div><a className="btn btn-primary" href="https://wa.me/8801302111188" target="_blank">{t("whatsapp")}</a></div></div></section>
+        <section><div className="wrap"><div className="section-head"><h2>{t("why")}</h2></div><div className="why-grid"><div className="why-item"><h3>{t("whyQualityTitle")}</h3><p>{t("whyQualityDesc")}</p></div><div className="why-item"><h3>{t("whySecureTitle")}</h3><p>{t("whySecureDesc")}</p></div><div className="why-item"><h3>{t("whyDeliveryTitle")}</h3><p>{t("whyDeliveryDesc")}</p></div></div></div></section>
+      </div>
     </main>
-      <section><div className="wrap"><div className="section-head"><h2>{t("why")}</h2></div><div className="why-grid"><div className="why-item"><h3>{t("whyQualityTitle")}</h3><p>{t("whyQualityDesc")}</p></div><div className="why-item"><h3>{t("whySecureTitle")}</h3><p>{t("whySecureDesc")}</p></div><div className="why-item"><h3>{t("whyDeliveryTitle")}</h3><p>{t("whyDeliveryDesc")}</p></div></div></div></section>
     <footer>
       <div className="wrap foot-grid">
         <div>

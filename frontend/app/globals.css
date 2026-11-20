@@ -9978,6 +9978,26 @@ body:has(.admin-container) .mobile-bottom-nav {
    MOBILE RESPONSIVE STYLES FOR HOMEPAGE MODELS 1 & 2
    ======================================================== */
 
+/* --- Desktop vs Mobile Visibility Utilities --- */
+.desktop-only-header {
+  display: block;
+}
+.desktop-only-announce {
+  display: block;
+}
+.desktop-only-sections {
+  display: block;
+}
+.desktop-only-hero {
+  display: block;
+}
+.desktop-only-flash {
+  display: block;
+}
+.desktop-only-filter {
+  display: flex;
+}
+
 /* General Mobile Product Grid: Force 2-columns on mobile */
 .model-product-grid {
   display: grid;
@@ -9986,6 +10006,24 @@ body:has(.admin-container) .mobile-bottom-nav {
 }
 
 @media (max-width: 768px) {
+  .desktop-only-header {
+    display: none !important;
+  }
+  .desktop-only-announce {
+    display: none !important;
+  }
+  .desktop-only-sections {
+    display: none !important;
+  }
+  .desktop-only-hero {
+    display: none !important;
+  }
+  .desktop-only-flash {
+    display: none !important;
+  }
+  .desktop-only-filter {
+    display: none !important;
+  }
   .model-product-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     gap: 10px !important;
@@ -10027,6 +10065,10 @@ body:has(.admin-container) .mobile-bottom-nav {
   display: none;
 }
 
+.model1-mobile-promo {
+  display: none;
+}
+
 .model1-announcement-bar {
   background-color: #173f35;
   color: #ffffff;
@@ -10043,6 +10085,14 @@ body:has(.admin-container) .mobile-bottom-nav {
 }
 
 @media (max-width: 768px) {
+  .model1-announcement-bar {
+    display: none !important;
+  }
+  .model1-mobile-promo {
+    display: block !important;
+    width: 100%;
+    margin-bottom: 4px;
+  }
   .model1-mobile-header {
     display: flex !important;
     justify-content: space-between;
@@ -10131,6 +10181,10 @@ body:has(.admin-container) .mobile-bottom-nav {
   display: none;
 }
 
+.model2-mobile-promo {
+  display: none;
+}
+
 .model2-main-canvas {
   flex: 1;
   min-width: 0;
@@ -10143,6 +10197,11 @@ body:has(.admin-container) .mobile-bottom-nav {
 }
 
 @media (max-width: 768px) {
+  .model2-mobile-promo {
+    display: block !important;
+    width: 100%;
+    margin-bottom: 6px;
+  }
   .model2-mobile-header {
     display: flex !important;
     justify-content: space-between;

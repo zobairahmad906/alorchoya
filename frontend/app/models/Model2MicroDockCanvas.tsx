@@ -264,8 +264,52 @@ export function Model2MicroDockCanvas({
               );
             })}
           </div>
-          {/* Panoramic Widescreen Hero Slider */}
-          <div id="offers" style={{ borderRadius: "20px", overflow: "hidden", border: "1px solid #1e293b", boxShadow: "0 8px 30px rgba(0,0,0,0.5)" }}>
+          {/* Mobile Cinematic Glass Promo (Exact to reference image) */}
+          <div className="model2-mobile-promo">
+            <div style={{
+              background: "linear-gradient(135deg, rgba(30, 41, 59, 0.75), rgba(15, 23, 42, 0.95))",
+              backdropFilter: "blur(14px)",
+              WebkitBackdropFilter: "blur(14px)",
+              borderRadius: "20px",
+              padding: "24px 16px",
+              textAlign: "center",
+              color: "#ffffff",
+              border: "1px solid rgba(16, 185, 129, 0.3)",
+              boxShadow: "0 8px 32px rgba(0, 0, 0, 0.5)",
+              position: "relative",
+              overflow: "hidden"
+            }}>
+              <div style={{ position: "relative", zIndex: 2 }}>
+                <h3 style={{ margin: "0 0 12px", fontSize: "19px", fontWeight: 900, color: "#f8fafc", letterSpacing: "0.5px" }}>
+                  এক্সক্লুসিভ কালেকশন
+                </h3>
+                <a
+                  href="#shop"
+                  style={{
+                    display: "inline-block",
+                    background: "linear-gradient(135deg, #059669, #0d9488)",
+                    color: "#ffffff",
+                    padding: "8px 24px",
+                    borderRadius: "24px",
+                    fontWeight: 800,
+                    fontSize: "12px",
+                    textDecoration: "none",
+                    boxShadow: "0 4px 14px rgba(16, 185, 129, 0.4)"
+                  }}
+                >
+                  এখনই কিনুন
+                </a>
+                <div style={{ display: "flex", justifyContent: "center", gap: "6px", marginTop: "14px" }}>
+                  <span style={{ width: "16px", height: "4px", borderRadius: "2px", backgroundColor: "#34d399" }}></span>
+                  <span style={{ width: "6px", height: "4px", borderRadius: "2px", backgroundColor: "#475569" }}></span>
+                  <span style={{ width: "6px", height: "4px", borderRadius: "2px", backgroundColor: "#475569" }}></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Panoramic Widescreen Hero Slider (Desktop Only) */}
+          <div id="offers" className="desktop-only-hero" style={{ borderRadius: "20px", overflow: "hidden", border: "1px solid #1e293b", boxShadow: "0 8px 30px rgba(0,0,0,0.5)" }}>
             <HeroSlider
               products={products.slice(0, 5)}
               heroSlides={heroSlides}
@@ -277,9 +321,10 @@ export function Model2MicroDockCanvas({
             />
           </div>
 
-          {/* Interactive Filter Strip with Search */}
+          {/* Interactive Filter Strip with Search (Desktop Only) */}
           <div
             id="shop"
+            className="desktop-only-filter"
             style={{
               backgroundColor: "#1e293b",
               borderRadius: "16px",
