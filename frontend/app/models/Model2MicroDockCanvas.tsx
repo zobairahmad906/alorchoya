@@ -43,31 +43,10 @@ export function Model2MicroDockCanvas({
 
   return (
     <div style={{ backgroundColor: "#0f172a", minHeight: "100vh", width: "100%", color: "#f8fafc" }}>
-      {/* Edge-to-Edge Container with Left Floating Micro-Dock */}
-      <div style={{ display: "flex", width: "100%", minHeight: "100vh" }}>
-        {/* Left Persistent Category Panel */}
-        <aside
-          id="categories"
-          style={{
-            width: "250px",
-            minWidth: "240px",
-            backgroundColor: "#1e293b",
-            borderRight: "1px solid #334155",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "stretch",
-            padding: "16px 12px",
-            gap: "10px",
-            position: "sticky",
-            top: 0,
-            height: "100vh",
-            zIndex: 40,
-            overflowY: "auto",
-            overflowX: "hidden",
-            boxSizing: "border-box",
-            flexShrink: 0,
-          }}
-        >
+      {/* Edge-to-Edge Container with Left Floating Micro-Dock on Desktop */}
+      <div className="model2-layout-container">
+        {/* Left Persistent Category Panel (Desktop only) */}
+        <aside id="categories" className="model2-desktop-dock">
           {/* Brand Header */}
           <div
             style={{
@@ -168,6 +147,7 @@ export function Model2MicroDockCanvas({
 
         {/* 95% Expansive Main Canvas */}
         <main
+          className="model2-main-canvas"
           style={{
             flex: 1,
             minWidth: 0,
@@ -179,6 +159,111 @@ export function Model2MicroDockCanvas({
             gap: "28px",
           }}
         >
+          {/* Mobile Header (Exact to user uploaded dark reference) */}
+          <div className="model2-mobile-header">
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <div style={{ width: "32px", height: "32px", borderRadius: "10px", background: "linear-gradient(135deg, rgba(201,164,92,0.3), rgba(15,23,42,0.8))", border: "1px solid rgba(201,164,92,0.6)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fef08a", fontWeight: 900, fontSize: "14px", fontFamily: "serif" }}>
+                AC
+              </div>
+              <div style={{ fontSize: "15px", fontWeight: 800, color: "#f8fafc", letterSpacing: "0.5px" }}>
+                Alor Chhoya
+              </div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <Link href="/cart" style={{ width: "34px", height: "34px", borderRadius: "50%", backgroundColor: "rgba(6, 78, 59, 0.6)", border: "1px solid rgba(16, 185, 129, 0.5)", color: "#34d399", display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none", fontSize: "15px", position: "relative" }}>
+                🛒
+                <span style={{ position: "absolute", top: "2px", right: "2px", width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#f59e0b" }}></span>
+              </Link>
+            </div>
+          </div>
+
+          {/* Mobile Swipeable Horizontal Categories Strip (Exact to dark reference) */}
+          <div className="model2-mobile-chips">
+            <button
+              type="button"
+              onClick={() => setActiveCategory("all")}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: "5px",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                padding: "2px",
+                flexShrink: 0,
+              }}
+            >
+              <div
+                style={{
+                  width: "48px",
+                  height: "48px",
+                  borderRadius: "14px",
+                  border: activeCategory === "all" ? "1.5px solid #10b981" : "1px solid rgba(201, 164, 92, 0.35)",
+                  backgroundColor: activeCategory === "all" ? "rgba(6, 78, 59, 0.5)" : "rgba(30, 41, 59, 0.6)",
+                  boxShadow: activeCategory === "all" ? "0 0 14px rgba(16, 185, 129, 0.5)" : "none",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "20px",
+                  color: activeCategory === "all" ? "#34d399" : "#cbd5e1",
+                  transition: "all 0.2s ease",
+                }}
+              >
+                ✨
+              </div>
+              <span style={{ fontSize: "10px", fontWeight: 700, color: activeCategory === "all" ? "#34d399" : "#94a3b8", whiteSpace: "nowrap" }}>
+                সব পণ্য
+              </span>
+            </button>
+            {categories.map((cat) => {
+              const isActive = activeCategory === cat.slug;
+              const catImg = cat.image || cat.image_url;
+              return (
+                <button
+                  key={cat.id || cat.slug}
+                  type="button"
+                  onClick={() => setActiveCategory(cat.slug)}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: "5px",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: "2px",
+                    flexShrink: 0,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "48px",
+                      height: "48px",
+                      borderRadius: "14px",
+                      border: isActive ? "1.5px solid #10b981" : "1px solid rgba(201, 164, 92, 0.35)",
+                      backgroundColor: isActive ? "rgba(6, 78, 59, 0.5)" : "rgba(30, 41, 59, 0.6)",
+                      boxShadow: isActive ? "0 0 14px rgba(16, 185, 129, 0.5)" : "none",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      overflow: "hidden",
+                      transition: "all 0.2s ease",
+                    }}
+                  >
+                    {catImg ? (
+                      <img src={catImg} alt={cat.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    ) : (
+                      <span style={{ fontSize: "18px" }}>{cat.icon || "🏷️"}</span>
+                    )}
+                  </div>
+                  <span style={{ fontSize: "10px", fontWeight: 700, color: isActive ? "#34d399" : "#94a3b8", whiteSpace: "nowrap" }}>
+                    {cat.name}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
           {/* Panoramic Widescreen Hero Slider */}
           <div id="offers" style={{ borderRadius: "20px", overflow: "hidden", border: "1px solid #1e293b", boxShadow: "0 8px 30px rgba(0,0,0,0.5)" }}>
             <HeroSlider
@@ -238,15 +323,9 @@ export function Model2MicroDockCanvas({
             </div>
           </div>
 
-          {/* 6 to 7 Columns Ultra-Wide Product Matrix */}
+          {/* 6 to 7 Columns Ultra-Wide Product Matrix (2 cols on mobile) */}
           {filteredProducts.length > 0 ? (
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
-                gap: "20px",
-              }}
-            >
+            <div className="model-product-grid">
               {filteredProducts.map((p) => (
                 <div key={p.id} style={{ backgroundColor: "#ffffff", borderRadius: "16px", overflow: "hidden" }}>
                   <ProductCard product={p} />

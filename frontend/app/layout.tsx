@@ -1,8 +1,15 @@
+import type { Viewport } from "next";
 import "./globals.css";
 import { CartProvider } from "./cart";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import { MobileBottomNav } from "./components";
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+};
 
 export const metadata = {
   title: "আলোর ছোঁয়া মার্ট",

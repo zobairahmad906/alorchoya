@@ -9973,3 +9973,210 @@ body:has(.admin-container) .mobile-bottom-nav {
 .prod-card:hover .prod-img img {
   transform: scale(1.04);
 }
+
+/* ========================================================
+   MOBILE RESPONSIVE STYLES FOR HOMEPAGE MODELS 1 & 2
+   ======================================================== */
+
+/* General Mobile Product Grid: Force 2-columns on mobile */
+.model-product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 20px;
+}
+
+@media (max-width: 768px) {
+  .model-product-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+}
+
+/* --- MODEL 1: Dashboard Portal Mobile Adaptation --- */
+.model1-layout-container {
+  display: flex;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 16px clamp(12px, 1.8vw, 32px);
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.model1-desktop-sidebar {
+  width: 280px;
+  min-width: 260px;
+  flex-shrink: 0;
+  background-color: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+  overflow: hidden;
+  position: sticky;
+  top: 80px;
+}
+
+.model1-mobile-categories {
+  display: none;
+}
+
+.model1-mobile-header {
+  display: none;
+}
+
+.model1-mobile-search {
+  display: none;
+}
+
+.model1-announcement-bar {
+  background-color: #173f35;
+  color: #ffffff;
+  padding: 10px 24px;
+  font-size: 13px;
+  border-bottom: 1px solid rgba(201,164,92,0.3);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  .model1-mobile-header {
+    display: flex !important;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px 6px;
+    width: 100%;
+    box-sizing: border-box;
+    background: #ffffff;
+    border-bottom: 1px solid #f1f5f9;
+  }
+  .model1-mobile-search {
+    display: block !important;
+    width: 100%;
+    padding: 8px 14px 6px;
+    box-sizing: border-box;
+    background: #ffffff;
+  }
+  .model1-announcement-bar {
+    padding: 8px 12px;
+    font-size: 11px;
+    justify-content: center;
+    text-align: center;
+  }
+  .model1-announcement-hide-mobile {
+    display: none !important;
+  }
+  .model1-layout-container {
+    flex-direction: column;
+    padding: 8px 12px 32px !important;
+    gap: 14px !important;
+  }
+  .model1-desktop-sidebar {
+    display: none !important;
+  }
+  .model1-mobile-categories {
+    display: flex !important;
+    width: 100%;
+    overflow-x: auto;
+    gap: 12px;
+    padding: 6px 4px 10px;
+    box-sizing: border-box;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .model1-mobile-categories::-webkit-scrollbar {
+    display: none;
+  }
+  .model1-section-card {
+    padding: 14px 12px !important;
+    border-radius: 14px !important;
+  }
+}
+
+/* --- MODEL 2: Micro Dock Canvas Mobile Adaptation --- */
+.model2-layout-container {
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+}
+
+.model2-desktop-dock {
+  width: 250px;
+  min-width: 240px;
+  background-color: #1e293b;
+  border-right: 1px solid #334155;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 16px 12px;
+  gap: 10px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  z-index: 40;
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.model2-mobile-chips {
+  display: none;
+}
+
+.model2-mobile-header {
+  display: none;
+}
+
+.model2-main-canvas {
+  flex: 1;
+  min-width: 0;
+  padding: 20px clamp(16px, 2.5vw, 40px) 48px;
+  background-color: #0f172a;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+@media (max-width: 768px) {
+  .model2-mobile-header {
+    display: flex !important;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 14px 8px;
+    width: 100%;
+    box-sizing: border-box;
+    background: #090e1a;
+    border-bottom: 1px solid #1e293b;
+  }
+  .model2-layout-container {
+    flex-direction: column;
+    min-height: auto;
+  }
+  .model2-desktop-dock {
+    display: none !important;
+  }
+  .model2-mobile-chips {
+    display: flex !important;
+    width: 100%;
+    overflow-x: auto;
+    gap: 10px;
+    padding: 10px 12px;
+    background-color: #0b1329;
+    border-bottom: 1px solid rgba(16, 185, 129, 0.2);
+    box-sizing: border-box;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .model2-mobile-chips::-webkit-scrollbar {
+    display: none;
+  }
+  .model2-main-canvas {
+    padding: 12px 10px 40px !important;
+    gap: 16px !important;
+  }
+}

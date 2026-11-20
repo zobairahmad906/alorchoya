@@ -59,28 +59,13 @@ export function Model1DashboardPortal({
   return (
     <div style={{ backgroundColor: "#f8fafc", minHeight: "100vh", width: "100%" }}>
       {/* Edge-to-Edge Top Announcement Banner */}
-      <div
-        style={{
-          backgroundColor: "#173f35",
-          color: "#ffffff",
-          padding: "10px 24px",
-          fontSize: "13px",
-          borderBottom: "1px solid rgba(201,164,92,0.3)",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: "10px",
-          width: "100%",
-          boxSizing: "border-box",
-        }}
-      >
+      <div className="model1-announcement-bar">
         <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
           <span style={{ color: "#c9a45c", fontWeight: 800, display: "inline-flex", alignItems: "center", gap: "6px" }}>
             🖥️ ফুল-স্ক্রিন পোর্টাল
           </span>
-          <span style={{ color: "#94a3b8" }}>|</span>
-          <span>ফার্নিচার, পোশাক, জুতো, ঘড়ি ও হোম ডেকরে বিশেষ মেগা অফার চলছে!</span>
+          <span className="model1-announcement-hide-mobile" style={{ color: "#94a3b8" }}>|</span>
+          <span className="model1-announcement-hide-mobile">ফার্নিচার, পোশাক, জুতো, ঘড়ি ও হোম ডেকরে বিশেষ মেগা অফার চলছে!</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "18px" }}>
           <span style={{ color: "#fef08a", fontWeight: 700 }}>⚡ ফ্রি ক্যাশ অন ডেলিভারি</span>
@@ -91,32 +76,9 @@ export function Model1DashboardPortal({
       </div>
 
       {/* Main Full-Screen Body: Persistent Left Sidebar + Fluid Right Canvas */}
-      <div
-        style={{
-          display: "flex",
-          width: "100%",
-          boxSizing: "border-box",
-          padding: "16px clamp(12px, 1.8vw, 32px)",
-          gap: "24px",
-          alignItems: "flex-start",
-        }}
-      >
+      <div className="model1-layout-container">
         {/* Persistent Left Category Sidebar (Like Admin Dashboard Sidebar) */}
-        <aside
-          id="categories"
-          style={{
-            width: "280px",
-            minWidth: "260px",
-            flexShrink: 0,
-            backgroundColor: "#ffffff",
-            borderRadius: "16px",
-            border: "1px solid #e2e8f0",
-            boxShadow: "0 4px 16px rgba(0,0,0,0.04)",
-            overflow: "hidden",
-            position: "sticky",
-            top: "80px",
-          }}
-        >
+        <aside id="categories" className="model1-desktop-sidebar">
           {/* Sidebar Header */}
           <div
             style={{
@@ -255,6 +217,157 @@ export function Model1DashboardPortal({
 
         {/* Right Main Fluid Canvas (100% Remaining Screen Width) */}
         <main style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: "28px" }}>
+          {/* Mobile Header (Exact to user uploaded reference) */}
+          <div className="model1-mobile-header">
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <div style={{ width: "32px", height: "32px", borderRadius: "50%", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "#ecfdf5", border: "1px solid #a7f3d0" }}>
+                <img src="/alorchoya-logo.jpeg" alt="Logo" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }} />
+                <span style={{ fontSize: "16px" }}>☀️</span>
+              </div>
+              <div>
+                <div style={{ fontSize: "14px", fontWeight: 900, color: "#064e3b", lineHeight: 1.1 }}>Alor Chhoya</div>
+                <div style={{ fontSize: "10px", fontWeight: 700, color: "#047857" }}>আলোর ছোঁয়া</div>
+              </div>
+            </div>
+            <Link href="/cart" style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", width: "36px", height: "36px", borderRadius: "50%", backgroundColor: "#f1f5f9", textDecoration: "none", color: "#334155", fontSize: "16px" }}>
+              🛒
+              <span style={{ position: "absolute", top: "-2px", right: "-2px", backgroundColor: "#065f46", color: "#ffffff", fontSize: "10px", fontWeight: 900, width: "18px", height: "18px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                ৩
+              </span>
+            </Link>
+          </div>
+
+          {/* Mobile Full-Width Search Bar */}
+          <div className="model1-mobile-search">
+            <div style={{ position: "relative", width: "100%" }}>
+              <span style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", fontSize: "14px", color: "#94a3b8" }}>🔍</span>
+              <input
+                type="text"
+                placeholder="Search..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "9px 14px 9px 38px",
+                  borderRadius: "24px",
+                  border: "1px solid #e2e8f0",
+                  backgroundColor: "#ffffff",
+                  fontSize: "13px",
+                  outline: "none",
+                  boxSizing: "border-box",
+                  boxShadow: "0 1px 4px rgba(0,0,0,0.03)",
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Category Story Circles (Exact to user uploaded reference) */}
+          <div className="model1-mobile-categories">
+            <button
+              type="button"
+              onClick={() => setActiveCategorySlug("all")}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: "5px",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                padding: "2px",
+                flexShrink: 0,
+              }}
+            >
+              <div
+                style={{
+                  width: "52px",
+                  height: "52px",
+                  borderRadius: "50%",
+                  border: activeCategorySlug === "all" ? "2.5px solid #059669" : "1.5px solid #e2e8f0",
+                  padding: "2px",
+                  backgroundColor: "#ffffff",
+                  boxShadow: activeCategorySlug === "all" ? "0 0 10px rgba(5,150,105,0.25)" : "none",
+                }}
+              >
+                <div
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    borderRadius: "50%",
+                    backgroundColor: activeCategorySlug === "all" ? "#ecfdf5" : "#f8fafc",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "20px",
+                    color: activeCategorySlug === "all" ? "#047857" : "#64748b",
+                    fontWeight: 900,
+                  }}
+                >
+                  ★
+                </div>
+              </div>
+              <span style={{ fontSize: "11px", fontWeight: activeCategorySlug === "all" ? 800 : 600, color: activeCategorySlug === "all" ? "#047857" : "#334155", whiteSpace: "nowrap" }}>
+                সব পণ্য
+              </span>
+            </button>
+            {categories.map((cat) => {
+              const isActive = activeCategorySlug === cat.slug;
+              const catImg = cat.image || cat.image_url;
+              return (
+                <button
+                  key={cat.id || cat.slug}
+                  type="button"
+                  onClick={() => setActiveCategorySlug(cat.slug)}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: "5px",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: "2px",
+                    flexShrink: 0,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "52px",
+                      height: "52px",
+                      borderRadius: "50%",
+                      border: isActive ? "2.5px solid #059669" : "1.5px solid #e2e8f0",
+                      padding: "2px",
+                      backgroundColor: "#ffffff",
+                      boxShadow: isActive ? "0 0 10px rgba(5,150,105,0.25)" : "none",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        borderRadius: "50%",
+                        overflow: "hidden",
+                        backgroundColor: "#f8fafc",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      {catImg ? (
+                        <img src={catImg} alt={cat.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      ) : (
+                        <span style={{ fontSize: "20px" }}>{cat.icon || "🛍️"}</span>
+                      )}
+                    </div>
+                  </div>
+                  <span style={{ fontSize: "11px", fontWeight: isActive ? 800 : 600, color: isActive ? "#047857" : "#334155", whiteSpace: "nowrap" }}>
+                    {cat.name}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
           {/* Panoramic Widescreen Hero Banner */}
           <div style={{ borderRadius: "16px", overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.06)" }}>
             <HeroSlider
@@ -272,6 +385,7 @@ export function Model1DashboardPortal({
           {flashProducts.length > 0 && (
             <section
               id="offers"
+              className="model1-section-card"
               style={{
                 backgroundColor: "#ffffff",
                 borderRadius: "16px",
@@ -310,8 +424,8 @@ export function Model1DashboardPortal({
                 </div>
               </div>
 
-              {/* Flash Products Fluid Grid */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))", gap: "16px" }}>
+              {/* Flash Products Fluid Grid (2 columns on mobile) */}
+              <div className="model-product-grid">
                 {flashProducts.map((p) => (
                   <ProductCard key={p.id} product={p} />
                 ))}
@@ -322,6 +436,7 @@ export function Model1DashboardPortal({
           {/* Main Product Catalog Section: 5-6 Columns High-Density Grid */}
           <section
             id="shop"
+            className="model1-section-card"
             style={{
               backgroundColor: "#ffffff",
               borderRadius: "16px",
@@ -382,15 +497,9 @@ export function Model1DashboardPortal({
               </div>
             </div>
 
-            {/* High-Density Responsive Fluid Grid (5-6 Columns on Widescreen) */}
+            {/* High-Density Responsive Fluid Grid (5-6 Columns on Widescreen, 2 cols on mobile) */}
             {filteredProducts.length > 0 ? (
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
-                  gap: "20px",
-                }}
-              >
+              <div className="model-product-grid">
                 {filteredProducts.map((prod) => (
                   <ProductCard key={prod.id} product={prod} />
                 ))}
