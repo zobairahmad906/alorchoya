@@ -10025,8 +10025,17 @@ body:has(.admin-container) .mobile-bottom-nav {
     display: none !important;
   }
   .model-product-grid {
+    display: grid !important;
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     gap: 10px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  .model-product-grid > * {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
   }
 }
 
@@ -10110,39 +10119,54 @@ body:has(.admin-container) .mobile-bottom-nav {
     box-sizing: border-box;
     background: #ffffff;
   }
-  .model1-announcement-bar {
-    padding: 8px 12px;
-    font-size: 11px;
-    justify-content: center;
-    text-align: center;
-  }
-  .model1-announcement-hide-mobile {
-    display: none !important;
-  }
   .model1-layout-container {
     flex-direction: column;
-    padding: 8px 12px 32px !important;
-    gap: 14px !important;
+    padding: 0 12px 32px !important;
+    gap: 12px !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
   }
   .model1-desktop-sidebar {
     display: none !important;
   }
   .model1-mobile-categories {
     display: flex !important;
-    width: 100%;
-    overflow-x: auto;
-    gap: 12px;
-    padding: 6px 4px 10px;
-    box-sizing: border-box;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    white-space: nowrap !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-x !important;
+    overscroll-behavior-x: contain !important;
+    gap: 12px !important;
+    padding: 6px 4px 10px !important;
+    box-sizing: border-box !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
   }
   .model1-mobile-categories::-webkit-scrollbar {
-    display: none;
+    display: none !important;
+  }
+  .model1-mobile-categories > * {
+    flex: 0 0 auto !important;
+    flex-shrink: 0 !important;
+    touch-action: pan-x !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
   }
   .model1-section-card {
-    padding: 14px 12px !important;
-    border-radius: 14px !important;
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+  }
+  .model1-catalog-header {
+    display: none !important;
   }
 }
 
@@ -10215,27 +10239,52 @@ body:has(.admin-container) .mobile-bottom-nav {
   .model2-layout-container {
     flex-direction: column;
     min-height: auto;
+    width: 100% !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
   }
   .model2-desktop-dock {
     display: none !important;
   }
   .model2-mobile-chips {
     display: flex !important;
-    width: 100%;
-    overflow-x: auto;
-    gap: 10px;
-    padding: 10px 12px;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    white-space: nowrap !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-x !important;
+    overscroll-behavior-x: contain !important;
+    gap: 10px !important;
+    padding: 10px 12px !important;
     background-color: #0b1329;
     border-bottom: 1px solid rgba(16, 185, 129, 0.2);
-    box-sizing: border-box;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
+    box-sizing: border-box !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
   }
   .model2-mobile-chips::-webkit-scrollbar {
-    display: none;
+    display: none !important;
+  }
+  .model2-mobile-chips > * {
+    flex: 0 0 auto !important;
+    flex-shrink: 0 !important;
+    touch-action: pan-x !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
   }
   .model2-main-canvas {
     padding: 12px 10px 40px !important;
     gap: 16px !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+  }
+  .model2-catalog-header {
+    display: none !important;
   }
 }

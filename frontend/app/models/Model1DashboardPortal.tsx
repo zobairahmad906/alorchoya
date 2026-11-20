@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import { HeroSlider } from "../HeroSlider";
 import { cleanImageUrl, ProductCard } from "../components";
@@ -42,12 +42,14 @@ function LightEmeraldCard({ product, index }: { product: Product; index: number 
         borderRadius: "14px",
         border: "1px solid #e2e8f0",
         boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-        padding: "10px",
+        padding: "8px",
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
         position: "relative",
         cursor: "pointer",
+        minWidth: 0,
+        boxSizing: "border-box",
         transition: "transform 0.2s ease, box-shadow 0.2s ease",
       }}
       onClick={() => {
@@ -58,14 +60,14 @@ function LightEmeraldCard({ product, index }: { product: Product; index: number 
       <div
         style={{
           position: "absolute",
-          top: "12px",
-          left: "12px",
+          top: "8px",
+          left: "8px",
           zIndex: 5,
           backgroundColor: "#065f46",
           color: "#ffffff",
-          fontSize: "11px",
+          fontSize: "10px",
           fontWeight: 900,
-          padding: "2px 7px",
+          padding: "2px 6px",
           borderRadius: "6px",
         }}
       >
@@ -82,17 +84,28 @@ function LightEmeraldCard({ product, index }: { product: Product; index: number 
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+          padding: "4px",
+          boxSizing: "border-box",
         }}
       >
         {image ? (
-          <img src={image} alt={product.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          <img
+            src={image}
+            alt={product.name}
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "contain",
+              display: "block",
+            }}
+          />
         ) : (
           <span style={{ fontSize: "32px" }}>📦</span>
         )}
       </div>
 
-      <div style={{ marginTop: "10px" }}>
-        <div style={{ fontSize: "16px", fontWeight: 900, color: "#0f172a", marginBottom: "8px" }}>
+      <div style={{ marginTop: "8px" }}>
+        <div style={{ fontSize: "15px", fontWeight: 900, color: "#0f172a", marginBottom: "6px" }}>
           {formatPrice(currentPrice, "bn")}
         </div>
 
@@ -101,18 +114,20 @@ function LightEmeraldCard({ product, index }: { product: Product; index: number 
           onClick={(e) => handleAction(e, isAddToCartButton)}
           style={{
             width: "100%",
-            padding: "8px 12px",
+            padding: "8px 4px",
             borderRadius: "8px",
-            border: "none",
-            backgroundColor: "#065f46",
-            color: "#ffffff",
+            border: isAddToCartButton ? "1.5px solid #065f46" : "none",
+            backgroundColor: isAddToCartButton ? "#ffffff" : "#065f46",
+            color: isAddToCartButton ? "#065f46" : "#ffffff",
             fontSize: "12px",
             fontWeight: 800,
             cursor: "pointer",
             transition: "all 0.15s ease",
+            whiteSpace: "nowrap",
+            boxSizing: "border-box",
           }}
         >
-          {isAddToCartButton ? "কার্টে যোগ করুন" : "অর্ডার করুন"}
+          {isAddToCartButton ? "কার্ট যোগ করুন" : "অর্ডার করুন"}
         </button>
       </div>
     </article>
@@ -137,6 +152,59 @@ export function Model1DashboardPortal({
   const [activeCategorySlug, setActiveCategorySlug] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [timeLeft, setTimeLeft] = useState({ hours: 8, minutes: 45, seconds: 20 });
+
+  const categoryScrollRef = useRef<HTMLDivElement>(null);
+  const isDragging = useRef(false);
+  const startX = useRef(0);
+  const scrollLeftStart = useRef(0);
+  const moved = useRef(false);
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    isDragging.current = true;
+    moved.current = false;
+    startX.current = e.touches[0].pageX - (categoryScrollRef.current?.offsetLeft || 0);
+    scrollLeftStart.current = categoryScrollRef.current?.scrollLeft || 0;
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging.current || !categoryScrollRef.current) return;
+    const x = e.touches[0].pageX - (categoryScrollRef.current.offsetLeft || 0);
+    const walk = (x - startX.current) * 1.2;
+    if (Math.abs(walk) > 4) moved.current = true;
+    categoryScrollRef.current.scrollLeft = scrollLeftStart.current - walk;
+  };
+
+  const onTouchEnd = () => {
+    isDragging.current = false;
+    setTimeout(() => {
+      moved.current = false;
+    }, 50);
+  };
+
+  const onMouseDown = (e: React.MouseEvent) => {
+    isDragging.current = true;
+    moved.current = false;
+    startX.current = e.pageX - (categoryScrollRef.current?.offsetLeft || 0);
+    scrollLeftStart.current = categoryScrollRef.current?.scrollLeft || 0;
+  };
+
+  const onMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging.current || !categoryScrollRef.current) return;
+    const x = e.pageX - (categoryScrollRef.current.offsetLeft || 0);
+    const walk = (x - startX.current) * 1.2;
+    if (Math.abs(walk) > 4) {
+      moved.current = true;
+      e.preventDefault();
+    }
+    categoryScrollRef.current.scrollLeft = scrollLeftStart.current - walk;
+  };
+
+  const onMouseUp = () => {
+    isDragging.current = false;
+    setTimeout(() => {
+      moved.current = false;
+    }, 50);
+  };
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -423,10 +491,22 @@ export function Model1DashboardPortal({
           </div>
 
           {/* Category Story Circles (Exact to user uploaded reference) */}
-          <div className="model1-mobile-categories">
+          <div
+            className="model1-mobile-categories"
+            ref={categoryScrollRef}
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
+            onMouseDown={onMouseDown}
+            onMouseMove={onMouseMove}
+            onMouseUp={onMouseUp}
+            onMouseLeave={onMouseUp}
+          >
             <button
               type="button"
-              onClick={() => setActiveCategorySlug("all")}
+              onClick={() => {
+                if (!moved.current) setActiveCategorySlug("all");
+              }}
               style={{
                 display: "flex",
                 flexDirection: "column",
@@ -478,7 +558,9 @@ export function Model1DashboardPortal({
                 <button
                   key={cat.id || cat.slug}
                   type="button"
-                  onClick={() => setActiveCategorySlug(cat.slug)}
+                  onClick={() => {
+                    if (!moved.current) setActiveCategorySlug(cat.slug);
+                  }}
                   style={{
                     display: "flex",
                     flexDirection: "column",
@@ -644,7 +726,7 @@ export function Model1DashboardPortal({
               boxShadow: "0 2px 10px rgba(0,0,0,0.03)",
             }}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px", marginBottom: "20px" }}>
+            <div className="model1-catalog-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px", marginBottom: "20px" }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: "20px", fontWeight: 900, color: "#0f172a" }}>
                   {activeCategorySlug === "all" ? "সকল পণ্য ক্যাটালগ" : categories.find((c) => c.slug === activeCategorySlug)?.name || "ক্যাটাগরি পণ্য"}

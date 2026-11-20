@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import Link from "next/link";
 import { HeroSlider } from "../HeroSlider";
 import { cleanImageUrl } from "../components";
@@ -27,14 +27,16 @@ function DarkCinematicCard({ product }: { product: Product }) {
         background: "linear-gradient(145deg, rgba(30, 41, 59, 0.75), rgba(15, 23, 42, 0.9))",
         backdropFilter: "blur(14px)",
         WebkitBackdropFilter: "blur(14px)",
-        borderRadius: "18px",
+        borderRadius: "16px",
         border: "1px solid rgba(16, 185, 129, 0.28)",
         boxShadow: "0 8px 24px rgba(0, 0, 0, 0.45)",
-        padding: "10px",
+        padding: "8px",
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
         cursor: "pointer",
+        minWidth: 0,
+        boxSizing: "border-box",
         transition: "transform 0.2s ease, border-color 0.2s ease",
       }}
       onClick={() => {
@@ -45,30 +47,41 @@ function DarkCinematicCard({ product }: { product: Product }) {
         style={{
           width: "100%",
           aspectRatio: "1/1",
-          borderRadius: "12px",
+          borderRadius: "10px",
           overflow: "hidden",
           backgroundColor: "#070d18",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           position: "relative",
+          padding: "4px",
+          boxSizing: "border-box",
         }}
       >
         {image ? (
-          <img src={image} alt={product.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          <img
+            src={image}
+            alt={product.name}
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "contain",
+              display: "block",
+            }}
+          />
         ) : (
           <span style={{ fontSize: "32px" }}>📦</span>
         )}
       </div>
 
-      <div style={{ marginTop: "10px", textAlign: "center" }}>
+      <div style={{ marginTop: "8px", textAlign: "center" }}>
         <div
           style={{
             fontSize: "15px",
             fontWeight: 900,
             color: "#fef08a",
             letterSpacing: "0.5px",
-            marginBottom: "8px",
+            marginBottom: "6px",
           }}
         >
           {formatPrice(currentPrice, "bn")}
@@ -79,7 +92,7 @@ function DarkCinematicCard({ product }: { product: Product }) {
           onClick={handleOrderNow}
           style={{
             width: "100%",
-            padding: "8px 14px",
+            padding: "8px 10px",
             borderRadius: "20px",
             border: "1px solid rgba(16, 185, 129, 0.7)",
             backgroundColor: "rgba(16, 185, 129, 0.15)",
@@ -89,6 +102,8 @@ function DarkCinematicCard({ product }: { product: Product }) {
             cursor: "pointer",
             boxShadow: "0 0 10px rgba(16, 185, 129, 0.25)",
             transition: "all 0.15s ease",
+            whiteSpace: "nowrap",
+            boxSizing: "border-box",
           }}
         >
           অর্ডার করুন
@@ -115,6 +130,59 @@ export function Model2MicroDockCanvas({
 }: ModelProps) {
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
+
+  const chipsScrollRef = useRef<HTMLDivElement>(null);
+  const isDragging = useRef(false);
+  const startX = useRef(0);
+  const scrollLeftStart = useRef(0);
+  const moved = useRef(false);
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    isDragging.current = true;
+    moved.current = false;
+    startX.current = e.touches[0].pageX - (chipsScrollRef.current?.offsetLeft || 0);
+    scrollLeftStart.current = chipsScrollRef.current?.scrollLeft || 0;
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging.current || !chipsScrollRef.current) return;
+    const x = e.touches[0].pageX - (chipsScrollRef.current.offsetLeft || 0);
+    const walk = (x - startX.current) * 1.2;
+    if (Math.abs(walk) > 4) moved.current = true;
+    chipsScrollRef.current.scrollLeft = scrollLeftStart.current - walk;
+  };
+
+  const onTouchEnd = () => {
+    isDragging.current = false;
+    setTimeout(() => {
+      moved.current = false;
+    }, 50);
+  };
+
+  const onMouseDown = (e: React.MouseEvent) => {
+    isDragging.current = true;
+    moved.current = false;
+    startX.current = e.pageX - (chipsScrollRef.current?.offsetLeft || 0);
+    scrollLeftStart.current = chipsScrollRef.current?.scrollLeft || 0;
+  };
+
+  const onMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging.current || !chipsScrollRef.current) return;
+    const x = e.pageX - (chipsScrollRef.current.offsetLeft || 0);
+    const walk = (x - startX.current) * 1.2;
+    if (Math.abs(walk) > 4) {
+      moved.current = true;
+      e.preventDefault();
+    }
+    chipsScrollRef.current.scrollLeft = scrollLeftStart.current - walk;
+  };
+
+  const onMouseUp = () => {
+    isDragging.current = false;
+    setTimeout(() => {
+      moved.current = false;
+    }, 50);
+  };
 
   const filteredProducts = useMemo(() => {
     let list = products;
@@ -316,10 +384,22 @@ export function Model2MicroDockCanvas({
           </div>
 
           {/* Mobile Swipeable Horizontal Categories Strip (Exact to dark reference) */}
-          <div className="model2-mobile-chips">
+          <div
+            className="model2-mobile-chips"
+            ref={chipsScrollRef}
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
+            onMouseDown={onMouseDown}
+            onMouseMove={onMouseMove}
+            onMouseUp={onMouseUp}
+            onMouseLeave={onMouseUp}
+          >
             <button
               type="button"
-              onClick={() => setActiveCategory("all")}
+              onClick={() => {
+                if (!moved.current) setActiveCategory("all");
+              }}
               style={{
                 display: "flex",
                 flexDirection: "column",
@@ -361,7 +441,9 @@ export function Model2MicroDockCanvas({
                 <button
                   key={cat.id || cat.slug}
                   type="button"
-                  onClick={() => setActiveCategory(cat.slug)}
+                  onClick={() => {
+                    if (!moved.current) setActiveCategory(cat.slug);
+                  }}
                   style={{
                     display: "flex",
                     flexDirection: "column",
