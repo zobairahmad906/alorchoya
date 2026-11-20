@@ -3,10 +3,8 @@ import { HeroSlider } from "./HeroSlider";
 import { ShopTheLook } from "./ShopTheLook";
 import { Model1DashboardPortal } from "./models/Model1DashboardPortal";
 import { Model2UltraWideMegastore } from "./models/Model2UltraWideMegastore";
-import { Model3MultiWidgetHub } from "./models/Model3MultiWidgetHub";
-import { Model4SplitCanvasStudio } from "./models/Model4SplitCanvasStudio";
-import { Model5MicroDockCanvas } from "./models/Model5MicroDockCanvas";
-import { Model6MegaGridDrawer } from "./models/Model6MegaGridDrawer";
+import { Model3SplitCanvasStudio } from "./models/Model3SplitCanvasStudio";
+import { Model4MicroDockCanvas } from "./models/Model4MicroDockCanvas";
 import type { Product, Review, HeroSlide, Category, SiteSettings, HomepageLayout } from "./types";
 import { getTranslations } from "next-intl/server";
 
@@ -141,7 +139,7 @@ export default async function Home({ searchParams }: PageProps) {
   }
   const categories = Array.from(categoryMap.values()).sort((a, b) => (a.display_order || 99) - (b.display_order || 99));
 
-  const validLayouts: HomepageLayout[] = ["model1", "model2", "model3", "model4", "model5", "model6"];
+  const validLayouts: HomepageLayout[] = ["model1", "model2", "model3", "model4"];
   const activeLayout = (queryParamModel && validLayouts.includes(queryParamModel as HomepageLayout))
     ? (queryParamModel as HomepageLayout)
     : ((siteSettings?.homepage_layout && validLayouts.includes(siteSettings.homepage_layout)) ? siteSettings.homepage_layout : "model1");
@@ -150,7 +148,7 @@ export default async function Home({ searchParams }: PageProps) {
     <Header />
     {discountedProducts.length > 0 && <div className="announce">{t("announce", { count: discountedProducts.length, discount: maxDiscount })}</div>}
     <main style={{ width: "100%", overflowX: "hidden" }}>
-      {/* 6 Full-Screen Edge-to-Edge Models Switcher */}
+      {/* 4 Full-Screen Edge-to-Edge Models Switcher */}
       {activeLayout === "model2" ? (
         <Model2UltraWideMegastore
           products={allProds}
@@ -160,7 +158,7 @@ export default async function Home({ searchParams }: PageProps) {
           discountedProducts={discountedProducts}
         />
       ) : activeLayout === "model3" ? (
-        <Model3MultiWidgetHub
+        <Model3SplitCanvasStudio
           products={allProds}
           categories={categories}
           heroSlides={heroSlides}
@@ -168,23 +166,7 @@ export default async function Home({ searchParams }: PageProps) {
           discountedProducts={discountedProducts}
         />
       ) : activeLayout === "model4" ? (
-        <Model4SplitCanvasStudio
-          products={allProds}
-          categories={categories}
-          heroSlides={heroSlides}
-          reviews={reviewsToDisplay}
-          discountedProducts={discountedProducts}
-        />
-      ) : activeLayout === "model5" ? (
-        <Model5MicroDockCanvas
-          products={allProds}
-          categories={categories}
-          heroSlides={heroSlides}
-          reviews={reviewsToDisplay}
-          discountedProducts={discountedProducts}
-        />
-      ) : activeLayout === "model6" ? (
-        <Model6MegaGridDrawer
+        <Model4MicroDockCanvas
           products={allProds}
           categories={categories}
           heroSlides={heroSlides}
