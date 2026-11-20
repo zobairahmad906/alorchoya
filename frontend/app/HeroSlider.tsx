@@ -222,7 +222,17 @@ export function HeroSlider({
 
             <div className="cta-row">
               {activeSlide.buttonLink.startsWith("http") || activeSlide.buttonLink.startsWith("#") ? (
-                <a className="btn btn-primary hero-btn-buy" href={activeSlide.buttonLink}>
+                <a
+                  className="btn btn-primary hero-btn-buy"
+                  href={activeSlide.buttonLink}
+                  onClick={(e) => {
+                    if (activeSlide.buttonLink.startsWith("#")) {
+                      e.preventDefault();
+                      const target = document.querySelector(activeSlide.buttonLink);
+                      target?.scrollIntoView({ behavior: "smooth" });
+                    }
+                  }}
+                >
                   {activeSlide.buttonText}
                 </a>
               ) : (
@@ -230,7 +240,14 @@ export function HeroSlider({
                   {activeSlide.buttonText}
                 </Link>
               )}
-              <a className="btn btn-ghost" href="#shop">
+              <a
+                className="btn btn-ghost"
+                href="#shop"
+                onClick={(e) => {
+                  e.preventDefault();
+                  document.getElementById("shop")?.scrollIntoView({ behavior: "smooth" });
+                }}
+              >
                 {tHome("viewAllProducts")}
               </a>
             </div>

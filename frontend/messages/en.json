@@ -181,5 +181,21 @@
     "zoomIn": "Zoom In",
     "zoomOut": "Zoom Out",
     "resetZoom": "Reset"
+  },
+  "lookbook": {
+    "badge": "Interior Lookbook",
+    "title": "Shop The Living Room Look",
+    "subtitle": "Click any hotspot pin to explore details and add directly to your home.",
+    "itemsInLook": "Curated Items in This Room",
+    "quickView": "Quick View",
+    "addToCart": "Add to Cart",
+    "addedToCart": "Added to Cart!",
+    "buyNow": "Order Now",
+    "viewDetails": "Full Details",
+    "close": "Close",
+    "quantity": "Quantity",
+    "rating": "Rating",
+    "inStock": "In Stock",
+    "hotspotHint": "Click pin to explore"
   }
 }

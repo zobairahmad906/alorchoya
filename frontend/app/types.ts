@@ -47,3 +47,27 @@ export type HeroSlide = {
   updated_at?: string;
 };
 
+export type Category = {
+  id?: number;
+  name: string;
+  slug: string;
+  image?: string | null;
+  image_url?: string;
+  icon?: string;
+  badge?: string;
+  display_order?: number;
+  is_featured?: boolean;
+  products_count?: number;
+  count?: number;
+};
+
+export type SiteSettings = {
+  id?: number;
+  homepage_layout: "model1" | "model3" | "model4";
+  layout_name?: string;
+  site_title?: string;
+  announcement_text?: string;
+  announcement_active?: boolean;
+};
+
+

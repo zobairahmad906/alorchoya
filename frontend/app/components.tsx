@@ -5,6 +5,8 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useCart } from "./cart";
 import type { Product } from "./types";
 import { useLocale, useTranslations } from "next-intl";
+import { formatPrice, formatNumber } from "./formatters";
+export { formatPrice, formatNumber };
 
 function SearchIcon({ size = 20 }: { size?: number }) {
   return (
@@ -13,16 +15,6 @@ function SearchIcon({ size = 20 }: { size?: number }) {
       <line x1="21" y1="21" x2="16.65" y2="16.65" />
     </svg>
   );
-}
-
-export function formatPrice(value: string | number, locale: string = "bn") {
-  const num = Number(value) || 0;
-  return locale === "en" ? `৳${num.toLocaleString("en-US")}` : `৳${num.toLocaleString("bn-BD")}`;
-}
-
-export function formatNumber(value: number | string, locale: string = "bn") {
-  const str = String(value);
-  return locale === "en" ? str : str.replace(/\d/g, digit => "০১২৩৪৫৬৭৮৯"[Number(digit)]);
 }
 
 export function cleanImageUrl(url?: string | null): string | undefined {
@@ -34,7 +26,7 @@ export function cleanImageUrl(url?: string | null): string | undefined {
 }
 
 function CartIcon() {
-  return <svg className="cart-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 8.5h12l1 11H5l1-11Z"/><path d="M9 8.5V7a3 3 0 0 1 6 0v1.5"/><path d="M8.5 12h.01M15.5 12h.01"/></svg>;
+  return <svg className="cart-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 8.5h12l1 11H5l1-11Z" /><path d="M9 8.5V7a3 3 0 0 1 6 0v1.5" /><path d="M8.5 12h.01M15.5 12h.01" /></svg>;
 }
 
 function ShopIcon() {
@@ -54,9 +46,9 @@ function ToolsIcon() {
     </svg>
   );
 }
-function WhatsAppIcon() { return <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.5a9.4 9.4 0 0 0-8.1 14.2L2.5 21.5l5-1.3A9.4 9.4 0 1 0 12 2.5Zm0 16.9a7.4 7.4 0 0 1-3.8-1l-.3-.2-3 .8.8-2.9-.2-.3a7.4 7.4 0 1 1 6.5 3.6Zm4-5.5c-.2-.1-1.2-.6-1.4-.7-.2-.1-.3-.1-.5.1l-.7.9c-.1.1-.2.2-.4.1a6 6 0 0 1-1.7-1.1 6.7 6.7 0 0 1-1.2-1.5c-.1-.2 0-.3.1-.4l.3-.4.2-.4c.1-.1 0-.3 0-.4l-.6-1.4c-.2-.4-.3-.4-.5-.4h-.4c-.2 0-.4.1-.6.3-.2.2-.8.7-.8 1.8s.8 2.1.9 2.2c.1.1 1.5 2.4 3.7 3.3.5.2.9.4 1.2.5.5.2 1 .2 1.4.1.4-.1 1.2-.5 1.4-1 .2-.5.2-.9.1-1-.1-.1-.3-.2-.5-.3Z"/></svg>; }
-function MessengerIcon() { return <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.5C6.5 2.5 2 6.6 2 11.7c0 2.9 1.5 5.5 3.8 7.2v3l3.5-1.9c.9.3 1.8.4 2.7.4 5.5 0 10-3.9 10-8.7S17.5 2.5 12 2.5Zm1 11.7-2.6-2.8-5 2.8 5.5-5.9 2.6 2.8 5-2.8-5.5 5.9Z"/></svg>; }
-function MessageIcon() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 5.5A3.5 3.5 0 0 1 7.5 2h9A3.5 3.5 0 0 1 20 5.5v6a3.5 3.5 0 0 1-3.5 3.5H11l-4.5 4v-4.2A3.5 3.5 0 0 1 4 11.5v-6Z"/><path d="M8 8.5h8M8 11h5"/></svg>; }
+function WhatsAppIcon() { return <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.5a9.4 9.4 0 0 0-8.1 14.2L2.5 21.5l5-1.3A9.4 9.4 0 1 0 12 2.5Zm0 16.9a7.4 7.4 0 0 1-3.8-1l-.3-.2-3 .8.8-2.9-.2-.3a7.4 7.4 0 1 1 6.5 3.6Zm4-5.5c-.2-.1-1.2-.6-1.4-.7-.2-.1-.3-.1-.5.1l-.7.9c-.1.1-.2.2-.4.1a6 6 0 0 1-1.7-1.1 6.7 6.7 0 0 1-1.2-1.5c-.1-.2 0-.3.1-.4l.3-.4.2-.4c.1-.1 0-.3 0-.4l-.6-1.4c-.2-.4-.3-.4-.5-.4h-.4c-.2 0-.4.1-.6.3-.2.2-.8.7-.8 1.8s.8 2.1.9 2.2c.1.1 1.5 2.4 3.7 3.3.5.2.9.4 1.2.5.5.2 1 .2 1.4.1.4-.1 1.2-.5 1.4-1 .2-.5.2-.9.1-1-.1-.1-.3-.2-.5-.3Z" /></svg>; }
+function MessengerIcon() { return <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.5C6.5 2.5 2 6.6 2 11.7c0 2.9 1.5 5.5 3.8 7.2v3l3.5-1.9c.9.3 1.8.4 2.7.4 5.5 0 10-3.9 10-8.7S17.5 2.5 12 2.5Zm1 11.7-2.6-2.8-5 2.8 5.5-5.9 2.6 2.8 5-2.8-5.5 5.9Z" /></svg>; }
+function MessageIcon() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 5.5A3.5 3.5 0 0 1 7.5 2h9A3.5 3.5 0 0 1 20 5.5v6a3.5 3.5 0 0 1-3.5 3.5H11l-4.5 4v-4.2A3.5 3.5 0 0 1 4 11.5v-6Z" /><path d="M8 8.5h8M8 11h5" /></svg>; }
 const MESSENGER_URL = process.env.NEXT_PUBLIC_MESSENGER_URL || "https://m.me/";
 const messageTeasers = ["পণ্য সম্পর্কে জানতে মেসেজ করুন", "Ask about a product...", "আপনার প্রশ্ন লিখুন", "Send us a message"];
 export function ContactActions() {
@@ -271,7 +263,12 @@ export function Header() {
                 </Link>
               </>
             ) : (
-              <Link className="account-link" href="/account">{t("signUp")}</Link>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <Link className="account-link" href="/account">{t("signUp")}</Link>
+                <Link href="/dashboard" title="অ্যাডমিন ড্যাশবোর্ড" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "30px", height: "30px", borderRadius: "50%", backgroundColor: "#f1f5f9", color: "#475569", fontSize: "0.85rem", textDecoration: "none", border: "1px solid #cbd5e1" }}>
+                  ⚙️
+                </Link>
+              </div>
             )}
             <div className="lang-switch-group" role="group" aria-label="Language selection">
               <button
@@ -309,7 +306,7 @@ export function ProductCard({ product }: { product: Product }) {
   const { add } = useCart();
   const locale = useLocale();
   const t = useTranslations("shop");
-  const primaryImage = product.images.find(x => x.is_primary) || product.images[0];
+  const primaryImage = product.images?.find(x => x.is_primary) || product.images?.[0];
   // Use the generated consistent canvas when it exists.
   const image = cleanImageUrl(primaryImage?.card_image || primaryImage?.hero_desktop || primaryImage?.image);
   const currentPrice = product.discount_price || product.price;
@@ -402,7 +399,7 @@ export function ProductCatalog({ products, initialCategory = "all" }: { products
   const locale = useLocale();
   const t = useTranslations("shop");
   const tSearch = useTranslations("search");
-  const categories = Array.from(new Map(products.map(product => [product.category.slug, product.category])).values());
+  const categories = Array.from(new Map(products.filter(p => p.category?.slug).map(product => [product.category.slug, product.category])).values());
   useEffect(() => {
     try { const saved = JSON.parse(localStorage.getItem("catalog-tools-position") || "null"); if (saved && Number.isFinite(saved.right) && Number.isFinite(saved.bottom)) setPosition({ right: saved.right, bottom: saved.bottom }); } catch { /* use default position */ }
     const onCategory = (event: Event) => { setCategory((event as CustomEvent<string>).detail || "all"); setPage(1); };
@@ -415,7 +412,7 @@ export function ProductCatalog({ products, initialCategory = "all" }: { products
   const filtered = products.filter(product => {
     const text = `${product.name} ${product.description}`.toLocaleLowerCase();
     const price = Number(product.discount_price || product.price);
-    return (!query.trim() || text.includes(query.trim().toLocaleLowerCase())) && (category === "all" || product.category.slug === category) && (!minPrice || price >= Number(minPrice)) && (!maxPrice || price <= Number(maxPrice)) && (!discountOnly || Boolean(product.discount_price)) && (!stockOnly || product.stock > 0);
+    return (!query.trim() || text.includes(query.trim().toLocaleLowerCase())) && (category === "all" || product.category?.slug === category) && (!minPrice || price >= Number(minPrice)) && (!maxPrice || price <= Number(maxPrice)) && (!discountOnly || Boolean(product.discount_price)) && (!stockOnly || product.stock > 0);
   });
   const sorted = [...filtered].sort((a, b) => sort === "low" ? Number(a.discount_price || a.price) - Number(b.discount_price || b.price) : sort === "high" ? Number(b.discount_price || b.price) - Number(a.discount_price || a.price) : sort === "discount" ? (b.discount_price ? Number(b.price) - Number(b.discount_price) : 0) - (a.discount_price ? Number(a.price) - Number(a.discount_price) : 0) : Number(Boolean(b.is_featured)) - Number(Boolean(a.is_featured)));
   const pageCount = Math.max(1, Math.ceil(sorted.length / pageSize));
@@ -640,6 +637,8 @@ export function MobileBottomNav() {
       <Link href="/offers" onClick={closeMore} role="menuitem">🏷️ <span>{t("offers")}</span></Link>
       <Link href="/categories" onClick={closeMore} role="menuitem">▦ <span>{t("categories")}</span></Link>
       <Link href="/track-order" onClick={closeMore} role="menuitem">⌁ <span>{t("tracking")}</span></Link>
+      <Link href="/dashboard" onClick={closeMore} role="menuitem">⚙️ <span>ড্যাশবোর্ড (Dashboard)</span></Link>
+      <a href="/admin/" onClick={closeMore} role="menuitem">🔒 <span>ব্যাকেন্ড (Django)</span></a>
       <a href="#contact" onClick={closeMore} role="menuitem">✉ <span>{t("contact")}</span></a>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", borderTop: "1px solid #f1f5f9", marginTop: "4px" }}>
         <span style={{ fontSize: "0.82rem", color: "#64748b", fontWeight: 700 }}>🌐 {t("language")}</span>

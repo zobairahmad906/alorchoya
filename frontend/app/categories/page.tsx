@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Header, formatNumber } from "../components";
+import { Header } from "../components";
+import { formatNumber } from "../formatters";
 import type { Product } from "../types";
 import { getLocale, getTranslations } from "next-intl/server";
 

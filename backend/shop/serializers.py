@@ -4,7 +4,7 @@ from django.utils import timezone
 from django.db import transaction
 from rest_framework import serializers
 from rest_framework.exceptions import APIException
-from .models import Category, Product, ProductVariant, ProductImage, Order, OrderItem, Cart, CartItem, DeliveryZone, Coupon, Review, CustomerProfile, CustomerAddress, ProductImageAsset, ProductImageAssetLink, HeroSlide, CourierConfig
+from .models import Category, Product, ProductVariant, ProductImage, Order, OrderItem, Cart, CartItem, DeliveryZone, Coupon, Review, CustomerProfile, CustomerAddress, ProductImageAsset, ProductImageAssetLink, HeroSlide, CourierConfig, SiteSettings
 from .courier import PathaoCourierClient
 
 
@@ -57,9 +57,28 @@ class CourierServiceUnavailable(APIException):
     default_code = "courier_unavailable"
 
 class CategorySerializer(serializers.ModelSerializer):
+    image = serializers.SerializerMethodField()
+    products_count = serializers.SerializerMethodField()
+
     class Meta:
         model = Category
-        fields = ("id", "name", "slug")
+        fields = ("id", "name", "slug", "image", "image_url", "icon", "badge", "display_order", "is_featured", "products_count")
+
+    def get_image(self, obj):
+        if obj.image:
+            return build_media_url(obj.image, self.context.get("request"))
+        return obj.image_url or None
+
+    def get_products_count(self, obj):
+        return getattr(obj, "_products_count", None) if hasattr(obj, "_products_count") else obj.products.filter(is_active=True).count()
+
+
+class SiteSettingsSerializer(serializers.ModelSerializer):
+    layout_name = serializers.CharField(source="get_homepage_layout_display", read_only=True)
+
+    class Meta:
+        model = SiteSettings
+        fields = ("id", "homepage_layout", "layout_name", "site_title", "announcement_text", "announcement_active", "updated_at")
 
 class ProductVariantSerializer(serializers.ModelSerializer):
     class Meta:

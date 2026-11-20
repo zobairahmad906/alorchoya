@@ -5,6 +5,19 @@ import uuid
 class Category(models.Model):
     name = models.CharField(max_length=100, unique=True)
     slug = models.SlugField(unique=True)
+    image = models.ImageField(upload_to="categories/%Y/%m/", null=True, blank=True)
+    image_url = models.CharField(max_length=500, blank=True, default="", help_text="এক্সটার্নাল বা মিডিয়া লাইব্রেরির ইমেজ লিংক")
+    icon = models.CharField(max_length=50, blank=True, default="🛍️", help_text="আইকন বা ইমোজি")
+    badge = models.CharField(max_length=60, blank=True, default="", help_text="প্রোমো বা ডিসকাউন্ট ব্যাজ যেমন: ৫০% ছাড়")
+    display_order = models.PositiveIntegerField(default=0, help_text="প্রদর্শনের ক্রম")
+    is_featured = models.BooleanField(default=True, help_text="হোমপেজে স্পেশাল ক্যাটাগরি হিসেবে দেখাবে কিনা")
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+
+    class Meta:
+        ordering = ["display_order", "id"]
+        verbose_name_plural = "Categories"
+
     def __str__(self): return self.name
 
 class Product(models.Model):
@@ -255,4 +268,29 @@ class CourierConfig(models.Model):
 
     def __str__(self):
         return f"{self.provider.upper()} ({'Active' if self.is_active else 'Disabled'})"
+
+
+class SiteSettings(models.Model):
+    LAYOUT_CHOICES = (
+        ("model1", "Model 1 - Mega Marketplace (Amazon/Daraz Style)"),
+        ("model3", "Model 3 - Department Hub (Target Style)"),
+        ("model4", "Model 4 - Responsive Megastore (Flipkart Style)"),
+    )
+    homepage_layout = models.CharField(max_length=20, choices=LAYOUT_CHOICES, default="model1", help_text="সক্রিয় হোমপেজ মডেল")
+    site_title = models.CharField(max_length=150, blank=True, default="আলোর ছোঁয়া মার্ট")
+    announcement_text = models.CharField(max_length=255, blank=True, default="")
+    announcement_active = models.BooleanField(default=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Site Settings"
+        verbose_name_plural = "Site Settings"
+
+    def __str__(self):
+        return f"Site Settings ({self.get_homepage_layout_display()})"
+
+    @classmethod
+    def get_solo(cls):
+        obj, _ = cls.objects.get_or_create(id=1)
+        return obj
 

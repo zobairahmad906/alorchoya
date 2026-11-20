@@ -28,9 +28,13 @@ urlpatterns = [
     path("carts/<uuid:token>/", views.CartDetail.as_view()),
     path("carts/<uuid:token>/items/", views.CartItemCreate.as_view()),
     path("carts/<uuid:token>/items/<int:product_id>/", views.CartItemDetail.as_view()),
+    path("site-settings/", views.PublicSiteSettingsView.as_view()),
     
     # Admin API endpoints
     path("admin/login/", views.AdminLoginView.as_view()),
+    path("admin/site-settings/", views.AdminSiteSettingsView.as_view()),
+    path("admin/categories/", views.AdminCategoryListCreateView.as_view()),
+    path("admin/categories/<int:pk>/", views.AdminCategoryDetailView.as_view()),
     path("hero-slides/", views.PublicHeroSlideListView.as_view()),
     path("admin/hero-slides/", views.AdminHeroSlideListCreateView.as_view()),
     path("admin/hero-slides/<int:pk>/", views.AdminHeroSlideDetailView.as_view()),

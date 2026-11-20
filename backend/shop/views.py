@@ -11,8 +11,8 @@ from django.db import connection
 from django.http import JsonResponse
 import json
 from django.shortcuts import get_object_or_404
-from .models import Category, Product, ProductVariant, ProductImage, Cart, CartItem, DeliveryZone, Order, OrderItem, CustomerProfile, CustomerAddress, Review, ProductImageAsset, ProductImageAssetLink, Coupon, HeroSlide, CourierConfig
-from .serializers import CategorySerializer, ProductSerializer, ProductImageSerializer, OrderSerializer, CartSerializer, CartItemSerializer, DeliveryZoneSerializer, OrderTrackingSerializer, ReviewSerializer, CustomerProfileSerializer, CustomerAddressSerializer, CustomerOrderSerializer, ProductImageAssetSerializer, ProductImageAssetLinkSerializer, AdminCouponSerializer, HeroSlideSerializer, CourierConfigSerializer, build_media_url
+from .models import Category, Product, ProductVariant, ProductImage, Cart, CartItem, DeliveryZone, Order, OrderItem, CustomerProfile, CustomerAddress, Review, ProductImageAsset, ProductImageAssetLink, Coupon, HeroSlide, CourierConfig, SiteSettings
+from .serializers import CategorySerializer, ProductSerializer, ProductImageSerializer, OrderSerializer, CartSerializer, CartItemSerializer, DeliveryZoneSerializer, OrderTrackingSerializer, ReviewSerializer, CustomerProfileSerializer, CustomerAddressSerializer, CustomerOrderSerializer, ProductImageAssetSerializer, ProductImageAssetLinkSerializer, AdminCouponSerializer, HeroSlideSerializer, CourierConfigSerializer, SiteSettingsSerializer, build_media_url
 from .courier import SteadFastCourierClient, PathaoCourierClient
 
 from django.views.decorators.csrf import csrf_exempt
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 PATHAO_WEBHOOK_INTEGRATION_SECRET = "f3992ecc-59da-4cbe-a049-a13da2018d51"
 
 class CategoryList(generics.ListAPIView):
-    queryset = Category.objects.all().order_by("name")
+    queryset = Category.objects.all().order_by("display_order", "id")
     serializer_class = CategorySerializer
 
 class ProductList(generics.ListAPIView):
@@ -1630,4 +1630,100 @@ class AdminHeroSlideDetailView(APIView):
         slide = self.get_object(pk)
         slide.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class PublicSiteSettingsView(APIView):
+    permission_classes = (permissions.AllowAny,)
+
+    def get(self, request):
+        settings = SiteSettings.get_solo()
+        return Response(SiteSettingsSerializer(settings).data)
+
+
+class AdminSiteSettingsView(APIView):
+    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
+    permission_classes = (IsAdminUser,)
+
+    def get(self, request):
+        settings = SiteSettings.get_solo()
+        return Response(SiteSettingsSerializer(settings).data)
+
+    def patch(self, request):
+        settings = SiteSettings.get_solo()
+        serializer = SiteSettingsSerializer(settings, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class AdminCategoryListCreateView(APIView):
+    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
+    permission_classes = (IsAdminUser,)
+    parser_classes = (MultiPartParser, FormParser, JSONParser)
+
+    def get(self, request):
+        categories = Category.objects.all().order_by("display_order", "id")
+        serializer = CategorySerializer(categories, many=True, context={"request": request})
+        return Response(serializer.data)
+
+    def post(self, request):
+        data = request.data.copy()
+        name = (data.get("name") or "").strip()
+        if not name:
+            return Response({"name": ["Category name is required."]}, status=status.HTTP_400_BAD_REQUEST)
+        slug = (data.get("slug") or "").strip()
+        if not slug:
+            from django.utils.text import slugify
+            slug = slugify(name)
+            if not slug:
+                import uuid
+                slug = f"cat-{uuid.uuid4().hex[:6]}"
+
+        data["slug"] = slug
+        if "is_featured" in data:
+            data["is_featured"] = str(data["is_featured"]).lower() in ("true", "1", "yes")
+
+        serializer = CategorySerializer(data=data, context={"request": request})
+        if serializer.is_valid():
+            category = serializer.save()
+            return Response(CategorySerializer(category, context={"request": request}).data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class AdminCategoryDetailView(APIView):
+    authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
+    permission_classes = (IsAdminUser,)
+    parser_classes = (MultiPartParser, FormParser, JSONParser)
+
+    def get_object(self, pk):
+        try:
+            return Category.objects.get(pk=pk)
+        except Category.DoesNotExist:
+            raise NotFound("Category not found")
+
+    def get(self, request, pk):
+        category = self.get_object(pk)
+        return Response(CategorySerializer(category, context={"request": request}).data)
+
+    def patch(self, request, pk):
+        category = self.get_object(pk)
+        data = request.data.copy()
+        if "is_featured" in data:
+            data["is_featured"] = str(data["is_featured"]).lower() in ("true", "1", "yes")
+
+        serializer = CategorySerializer(category, data=data, partial=True, context={"request": request})
+        if serializer.is_valid():
+            category = serializer.save()
+            return Response(CategorySerializer(category, context={"request": request}).data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def put(self, request, pk):
+        return self.patch(request, pk)
+
+    def delete(self, request, pk):
+        category = self.get_object(pk)
+        category.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
 

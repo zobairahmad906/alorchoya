@@ -26,12 +26,26 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       setCartToken(savedToken);
       let localItems: CartItem[] = [];
       if (saved) {
-        try { const parsed = JSON.parse(saved); if (Array.isArray(parsed)) localItems = parsed.filter(item => item && item.id && item.stock > 0 && item.quantity > 0).map(item => ({ ...item, quantity: Math.min(item.quantity, item.stock) })); } catch { localStorage.removeItem("atelier-cart"); }
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) {
+            localItems = parsed
+              .filter(item => item && item.id && item.quantity > 0)
+              .map(item => ({ ...item, quantity: item.quantity }));
+          }
+        } catch {
+          localStorage.removeItem("atelier-cart");
+        }
       }
       let serverItems: CartItem[] = [];
       try {
         const response = await fetch(`${API}/carts/${savedToken}/`, { credentials: "include", cache: "no-store" });
-        if (response.ok) { const data = await response.json() as { items?: ServerCartItem[] }; serverItems = (data.items || []).filter(item => item.product && item.quantity > 0 && item.product.stock > 0).map(item => ({ ...item.product, quantity: Math.min(item.quantity, item.product.stock) })); }
+        if (response.ok) {
+          const data = await response.json() as { items?: ServerCartItem[] };
+          serverItems = (data.items || [])
+            .filter(item => item.product && item.quantity > 0)
+            .map(item => ({ ...item.product, quantity: item.quantity }));
+        }
       } catch { /* local cart remains available when API is unavailable */ }
       if (active) { setItems(serverItems.length ? serverItems : localItems); setHydrated(true); }
     };
@@ -56,7 +70,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       let updated: CartItem[];
       if (found) {
         addedQty = found.quantity + 1;
-        updated = old.map(x => x.id === product.id ? { ...x, quantity: Math.min(x.quantity + 1, product.stock) } : x);
+        const maxStock = (product.stock && Number(product.stock) > 0) ? Number(product.stock) : 99;
+        updated = old.map(x => x.id === product.id ? { ...x, quantity: Math.min(x.quantity + 1, maxStock) } : x);
       } else {
         updated = [...old, { ...product, quantity: 1 }];
       }

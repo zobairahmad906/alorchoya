@@ -1,9 +1,14 @@
 import { Header, ProductCatalog, CategoryFilterCards, ContactActions } from "./components";
 import { HeroSlider } from "./HeroSlider";
-import type { Product, Review, HeroSlide } from "./types";
+import { ShopTheLook } from "./ShopTheLook";
+import { Model1MegaMarketplace } from "./models/Model1MegaMarketplace";
+import { Model3DepartmentHub } from "./models/Model3DepartmentHub";
+import { Model4ResponsiveMegastore } from "./models/Model4ResponsiveMegastore";
+import type { Product, Review, HeroSlide, Category, SiteSettings } from "./types";
 import { getTranslations } from "next-intl/server";
 
 const API = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+
 async function getProducts(): Promise<Product[]> {
   try {
     const response = await fetch(`${API}/products/`, { next: { revalidate: 30 } });
@@ -31,11 +36,31 @@ async function getFeaturedReviews(): Promise<Review[]> {
   }
 }
 
+async function getCategories(): Promise<Category[]> {
+  try {
+    const response = await fetch(`${API}/categories/`, { next: { revalidate: 15 } });
+    return response.ok ? response.json() : [];
+  } catch {
+    return [];
+  }
+}
+
+async function getSiteSettings(): Promise<SiteSettings> {
+  try {
+    const response = await fetch(`${API}/site-settings/`, { next: { revalidate: 5 } });
+    return response.ok ? response.json() : { homepage_layout: "model1" };
+  } catch {
+    return { homepage_layout: "model1" };
+  }
+}
+
 export default async function Home() {
-  const [products, featuredReviews, heroSlides] = await Promise.all([
+  const [products, featuredReviews, heroSlides, backendCategories, siteSettings] = await Promise.all([
     getProducts(),
     getFeaturedReviews(),
     getHeroSlides(),
+    getCategories(),
+    getSiteSettings(),
   ]);
   const allProds = products;
   const discountedProducts = allProds.filter((p) => Number(p.discount_price) > 0 && Number(p.discount_price) < Number(p.price));
@@ -54,7 +79,16 @@ export default async function Home() {
   const t = await getTranslations("home");
   const tCommon = await getTranslations("common");
   const tFooter = await getTranslations("footer");
-  const categoryMap = new Map<string, { name: string; slug: string; image?: string; count: number }>();
+
+  // Merge backend categories with product categories
+  const categoryMap = new Map<string, Category>();
+  for (const cat of backendCategories) {
+    categoryMap.set(cat.slug, {
+      ...cat,
+      count: 0,
+    });
+  }
+
   for (const product of allProds) {
     const cat = product.category;
     if (!cat || !cat.slug) continue;
@@ -64,8 +98,8 @@ export default async function Home() {
                          product.images?.[0]?.card_image ||
                          product.images?.[0]?.image;
     if (existing) {
-      existing.count += 1;
-      if (!existing.image && primaryImage) {
+      existing.count = (existing.count || 0) + 1;
+      if (!existing.image && !existing.image_url && primaryImage) {
         existing.image = primaryImage;
       }
     } else {
@@ -73,26 +107,50 @@ export default async function Home() {
         name: cat.name,
         slug: cat.slug,
         image: primaryImage,
-        count: 1
+        icon: "🛍️",
+        count: 1,
       });
     }
   }
-  const categories = Array.from(categoryMap.values());
+  const categories = Array.from(categoryMap.values()).sort((a, b) => (a.display_order || 99) - (b.display_order || 99));
+
+  const activeLayout = siteSettings.homepage_layout || "model1";
+
   return <>
     <Header />
     {discountedProducts.length > 0 && <div className="announce">{t("announce", { count: discountedProducts.length, discount: maxDiscount })}</div>}
     <main>
-      <HeroSlider
-        products={sliderProducts}
-        heroSlides={heroSlides}
-        eyebrow={t("eyebrow")}
-        defaultTitle={t("title")}
-        defaultLede={t("lede")}
-        shopButtonText={t("shop")}
-      />
-      <section id="categories"><div className="wrap"><div className="section-head"><h2>{t("categoryTitle")}</h2></div><CategoryFilterCards categories={categories} /></div></section>
-      <section id="shop" className="products-section"><div className="wrap"><ProductCatalog products={allProds} /></div></section>
+      {/* Dynamic Model Switcher based on Admin Selection */}
+      {activeLayout === "model3" ? (
+        <Model3DepartmentHub
+          products={allProds}
+          categories={categories}
+          heroSlides={heroSlides}
+          reviews={reviewsToDisplay}
+          discountedProducts={discountedProducts}
+        />
+      ) : activeLayout === "model4" ? (
+        <Model4ResponsiveMegastore
+          products={allProds}
+          categories={categories}
+          heroSlides={heroSlides}
+          reviews={reviewsToDisplay}
+          discountedProducts={discountedProducts}
+        />
+      ) : (
+        <Model1MegaMarketplace
+          products={allProds}
+          categories={categories}
+          heroSlides={heroSlides}
+          reviews={reviewsToDisplay}
+          discountedProducts={discountedProducts}
+        />
+      )}
 
+      {/* Common Curated Look section */}
+      <ShopTheLook products={allProds} />
+
+      {/* Customer Reviews Section */}
       <section className="reviews">
         <div className="wrap">
           <div className="section-head">
@@ -169,6 +227,42 @@ export default async function Home() {
       <section id="contact"><div className="wrap"><div className="cta-band"><div><h3>{t("question")}</h3><p>{t("whatsappSub")}</p></div><a className="btn btn-primary" href="https://wa.me/8801302111188" target="_blank">{t("whatsapp")}</a></div></div></section>
     </main>
       <section><div className="wrap"><div className="section-head"><h2>{t("why")}</h2></div><div className="why-grid"><div className="why-item"><h3>{t("whyQualityTitle")}</h3><p>{t("whyQualityDesc")}</p></div><div className="why-item"><h3>{t("whySecureTitle")}</h3><p>{t("whySecureDesc")}</p></div><div className="why-item"><h3>{t("whyDeliveryTitle")}</h3><p>{t("whyDeliveryDesc")}</p></div></div></div></section>
-    <footer><div className="wrap foot-grid"><div><div className="footer-brand">{tCommon("brandName")}</div><p>{tFooter("brandDesc")}</p></div><div><h4>{tFooter("customerService")}</h4><ul><li>{tFooter("shippingPolicy")}</li><li>{tFooter("returnPolicy")}</li><li>{tFooter("refundPolicy")}</li></ul></div><div><h4>{tFooter("contact")}</h4><ul><li>01302 111188</li><li>WhatsApp: +8801302111188</li><li>Facebook · Instagram</li></ul></div></div><div className="wrap foot-bottom">{tFooter("copyright")} <span>{tFooter("allRightsReserved")}</span></div></footer><ContactActions />
+    <footer>
+      <div className="wrap foot-grid">
+        <div>
+          <div className="footer-brand">{tCommon("brandName")}</div>
+          <p>{tFooter("brandDesc")}</p>
+        </div>
+        <div>
+          <h4>{tFooter("customerService")}</h4>
+          <ul>
+            <li>{tFooter("shippingPolicy")}</li>
+            <li>{tFooter("returnPolicy")}</li>
+            <li>{tFooter("refundPolicy")}</li>
+          </ul>
+        </div>
+        <div>
+          <h4>{tFooter("contact")}</h4>
+          <ul>
+            <li>01302 111188</li>
+            <li>WhatsApp: +8801302111188</li>
+            <li>Facebook · Instagram</li>
+          </ul>
+        </div>
+      </div>
+      <div className="wrap foot-bottom">
+        <div>
+          {tFooter("copyright")} <span>{tFooter("allRightsReserved")}</span>
+        </div>
+        <div style={{ display: "flex", gap: "18px", alignItems: "center", flexWrap: "wrap" }}>
+          <a href="/dashboard" style={{ color: "#94a3b8", textDecoration: "none", fontSize: "0.82rem", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+            ⚙️ ড্যাশবোর্ড (Dashboard)
+          </a>
+          <a href="/admin/" style={{ color: "#94a3b8", textDecoration: "none", fontSize: "0.82rem", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+            🔒 ব্যাকেন্ড (Django Admin)
+          </a>
+        </div>
+      </div>
+    </footer><ContactActions />
   </>;
 }

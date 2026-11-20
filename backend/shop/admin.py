@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Category, Product, ProductImage, Order, OrderItem, DeliveryZone, Coupon, Review, AuditEvent, CustomerProfile, CustomerAddress, ProductImageAsset, ProductImageAssetLink, HeroSlide
+from .models import Category, Product, ProductImage, Order, OrderItem, DeliveryZone, Coupon, Review, AuditEvent, CustomerProfile, CustomerAddress, ProductImageAsset, ProductImageAssetLink, HeroSlide, SiteSettings
 
 class ProductImageInline(admin.TabularInline):
     model = ProductImage
@@ -16,7 +16,13 @@ class ProductAdmin(admin.ModelAdmin):
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
+    list_display = ("name", "slug", "icon", "badge", "display_order", "is_featured")
+    list_editable = ("display_order", "is_featured")
     prepopulated_fields = {"slug": ("name",)}
+
+@admin.register(SiteSettings)
+class SiteSettingsAdmin(admin.ModelAdmin):
+    list_display = ("homepage_layout", "site_title", "announcement_active", "updated_at")
 
 class OrderItemInline(admin.TabularInline):
     model = OrderItem

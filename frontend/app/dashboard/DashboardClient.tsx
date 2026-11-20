@@ -15,6 +15,7 @@ import ImageGallery from "./ImageGallery";
 import ProductForm from "../admin/components/ProductForm";
 
 import toast, { Toaster } from "react-hot-toast";
+import { DashLang, getDashText } from "./dashboardI18n";
 
 import {
 
@@ -93,6 +94,9 @@ import {
   SlidersHorizontal,
   Check,
   Info,
+  Layout,
+  FolderTree,
+  Layers,
 } from "lucide-react";
 
 function MetricTooltip({ text }: { text: string }) {
@@ -398,41 +402,40 @@ type DashboardStats = {
   recent_orders: Order[];
 };
 
-type DashboardTab = "overview" | "orders" | "products" | "coupons" | "courier" | "hero" | "gallery" | "customers";
+type DashboardTab = "overview" | "orders" | "products" | "categories" | "layout" | "coupons" | "courier" | "hero" | "gallery" | "customers";
 
 export default function DashboardClient({ initialTab = "overview" }: { initialTab?: DashboardTab }) {
 
   const pathname = usePathname();
 
   const getTabFromPath = (): DashboardTab => {
-
-    if (pathname.includes("/dashboard/orders")) return "orders";
-
-    if (pathname.includes("/dashboard/products")) return "products";
-
-    if (pathname.includes("/dashboard/hero")) return "hero";
-
-    if (pathname.includes("/dashboard/coupons")) return "coupons";
-
-    if (pathname.includes("/dashboard/courier")) return "courier";
-
-    if (pathname.includes("/dashboard/gallery")) return "gallery";
-
-    if (pathname.includes("/dashboard/customers")) return "customers";
-
-    if (pathname.includes("/dashboard/overview")) return "overview";
-
+    const currentPath = typeof window !== "undefined" ? window.location.pathname : pathname;
+    if (currentPath.includes("/dashboard/orders")) return "orders";
+    if (currentPath.includes("/dashboard/products")) return "products";
+    if (currentPath.includes("/dashboard/categories")) return "categories";
+    if (currentPath.includes("/dashboard/layout")) return "layout";
+    if (currentPath.includes("/dashboard/hero")) return "hero";
+    if (currentPath.includes("/dashboard/coupons")) return "coupons";
+    if (currentPath.includes("/dashboard/courier")) return "courier";
+    if (currentPath.includes("/dashboard/gallery")) return "gallery";
+    if (currentPath.includes("/dashboard/customers")) return "customers";
+    if (currentPath.includes("/dashboard/overview")) return "overview";
     return initialTab;
-
   };
 
   const [activeTab, setActiveTab] = useState<DashboardTab>(getTabFromPath);
 
   useEffect(() => {
-
     setActiveTab(getTabFromPath());
-
   }, [pathname, initialTab]);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setActiveTab(getTabFromPath());
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
 
   const navigateToTab = (tab: DashboardTab) => {
 
@@ -447,6 +450,37 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
     }
 
   };
+
+  const [dashLang, setDashLang] = useState<DashLang>("bn");
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("admin_dashboard_lang") as DashLang;
+      if (saved === "en" || saved === "bn") {
+        setDashLang(saved);
+      } else {
+        const match = document.cookie.match(/NEXT_LOCALE=(bn|en)/);
+        if (match) setDashLang(match[1] as DashLang);
+      }
+    } catch {
+      /* default to bn */
+    }
+  }, []);
+
+  const switchDashLang = (newLang: DashLang) => {
+    if (dashLang === newLang) return;
+    setDashLang(newLang);
+    try {
+      localStorage.setItem("admin_dashboard_lang", newLang);
+      const isHttps = typeof window !== "undefined" && window.location.protocol === "https:";
+      document.cookie = `NEXT_LOCALE=${newLang}; path=/; max-age=31536000; SameSite=Lax${isHttps ? "; Secure" : ""}`;
+    } catch {
+      /* ignore */
+    }
+    toast.success(newLang === "bn" ? "ড্যাশবোর্ড বাংলায় পরিবর্তিত হয়েছে" : "Dashboard switched to English");
+  };
+
+  const tDash = (key: string) => getDashText(key, dashLang);
 
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
@@ -476,9 +510,39 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
   const [bulkUpdating, setBulkUpdating] = useState<boolean>(false);
 
-  type CategoryItem = { id: number; name: string; slug: string };
+  type CategoryItem = {
+    id: number;
+    name: string;
+    slug: string;
+    image?: string;
+    image_url?: string;
+    icon?: string;
+    badge?: string;
+    display_order?: number;
+    is_featured?: boolean;
+    products_count?: number;
+  };
 
   const [categories, setCategories] = useState<CategoryItem[]>([]);
+
+  // Homepage Layout Theme State
+  const [currentHomepageLayout, setCurrentHomepageLayout] = useState<"model1" | "model3" | "model4">("model1");
+  const [savingLayout, setSavingLayout] = useState<boolean>(false);
+
+  // Category Management State
+  const [showCategoryModal, setShowCategoryModal] = useState<boolean>(false);
+  const [editingCategory, setEditingCategory] = useState<CategoryItem | null>(null);
+  const [categoryForm, setCategoryForm] = useState({
+    name: "",
+    slug: "",
+    icon: "🛋️",
+    badge: "",
+    image_url: "",
+    display_order: 0,
+    is_featured: true,
+  });
+  const [categoryImageFile, setCategoryImageFile] = useState<File | null>(null);
+  const [savingCategory, setSavingCategory] = useState<boolean>(false);
 
   const [productSearch, setProductSearch] = useState("");
 
@@ -913,16 +977,34 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
       }
 
-      // Fetch Categories
+      // Fetch Categories (with rich fields from admin)
+      try {
+        const catRes = await fetch(getApiUrl("/admin/categories/"), { credentials: "include" });
+        if (catRes.ok) {
+          const catData = await catRes.json();
+          setCategories(catData.results || catData);
+        } else {
+          const fallbackCat = await fetch(getApiUrl("/categories/"));
+          if (fallbackCat.ok) {
+            const fbData = await fallbackCat.json();
+            setCategories(fbData.results || fbData);
+          }
+        }
+      } catch {
+        /* ignore */
+      }
 
-      const catRes = await fetch(getApiUrl("/categories/"));
-
-      if (catRes.ok) {
-
-        const catData = await catRes.json();
-
-        setCategories(catData.results || catData);
-
+      // Fetch Site Settings (Homepage Layout)
+      try {
+        const settingsRes = await fetch(getApiUrl("/site-settings/"));
+        if (settingsRes.ok) {
+          const sData = await settingsRes.json();
+          if (sData.homepage_layout) {
+            setCurrentHomepageLayout(sData.homepage_layout);
+          }
+        }
+      } catch {
+        /* ignore */
       }
 
       // Fetch Customers Directory
@@ -1753,6 +1835,137 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
   };
 
+  // HOMEPAGE LAYOUT THEME SWITCHER
+  const handleSwitchHomepageLayout = async (layout: "model1" | "model3" | "model4") => {
+    try {
+      setSavingLayout(true);
+      const res = await fetch(getApiUrl("/admin/site-settings/"), {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...(csrfToken ? { "X-CSRFToken": csrfToken } : {}),
+        },
+        credentials: "include",
+        body: JSON.stringify({ homepage_layout: layout }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setCurrentHomepageLayout(data.homepage_layout);
+        toast.success(
+          layout === "model1"
+            ? "মডেল ১ (মেগা মার্কেটপ্লেস) সক্রিয় হয়েছে!"
+            : layout === "model3"
+            ? "মডেল ৩ (ডিপার্টমেন্ট হাব) সক্রিয় হয়েছে!"
+            : "মডেল ৪ (রেসপন্সিভ মেগাস্টোর) সক্রিয় হয়েছে!"
+        );
+      } else {
+        toast.error("হোমপেজ মডেল পরিবর্তন করা সম্ভব হয়নি।");
+      }
+    } catch {
+      toast.error("সার্ভার ত্রুটি। আবার চেষ্টা করুন।");
+    } finally {
+      setSavingLayout(false);
+    }
+  };
+
+  // CATEGORY MANAGEMENT HANDLERS
+  const openAddCategoryModal = () => {
+    setEditingCategory(null);
+    setCategoryForm({
+      name: "",
+      slug: "",
+      icon: "🛋️",
+      badge: "",
+      image_url: "",
+      display_order: categories.length + 1,
+      is_featured: true,
+    });
+    setCategoryImageFile(null);
+    setShowCategoryModal(true);
+  };
+
+  const openEditCategoryModal = (cat: CategoryItem) => {
+    setEditingCategory(cat);
+    setCategoryForm({
+      name: cat.name || "",
+      slug: cat.slug || "",
+      icon: cat.icon || "🛍️",
+      badge: cat.badge || "",
+      image_url: cat.image_url || cat.image || "",
+      display_order: cat.display_order || 0,
+      is_featured: cat.is_featured !== false,
+    });
+    setCategoryImageFile(null);
+    setShowCategoryModal(true);
+  };
+
+  const handleSaveCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!categoryForm.name.trim()) {
+      toast.error("ক্যাটাগরির নাম দিন");
+      return;
+    }
+    try {
+      setSavingCategory(true);
+      const isEdit = !!editingCategory;
+      const url = isEdit
+        ? getApiUrl(`/admin/categories/${editingCategory.id}/`)
+        : getApiUrl("/admin/categories/");
+      const method = isEdit ? "PATCH" : "POST";
+
+      const formData = new FormData();
+      formData.append("name", categoryForm.name.trim());
+      if (categoryForm.slug.trim()) formData.append("slug", categoryForm.slug.trim());
+      if (categoryForm.icon) formData.append("icon", categoryForm.icon.trim());
+      if (categoryForm.badge) formData.append("badge", categoryForm.badge.trim());
+      if (categoryForm.image_url) formData.append("image_url", categoryForm.image_url.trim());
+      formData.append("display_order", String(categoryForm.display_order || 0));
+      formData.append("is_featured", categoryForm.is_featured ? "true" : "false");
+      if (categoryImageFile) {
+        formData.append("image", categoryImageFile);
+      }
+
+      const res = await fetch(url, {
+        method,
+        headers: csrfToken ? { "X-CSRFToken": csrfToken } : {},
+        credentials: "include",
+        body: formData,
+      });
+
+      if (res.ok) {
+        toast.success(isEdit ? "ক্যাটাগরি সফলভাবে আপডেট হয়েছে!" : "নতুন ক্যাটাগরি তৈরি হয়েছে!");
+        setShowCategoryModal(false);
+        fetchDashboardData();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.name?.[0] || err.detail || "ক্যাটাগরি সংরক্ষণ ব্যর্থ হয়েছে।");
+      }
+    } catch {
+      toast.error("সার্ভার ত্রুটি। আবার চেষ্টা করুন।");
+    } finally {
+      setSavingCategory(false);
+    }
+  };
+
+  const handleDeleteCategory = async (catId: number, catName: string) => {
+    if (!confirm(`আপনি কি নিশ্চিত যে "${catName}" ক্যাটাগরি মুছে ফেলতে চান?`)) return;
+    try {
+      const res = await fetch(getApiUrl(`/admin/categories/${catId}/`), {
+        method: "DELETE",
+        headers: csrfToken ? { "X-CSRFToken": csrfToken } : {},
+        credentials: "include",
+      });
+      if (res.ok) {
+        toast.success("ক্যাটাগরি মুছে ফেলা হয়েছে!");
+        fetchDashboardData();
+      } else {
+        toast.error("ক্যাটাগরি মোছা সম্ভব হয়নি। এতে পণ্য যুক্ত থাকতে পারে।");
+      }
+    } catch {
+      toast.error("সার্ভার ত্রুটি।");
+    }
+  };
+
   const handleCreateCoupon = async (e: React.FormEvent) => {
 
     e.preventDefault();
@@ -1898,15 +2111,14 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
       });
 
       if (res.ok) {
-
         setProducts(prev => prev.map(p => p.id === product.id ? { ...p, is_active: newStatus } : p));
-
+        toast.success(newStatus ? "পণ্য সক্রিয় করা হয়েছে!" : "পণ্য নিষ্ক্রিয় করা হয়েছে");
+      } else {
+        toast.error("স্ট্যাটাস পরিবর্তন করা সম্ভব হয়নি");
       }
-
     } catch (err) {
-
       console.error(err);
-
+      toast.error("সার্ভার ত্রুটি");
     }
 
   };
@@ -2785,7 +2997,7 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
           <nav className="admin-sidebar-nav">
 
-            <div className="admin-sidebar-nav-label">MAIN MENU</div>
+            <div className="admin-sidebar-nav-label">{tDash("mainMenu")}</div>
 
             <Link
               href="/dashboard"
@@ -2799,7 +3011,7 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
                 <LayoutDashboard size={18} className="admin-nav-item-icon" />
 
-                <span>Overview</span>
+                <span>{tDash("overview")}</span>
 
               </div>
 
@@ -2817,7 +3029,7 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
                 <ShoppingCart size={18} className="admin-nav-item-icon" />
 
-                <span>Orders</span>
+                <span>{tDash("orders")}</span>
 
               </div>
 
@@ -2845,7 +3057,7 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
                 <Boxes size={18} className="admin-nav-item-icon" />
 
-                <span>Products & Stock</span>
+                <span>{tDash("products")}</span>
 
               </div>
 
@@ -2855,6 +3067,34 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
               </span>
 
+            </Link>
+
+            <Link
+              href="/dashboard/categories"
+              onClick={event => { event.preventDefault(); navigateToTab("categories"); }}
+              className={`admin-nav-item ${activeTab === "categories" ? "active" : ""}`}
+            >
+              <div className="admin-nav-item-content">
+                <FolderTree size={18} className="admin-nav-item-icon" />
+                <span>{tDash("categories")}</span>
+              </div>
+              <span className="admin-nav-badge">
+                {categories.length}
+              </span>
+            </Link>
+
+            <Link
+              href="/dashboard/layout"
+              onClick={event => { event.preventDefault(); navigateToTab("layout"); }}
+              className={`admin-nav-item ${activeTab === "layout" ? "active" : ""}`}
+            >
+              <div className="admin-nav-item-content">
+                <Layout size={18} className="admin-nav-item-icon" />
+                <span>{tDash("layout")}</span>
+              </div>
+              <span className="admin-nav-badge success" style={{ textTransform: "uppercase" }}>
+                {currentHomepageLayout === "model1" ? "মডেল ১" : currentHomepageLayout === "model3" ? "মডেল ৩" : "মডেল ৪"}
+              </span>
             </Link>
 
             <Link
@@ -2869,7 +3109,7 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
                 <SlidersHorizontal size={18} className="admin-nav-item-icon" />
 
-                <span>Hero Banners</span>
+                <span>{tDash("hero")}</span>
 
               </div>
 
@@ -2893,7 +3133,7 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
                 <Tag size={18} className="admin-nav-item-icon" />
 
-                <span>Coupons & Deals</span>
+                <span>{tDash("coupons")}</span>
 
               </div>
 
@@ -2917,7 +3157,7 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
                 <Truck size={18} className="admin-nav-item-icon" />
 
-                <span>Courier Logistics</span>
+                <span>{tDash("courier")}</span>
 
               </div>
 
@@ -2941,7 +3181,7 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
                 <ImageIcon size={18} className="admin-nav-item-icon" />
 
-                <span>Image Gallery</span>
+                <span>{tDash("gallery")}</span>
 
               </div>
 
@@ -2965,7 +3205,7 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
                 <Users size={18} className="admin-nav-item-icon" />
 
-                <span>Customers</span>
+                <span>{tDash("customers")}</span>
 
               </div>
 
@@ -2993,13 +3233,13 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
                 <div className="admin-sidebar-user-name">
 
-                  Store Admin
+                  {tDash("storeAdmin")}
 
                 </div>
 
                 <div className="admin-sidebar-user-status">
 
-                  <span className="admin-status-dot" /> Online Session
+                  <span className="admin-status-dot" /> {tDash("onlineSession")}
 
                 </div>
 
@@ -3009,9 +3249,9 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
             <div className="admin-sidebar-sublinks">
 
-              <Link href="/" className="admin-sidebar-sublink" title="View Storefront">
+              <Link href="/" className="admin-sidebar-sublink" title={tDash("storefront")}>
 
-                <Store size={14} /> Storefront ↗
+                <Store size={14} /> {tDash("storefront")}
 
               </Link>
 
@@ -3025,11 +3265,11 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
                 className="admin-sidebar-sublink"
 
-                title="Django Admin"
+                title={tDash("djangoAdmin")}
 
               >
 
-                <ExternalLink size={14} /> Django ↗
+                <ExternalLink size={14} /> {tDash("djangoAdmin")}
 
               </a>
 
@@ -3065,27 +3305,115 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
               <div className="admin-topbar-title">
 
-                {activeTab === "overview" && "Dashboard Overview"}
+                {activeTab === "overview" && tDash("titleOverview")}
 
-                {activeTab === "orders" && "Orders & Fulfillment"}
+                {activeTab === "orders" && tDash("titleOrders")}
 
-                {activeTab === "products" && "Products & Inventory"}
+                {activeTab === "products" && tDash("titleProducts")}
 
-                {activeTab === "hero" && "হোম হিরো স্লাইডার ও ব্যানার ম্যানেজমেন্ট"}
+                {activeTab === "categories" && tDash("titleCategories")}
 
-                {activeTab === "coupons" && "Promotions & Coupon Discounts"}
+                {activeTab === "layout" && tDash("titleLayout")}
 
-                {activeTab === "courier" && "Courier & Delivery Logistics"}
+                {activeTab === "hero" && tDash("titleHero")}
 
-                {activeTab === "gallery" && "Central Image Gallery & Media Hub"}
+                {activeTab === "coupons" && tDash("titleCoupons")}
 
-                {activeTab === "customers" && "Customer Directory"}
+                {activeTab === "courier" && tDash("titleCourier")}
+
+                {activeTab === "gallery" && tDash("titleGallery")}
+
+                {activeTab === "customers" && tDash("titleCustomers")}
 
               </div>
 
             </div>
 
             <div className="admin-topbar-actions">
+
+              {/* Quick Homepage Theme Switcher Pill */}
+              <div style={{ display: "flex", alignItems: "center", gap: "4px", backgroundColor: "#f1f5f9", padding: "3px 6px", borderRadius: "10px", border: "1px solid #cbd5e1" }}>
+                <span style={{ fontSize: "11px", fontWeight: 700, color: "#64748b", paddingLeft: "4px" }}>🏠 হোম:</span>
+                <button
+                  type="button"
+                  onClick={() => handleSwitchHomepageLayout("model1")}
+                  disabled={savingLayout}
+                  style={{
+                    padding: "3px 8px",
+                    borderRadius: "6px",
+                    border: "none",
+                    fontSize: "11px",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    backgroundColor: currentHomepageLayout === "model1" ? "#10b981" : "transparent",
+                    color: currentHomepageLayout === "model1" ? "#fff" : "#475569",
+                    transition: "all 0.15s ease",
+                  }}
+                  title="মডেল ১: মেগা মার্কেটপ্লেস"
+                >
+                  মডেল ১
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSwitchHomepageLayout("model3")}
+                  disabled={savingLayout}
+                  style={{
+                    padding: "3px 8px",
+                    borderRadius: "6px",
+                    border: "none",
+                    fontSize: "11px",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    backgroundColor: currentHomepageLayout === "model3" ? "#10b981" : "transparent",
+                    color: currentHomepageLayout === "model3" ? "#fff" : "#475569",
+                    transition: "all 0.15s ease",
+                  }}
+                  title="মডেল ৩: ডিপার্টমেন্ট হাব"
+                >
+                  মডেল ৩
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSwitchHomepageLayout("model4")}
+                  disabled={savingLayout}
+                  style={{
+                    padding: "3px 8px",
+                    borderRadius: "6px",
+                    border: "none",
+                    fontSize: "11px",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    backgroundColor: currentHomepageLayout === "model4" ? "#10b981" : "transparent",
+                    color: currentHomepageLayout === "model4" ? "#fff" : "#475569",
+                    transition: "all 0.15s ease",
+                  }}
+                  title="মডেল ৪: রেসপন্সিভ মেগাস্টোর"
+                >
+                  মডেল ৪
+                </button>
+              </div>
+
+              {/* Instant Dashboard Language Switcher */}
+              <div className="admin-lang-switch-box" role="group" aria-label="Dashboard language selection">
+                <button
+                  type="button"
+                  className={`admin-lang-pill-btn ${dashLang === "bn" ? "active" : ""}`}
+                  onClick={() => switchDashLang("bn")}
+                  title="ড্যাশবোর্ড বাংলায় দেখুন"
+                  aria-pressed={dashLang === "bn"}
+                >
+                  বাংলা
+                </button>
+                <button
+                  type="button"
+                  className={`admin-lang-pill-btn ${dashLang === "en" ? "active" : ""}`}
+                  onClick={() => switchDashLang("en")}
+                  title="View Dashboard in English"
+                  aria-pressed={dashLang === "en"}
+                >
+                  EN
+                </button>
+              </div>
 
               <button
 
@@ -3095,7 +3423,7 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
               >
 
-                <Plus size={15} /> Add Product
+                <Plus size={15} /> {tDash("addProduct")}
 
               </button>
 
@@ -3105,11 +3433,11 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
                 className="admin-btn-secondary"
 
-                title="Refresh Data"
+                title={tDash("refresh")}
 
               >
 
-                <RefreshCw size={14} /> Refresh
+                <RefreshCw size={14} /> {tDash("refresh")}
 
               </button>
 
@@ -3145,10 +3473,10 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                     </div>
                     <div>
                       <h3 className="profit-filter-title">
-                        Store Performance & Financial Overview
+                        {tDash("financialOverviewTitle")}
                       </h3>
                       <p className="profit-filter-sub">
-                        লাইভ রেভিনিউ, নিট লাভ, ইনভেন্টরি স্টক মূল্যায়ন ও প্রোডাক্ট প্রাইস অ্যানালিটিক্স
+                        {tDash("financialOverviewSub")}
                       </p>
                     </div>
                   </div>
@@ -3158,21 +3486,21 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                       onClick={openCreateModal}
                       className="admin-btn-primary"
                     >
-                      <Plus size={15} /> Add Product
+                      <Plus size={15} /> {tDash("addProduct")}
                     </button>
                     <button
                       type="button"
                       onClick={() => navigateToTab("hero")}
                       className="admin-btn-secondary"
                     >
-                      <SlidersHorizontal size={14} /> Hero Banners
+                      <SlidersHorizontal size={14} /> {tDash("hero")}
                     </button>
                     <button
                       type="button"
                       onClick={() => navigateToTab("orders")}
                       className="admin-btn-secondary"
                     >
-                      View Orders <ArrowUpRight size={14} />
+                      {tDash("orders")} <ArrowUpRight size={14} />
                     </button>
                   </div>
                 </div>
@@ -3181,7 +3509,7 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                 <div>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
                     <span style={{ fontSize: "12px", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.06em", color: "#64748b" }}>
-                      আর্থিক লাভ ও বিক্রয় বিবরণী (Revenue & Profit Metrics)
+                      {tDash("financialMetricsTag")}
                     </span>
                   </div>
                   <div className="profit-stat-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))" }}>
@@ -3197,12 +3525,12 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                         </div>
                         <div>
                           <div className="profit-title" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                            <span>মোট বিক্রয় (Total Revenue)</span>
+                            <span>{tDash("totalRevenue")}</span>
                             <MetricTooltip text="বাতিলকৃত অর্ডার বাদে সম্পন্ন ও প্রসেসিং হওয়া সকল অর্ডারের মোট বিক্রয় মূল্য। এতে ডেলিভারি চার্জ ও ডিসকাউন্ট সমন্বয় করা রয়েছে।" />
                           </div>
                           <div className="profit-val">৳{stats.total_revenue.toLocaleString()}</div>
                           <div className="profit-sub">
-                            গত ৩০ দিন: ৳{stats.monthly_revenue.toLocaleString()}
+                            {tDash("last30Days")}: ৳{stats.monthly_revenue.toLocaleString()}
                           </div>
                         </div>
                       </div>
@@ -3220,12 +3548,12 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                         </div>
                         <div>
                           <div className="profit-title" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                            <span>মোট অর্জিত লাভ (Gross Profit)</span>
+                            <span>{tDash("grossProfit")}</span>
                             <MetricTooltip text="গ্রাহকদের সফল অর্ডার থেকে পণ্যগুলোর পাইকারি বা ক্রয়মূল্য (Cost Price) বাদ দিয়ে অর্জিত নিট গ্রস প্রফিট। সাথে প্রফিট মার্জিন (%) ও প্রতি অর্ডারে গড় লাভ প্রদর্শিত।" />
                           </div>
                           <div className="profit-val">৳{(stats.gross_profit ?? 0).toLocaleString()}</div>
                           <div className="profit-sub">
-                            মার্জিন: <span style={{ color: "#4f46e5", fontWeight: 800 }}>{(stats.profit_margin_percent ?? 0).toFixed(1)}%</span> | গড় লাভ: ৳{stats.avg_profit_per_order ?? 0}
+                            {tDash("margin")}: <span style={{ color: "#4f46e5", fontWeight: 800 }}>{(stats.profit_margin_percent ?? 0).toFixed(1)}%</span> | {tDash("avgProfit")}: ৳{stats.avg_profit_per_order ?? 0}
                           </div>
                         </div>
                       </div>
@@ -3243,12 +3571,12 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                         </div>
                         <div>
                           <div className="profit-title" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                            <span>গড় অর্ডার মূল্য (AOV)</span>
+                            <span>{dashLang === "en" ? "Average Order Value (AOV)" : "গড় অর্ডার মূল্য (AOV)"}</span>
                             <MetricTooltip text="প্রতিটি সফল বা ভ্যালিড চেকআউটে একজন ক্রেতা গড়ে কত টাকার কেনাকাটা করেছেন তার হিসাব (মোট রেভিনিউ ÷ মোট ভ্যালিড অর্ডার)।" />
                           </div>
                           <div className="profit-val">৳{stats.avg_order_value || 0}</div>
                           <div className="profit-sub">
-                            প্রতি সফল চেকআউটে গ্রাহকের গড় ব্যয়
+                            {dashLang === "en" ? "Average spend per successful checkout" : "প্রতি সফল চেকআউটে গ্রাহকের গড় ব্যয়"}
                           </div>
                         </div>
                       </div>
@@ -3266,12 +3594,12 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                         </div>
                         <div>
                           <div className="profit-title" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                            <span>মোট অর্ডার সংখ্যা (Total Orders)</span>
+                            <span>{tDash("totalOrders")}</span>
                             <MetricTooltip text="স্টোরের শুরু থেকে এ পর্যন্ত মোট কতটি অর্ডার এসেছে, এবং তার মধ্যে কতটি সফলভাবে ডেলিভারি হয়েছে ও কতটি পেন্ডিং রয়েছে।" />
                           </div>
                           <div className="profit-val">{stats.total_orders}</div>
                           <div className="profit-sub">
-                            ডেলিভার্ড: <b style={{ color: "#059669" }}>{stats.delivered_orders}</b> | পেন্ডিং: <b style={{ color: "#d97706" }}>{stats.pending_orders}</b>
+                            {tDash("deliveredOrders")}: <b style={{ color: "#059669" }}>{stats.delivered_orders}</b> | {tDash("pendingOrders")}: <b style={{ color: "#d97706" }}>{stats.pending_orders}</b>
                           </div>
                         </div>
                       </div>
@@ -3283,7 +3611,7 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                 <div>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
                     <span style={{ fontSize: "12px", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.06em", color: "#64748b" }}>
-                      প্রোডাক্ট মূল্য ও স্টক ইনভেন্টরি মূল্যায়ন (Product Price & Inventory Ledger)
+                      {tDash("inventoryMetricsTag")}
                     </span>
                   </div>
                   <div className="profit-stat-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))" }}>
@@ -3299,12 +3627,12 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                         </div>
                         <div>
                           <div className="profit-title" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                            <span>স্টক বিক্রয় মূল্য (Retail Value)</span>
+                            <span>{tDash("retailStockValuation")}</span>
                             <MetricTooltip text="গোডাউন বা স্টোরে থাকা সকল সক্রিয় প্রোডাক্টের বর্তমান রিটেইল বিক্রয় মূল্যের যোগফল (ডিসকাউন্ট মূল্য থাকলে সেটি কার্যকর ধরা হয়েছে)।" />
                           </div>
                           <div className="profit-val">৳{(stats.retail_stock_valuation ?? 0).toLocaleString()}</div>
                           <div className="profit-sub">
-                            মোট মজুদ: <b>{stats.total_stock_units ?? 0} পিস</b> পণ্য
+                            {tDash("totalStockUnits")}: <b>{stats.total_stock_units ?? 0} {tDash("pieces")}</b>
                           </div>
                         </div>
                       </div>
@@ -3322,12 +3650,12 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                         </div>
                         <div>
                           <div className="profit-title" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                            <span>স্টক ক্রয় মূল্য / ইনভেস্টমেন্ট</span>
+                            <span>{tDash("costStockValuation")}</span>
                             <MetricTooltip text="মজুদকৃত সকল পণ্য সংগ্রহ করতে মোট কত টাকা খরচ বা মূলধন বিনিয়োগ করা হয়েছিল (Cost Price × Stock) তার হিসাব।" />
                           </div>
                           <div className="profit-val">৳{(stats.cost_stock_valuation ?? 0).toLocaleString()}</div>
                           <div className="profit-sub">
-                            গোডাউনে আটকে থাকা মোট মূলধন
+                            {tDash("costStockValuationSub")}
                           </div>
                         </div>
                       </div>
@@ -3345,12 +3673,12 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                         </div>
                         <div>
                           <div className="profit-title" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                            <span>সম্ভাব্য স্টক লাভ (Potential Profit)</span>
+                            <span>{tDash("potentialProfit")}</span>
                             <MetricTooltip text="গোডাউনে থাকা সকল স্টক পণ্য সফলভাবে বিক্রি হলে সম্ভাব্য মোট কত টাকা নিট লাভ অর্জিত হবে (স্টক বিক্রয় মূল্য − স্টক ক্রয় মূল্য)।" />
                           </div>
                           <div className="profit-val">৳{(stats.potential_stock_profit ?? 0).toLocaleString()}</div>
                           <div className="profit-sub">
-                            সব স্টক বিক্রি হলে অর্জিতব্য লাভ
+                            {tDash("potentialProfitSub")}
                           </div>
                         </div>
                       </div>
@@ -5093,6 +5421,352 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
         )}
 
+        {/* HOMEPAGE LAYOUT THEME MANAGER TAB */}
+        {activeTab === "layout" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+            <div className="admin-panel" style={{ padding: "24px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px", marginBottom: "16px" }}>
+                <div>
+                  <h3 style={{ fontSize: "20px", fontWeight: 800, color: "#0f172a", margin: "0 0 6px" }}>
+                    🎨 হোমপেজ ডিজাইন মডেল ও লেআউট ম্যানেজার
+                  </h3>
+                  <p style={{ margin: 0, fontSize: "14px", color: "#64748b" }}>
+                    যে কোনো মুহূর্তে ১ ক্লিকে হোমপেজের ডিজাইন পরিবর্তন করুন। নির্বাচিত মডেলটি তাৎক্ষণিক লাইভ ওয়েবসাইটে কার্যকর হবে।
+                  </p>
+                </div>
+
+                <a
+                  href="/"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="admin-btn-secondary"
+                  style={{ display: "inline-flex", alignItems: "center", gap: "8px", textDecoration: "none" }}
+                >
+                  <ExternalLink size={15} /> লাইভ হোমপেজ দেখুন
+                </a>
+              </div>
+
+              {/* Models Grid */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "24px", marginTop: "20px" }}>
+                {/* Model 1 Card */}
+                <div
+                  style={{
+                    borderRadius: "16px",
+                    border: currentHomepageLayout === "model1" ? "3px solid #10b981" : "1px solid #e2e8f0",
+                    backgroundColor: currentHomepageLayout === "model1" ? "#f0fdf4" : "#ffffff",
+                    boxShadow: "0 4px 16px rgba(0,0,0,0.06)",
+                    overflow: "hidden",
+                    display: "flex",
+                    flexDirection: "column",
+                  }}
+                >
+                  <div style={{ position: "relative", height: "180px", backgroundColor: "#173f35", overflow: "hidden" }}>
+                    <img
+                      src="/alor_choya_model1_mega_marketplace_1795144808025.jpg"
+                      alt="Model 1"
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                      onError={(e) => {
+                        (e.target as HTMLElement).style.display = "none";
+                      }}
+                    />
+                    <div style={{ position: "absolute", top: "12px", left: "12px", backgroundColor: "#173f35", color: "#c9a45c", padding: "4px 10px", borderRadius: "8px", fontWeight: 800, fontSize: "12px" }}>
+                      মডেল ১
+                    </div>
+                    {currentHomepageLayout === "model1" && (
+                      <div style={{ position: "absolute", top: "12px", right: "12px", backgroundColor: "#10b981", color: "#fff", padding: "4px 12px", borderRadius: "20px", fontWeight: 800, fontSize: "12px", display: "flex", alignItems: "center", gap: "4px" }}>
+                        ✓ সক্রিয় মডেল
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ padding: "20px", flex: 1, display: "flex", flexDirection: "column" }}>
+                    <h4 style={{ fontSize: "18px", fontWeight: 800, color: "#0f172a", margin: "0 0 8px" }}>
+                      মেগা মার্কেটপ্লেস (Mega Marketplace)
+                    </h4>
+                    <span style={{ fontSize: "12px", color: "#047857", fontWeight: 700, marginBottom: "12px" }}>
+                      Amazon / Daraz স্টাইল
+                    </span>
+                    <ul style={{ margin: "0 0 20px", paddingLeft: "18px", fontSize: "13px", color: "#475569", lineHeight: 1.6 }}>
+                      <li>বামে ফিক্সড মেগা ক্যাটাগরি মেনু (ফার্নিচার, পোশাক, জুতা, ঘড়ি)</li>
+                      <li>কাউন্টডাউন টাইমার সহ ফ্ল্যাশ ডিল সেকশন</li>
+                      <li>বড় ছবির ক্যাটাগরি টাইলস ও ৪-কলাম প্রোডাক্ট গ্রিড</li>
+                    </ul>
+
+                    <button
+                      type="button"
+                      onClick={() => handleSwitchHomepageLayout("model1")}
+                      disabled={savingLayout || currentHomepageLayout === "model1"}
+                      style={{
+                        marginTop: "auto",
+                        width: "100%",
+                        padding: "12px",
+                        borderRadius: "10px",
+                        border: "none",
+                        fontWeight: 800,
+                        fontSize: "14px",
+                        cursor: currentHomepageLayout === "model1" ? "default" : "pointer",
+                        backgroundColor: currentHomepageLayout === "model1" ? "#10b981" : "#173f35",
+                        color: "#ffffff",
+                        transition: "all 0.2s ease",
+                      }}
+                    >
+                      {currentHomepageLayout === "model1" ? "✓ বর্তমানে সক্রিয় রয়েছে" : "এই মডেলটি সক্রিয় করুন"}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Model 3 Card */}
+                <div
+                  style={{
+                    borderRadius: "16px",
+                    border: currentHomepageLayout === "model3" ? "3px solid #10b981" : "1px solid #e2e8f0",
+                    backgroundColor: currentHomepageLayout === "model3" ? "#f0fdf4" : "#ffffff",
+                    boxShadow: "0 4px 16px rgba(0,0,0,0.06)",
+                    overflow: "hidden",
+                    display: "flex",
+                    flexDirection: "column",
+                  }}
+                >
+                  <div style={{ position: "relative", height: "180px", backgroundColor: "#831843", overflow: "hidden" }}>
+                    <img
+                      src="/alor_choya_model3_department_hub_v2_1795144875813.jpg"
+                      alt="Model 3"
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                      onError={(e) => {
+                        (e.target as HTMLElement).style.display = "none";
+                      }}
+                    />
+                    <div style={{ position: "absolute", top: "12px", left: "12px", backgroundColor: "#831843", color: "#fef08a", padding: "4px 10px", borderRadius: "8px", fontWeight: 800, fontSize: "12px" }}>
+                      মডেল ৩
+                    </div>
+                    {currentHomepageLayout === "model3" && (
+                      <div style={{ position: "absolute", top: "12px", right: "12px", backgroundColor: "#10b981", color: "#fff", padding: "4px 12px", borderRadius: "20px", fontWeight: 800, fontSize: "12px", display: "flex", alignItems: "center", gap: "4px" }}>
+                        ✓ সক্রিয় মডেল
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ padding: "20px", flex: 1, display: "flex", flexDirection: "column" }}>
+                    <h4 style={{ fontSize: "18px", fontWeight: 800, color: "#0f172a", margin: "0 0 8px" }}>
+                      ডিপার্টমেন্ট হাব ও ডিল ফাইন্ডার
+                    </h4>
+                    <span style={{ fontSize: "12px", color: "#be185d", fontWeight: 700, marginBottom: "12px" }}>
+                      Target / Noon স্টাইল
+                    </span>
+                    <ul style={{ margin: "0 0 20px", paddingLeft: "18px", fontSize: "13px", color: "#475569", lineHeight: 1.6 }}>
+                      <li>টপ সার্কুলার ডিপার্টমেন্ট স্টোরিজ ও অফার ব্যাজ ("৫০% ছাড়", "নতুন")</li>
+                      <li>ফার্নিচার ও ফ্যাশনের জন্য ডুয়াল স্প্লিট আকর্ষণীয় ব্যানার</li>
+                      <li>লাইভ স্টক কাউন্টার সহ ফ্ল্যাশ ডিল ও ট্রাস্ট ব্যাজ বার</li>
+                    </ul>
+
+                    <button
+                      type="button"
+                      onClick={() => handleSwitchHomepageLayout("model3")}
+                      disabled={savingLayout || currentHomepageLayout === "model3"}
+                      style={{
+                        marginTop: "auto",
+                        width: "100%",
+                        padding: "12px",
+                        borderRadius: "10px",
+                        border: "none",
+                        fontWeight: 800,
+                        fontSize: "14px",
+                        cursor: currentHomepageLayout === "model3" ? "default" : "pointer",
+                        backgroundColor: currentHomepageLayout === "model3" ? "#10b981" : "#173f35",
+                        color: "#ffffff",
+                        transition: "all 0.2s ease",
+                      }}
+                    >
+                      {currentHomepageLayout === "model3" ? "✓ বর্তমানে সক্রিয় রয়েছে" : "এই মডেলটি সক্রিয় করুন"}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Model 4 Card */}
+                <div
+                  style={{
+                    borderRadius: "16px",
+                    border: currentHomepageLayout === "model4" ? "3px solid #10b981" : "1px solid #e2e8f0",
+                    backgroundColor: currentHomepageLayout === "model4" ? "#f0fdf4" : "#ffffff",
+                    boxShadow: "0 4px 16px rgba(0,0,0,0.06)",
+                    overflow: "hidden",
+                    display: "flex",
+                    flexDirection: "column",
+                  }}
+                >
+                  <div style={{ position: "relative", height: "180px", backgroundColor: "#1e3a8a", overflow: "hidden" }}>
+                    <img
+                      src="/alor_choya_model4_responsive_megastore_v2_1795144886967.jpg"
+                      alt="Model 4"
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                      onError={(e) => {
+                        (e.target as HTMLElement).style.display = "none";
+                      }}
+                    />
+                    <div style={{ position: "absolute", top: "12px", left: "12px", backgroundColor: "#1e3a8a", color: "#93c5fd", padding: "4px 10px", borderRadius: "8px", fontWeight: 800, fontSize: "12px" }}>
+                      মডেল ৪
+                    </div>
+                    {currentHomepageLayout === "model4" && (
+                      <div style={{ position: "absolute", top: "12px", right: "12px", backgroundColor: "#10b981", color: "#fff", padding: "4px 12px", borderRadius: "20px", fontWeight: 800, fontSize: "12px", display: "flex", alignItems: "center", gap: "4px" }}>
+                        ✓ সক্রিয় মডেল
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ padding: "20px", flex: 1, display: "flex", flexDirection: "column" }}>
+                    <h4 style={{ fontSize: "18px", fontWeight: 800, color: "#0f172a", margin: "0 0 8px" }}>
+                      রেসপন্সিভ হাই-এনার্জি মেগাস্টোর
+                    </h4>
+                    <span style={{ fontSize: "12px", color: "#2563eb", fontWeight: 700, marginBottom: "12px" }}>
+                      Flipkart / Shopee VIP স্টাইল
+                    </span>
+                    <ul style={{ margin: "0 0 20px", paddingLeft: "18px", fontSize: "13px", color: "#475569", lineHeight: 1.6 }}>
+                      <li>ইনস্টাগ্রাম-স্টাইল বৃত্তাকার ক্যাটাগরি হাইলাইটস বাবল</li>
+                      <li>ইনস্ট্যান্ট ক্যাটাগরি ফিল্টার চিপস (বাটন চাপলেই ফিল্টার)</li>
+                      <li>দ্রুততম চেকআউটের জন্য ১-ক্লিক কুইক-বাই ফিচার</li>
+                    </ul>
+
+                    <button
+                      type="button"
+                      onClick={() => handleSwitchHomepageLayout("model4")}
+                      disabled={savingLayout || currentHomepageLayout === "model4"}
+                      style={{
+                        marginTop: "auto",
+                        width: "100%",
+                        padding: "12px",
+                        borderRadius: "10px",
+                        border: "none",
+                        fontWeight: 800,
+                        fontSize: "14px",
+                        cursor: currentHomepageLayout === "model4" ? "default" : "pointer",
+                        backgroundColor: currentHomepageLayout === "model4" ? "#10b981" : "#173f35",
+                        color: "#ffffff",
+                        transition: "all 0.2s ease",
+                      }}
+                    >
+                      {currentHomepageLayout === "model4" ? "✓ বর্তমানে সক্রিয় রয়েছে" : "এই মডেলটি সক্রিয় করুন"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* CATEGORY MANAGEMENT TAB */}
+        {activeTab === "categories" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+            <div className="admin-panel" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "16px", padding: "20px 24px" }}>
+              <div>
+                <h3 style={{ fontSize: "20px", fontWeight: 800, color: "#0f172a", margin: "0 0 6px" }}>
+                  📦 ক্যাটাগরি ম্যানেজমেন্ট ও সাজসজ্জা
+                </h3>
+                <p style={{ margin: 0, fontSize: "13px", color: "#64748b" }}>
+                  ফার্নিচার, থ্রি-পিস, জুতা, ঘড়ি সহ সকল ডিপার্টমেন্টের ছবি, আইকন, প্রোমো ব্যাজ এবং সাজানোর ক্রম নিয়ন্ত্রণ করুন।
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={openAddCategoryModal}
+                className="admin-btn-primary"
+                style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}
+              >
+                <Plus size={16} /> নতুন ক্যাটাগরি যোগ করুন
+              </button>
+            </div>
+
+            {/* Categories Table / Cards */}
+            <div className="admin-panel" style={{ padding: "0", overflow: "hidden" }}>
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "13px" }}>
+                  <thead>
+                    <tr style={{ backgroundColor: "#f8fafc", borderBottom: "1px solid #e2e8f0", color: "#475569" }}>
+                      <th style={{ padding: "14px 18px", fontWeight: 700 }}>ক্রম</th>
+                      <th style={{ padding: "14px 18px", fontWeight: 700 }}>ছবি</th>
+                      <th style={{ padding: "14px 18px", fontWeight: 700 }}>ক্যাটাগরির নাম ও আইকন</th>
+                      <th style={{ padding: "14px 18px", fontWeight: 700 }}>স্লাগ (Slug)</th>
+                      <th style={{ padding: "14px 18px", fontWeight: 700 }}>প্রোমো ব্যাজ</th>
+                      <th style={{ padding: "14px 18px", fontWeight: 700 }}>পণ্য সংখ্যা</th>
+                      <th style={{ padding: "14px 18px", fontWeight: 700, textAlign: "right" }}>অ্যাকশন</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {categories.length > 0 ? (
+                      categories.map((cat, idx) => {
+                        const imgSource = cat.image || cat.image_url;
+                        return (
+                          <tr key={cat.id || cat.slug} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                            <td style={{ padding: "14px 18px", fontWeight: 800, color: "#0f172a" }}>
+                              #{cat.display_order ?? idx + 1}
+                            </td>
+                            <td style={{ padding: "14px 18px" }}>
+                              <div style={{ width: "48px", height: "48px", borderRadius: "8px", overflow: "hidden", backgroundColor: "#f1f5f9", border: "1px solid #cbd5e1", display: "grid", placeItems: "center" }}>
+                                {imgSource ? (
+                                  <img src={imgSource} alt={cat.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                ) : (
+                                  <span style={{ fontSize: "20px" }}>{cat.icon || "📦"}</span>
+                                )}
+                              </div>
+                            </td>
+                            <td style={{ padding: "14px 18px" }}>
+                              <div style={{ fontWeight: 700, color: "#0f172a", fontSize: "14px", display: "flex", alignItems: "center", gap: "6px" }}>
+                                <span>{cat.icon || "🏷️"}</span>
+                                <span>{cat.name}</span>
+                              </div>
+                            </td>
+                            <td style={{ padding: "14px 18px", color: "#64748b" }}>
+                              <code>{cat.slug}</code>
+                            </td>
+                            <td style={{ padding: "14px 18px" }}>
+                              {cat.badge ? (
+                                <span style={{ backgroundColor: "#fef3c7", color: "#d97706", padding: "3px 8px", borderRadius: "6px", fontWeight: 700, fontSize: "11px" }}>
+                                  {cat.badge}
+                                </span>
+                              ) : (
+                                <span style={{ color: "#94a3b8" }}>—</span>
+                              )}
+                            </td>
+                            <td style={{ padding: "14px 18px", fontWeight: 600, color: "#475569" }}>
+                              {cat.products_count ?? 0}টি পণ্য
+                            </td>
+                            <td style={{ padding: "14px 18px", textAlign: "right" }}>
+                              <div style={{ display: "inline-flex", gap: "8px" }}>
+                                <button
+                                  type="button"
+                                  onClick={() => openEditCategoryModal(cat)}
+                                  className="admin-btn-secondary"
+                                  style={{ padding: "6px 12px", fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "4px" }}
+                                >
+                                  <Edit3 size={13} /> এডিট
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteCategory(cat.id, cat.name)}
+                                  style={{ padding: "6px 10px", background: "#fee2e2", color: "#b91c1c", border: "1px solid #fca5a5", borderRadius: "6px", cursor: "pointer" }}
+                                  title="মুছে ফেলুন"
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <tr>
+                        <td colSpan={7} style={{ padding: "40px", textAlign: "center", color: "#64748b" }}>
+                          কোনো ক্যাটাগরি পাওয়া যায়নি।
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* PRODUCTS & STOCK TAB */}
 
         {activeTab === "products" && (
@@ -5808,6 +6482,8 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
           </div>
 
         )}
+
+
 
         {/* COURIER LOGISTICS TAB */}
 
@@ -7071,6 +7747,8 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
         )}
 
+
+
         {/* IMAGE GALLERY TAB */}
 
         {activeTab === "gallery" && (
@@ -7436,6 +8114,8 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
           </div>
 
         )}
+
+
 
           </main>
 
@@ -8285,6 +8965,148 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
         </div>
 
+      )}
+
+      {/* Category Add/Edit Modal */}
+      {showCategoryModal && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 55, background: "rgba(15,23,42,0.4)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "16px" }}>
+          <div className="admin-login-card" style={{ maxWidth: "520px", width: "100%", padding: "28px", maxHeight: "90vh", overflowY: "auto" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid #e2e8f0", paddingBottom: "12px", marginBottom: "20px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <Layers size={18} style={{ color: "#2563eb" }} />
+                <h3 style={{ fontSize: "18px", fontWeight: 800, color: "#0f172a", margin: 0 }}>
+                  {editingCategory ? "ক্যাটাগরি সম্পাদনা করুন" : "নতুন ক্যাটাগরি যোগ করুন"}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCategoryModal(false)}
+                style={{ background: "none", border: "none", fontSize: "18px", color: "#64748b", cursor: "pointer" }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCategory} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              <div className="admin-form-group" style={{ margin: 0 }}>
+                <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155" }}>
+                  ক্যাটাগরির নাম <span style={{ color: "#ef4444" }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="যেমন: ফার্নিচার, থ্রি পিস, জুতো, ঘড়ি"
+                  value={categoryForm.name}
+                  onChange={e => setCategoryForm({ ...categoryForm, name: e.target.value })}
+                  className="admin-input-field"
+                />
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                <div className="admin-form-group" style={{ margin: 0 }}>
+                  <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155" }}>আইকন (Emoji / Icon)</label>
+                  <input
+                    type="text"
+                    placeholder="যেমন: 🛋️, 👗, 👟, ⌚, 🏠"
+                    value={categoryForm.icon}
+                    onChange={e => setCategoryForm({ ...categoryForm, icon: e.target.value })}
+                    className="admin-input-field"
+                  />
+                </div>
+                <div className="admin-form-group" style={{ margin: 0 }}>
+                  <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155" }}>প্রমো ব্যাজ (ঐচ্ছিক)</label>
+                  <input
+                    type="text"
+                    placeholder="যেমন: Hot, 15% OFF, New"
+                    value={categoryForm.badge}
+                    onChange={e => setCategoryForm({ ...categoryForm, badge: e.target.value })}
+                    className="admin-input-field"
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                <div className="admin-form-group" style={{ margin: 0 }}>
+                  <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155" }}>ডিসপ্লে ক্রম (Order)</label>
+                  <input
+                    type="number"
+                    value={categoryForm.display_order}
+                    onChange={e => setCategoryForm({ ...categoryForm, display_order: Number(e.target.value) || 0 })}
+                    className="admin-input-field"
+                  />
+                </div>
+                <div className="admin-form-group" style={{ margin: 0 }}>
+                  <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155" }}>স্লাগ (URL Slug - ঐচ্ছিক)</label>
+                  <input
+                    type="text"
+                    placeholder="যেমন: furniture, three-piece"
+                    value={categoryForm.slug}
+                    onChange={e => setCategoryForm({ ...categoryForm, slug: e.target.value })}
+                    className="admin-input-field"
+                  />
+                </div>
+              </div>
+
+              <div className="admin-form-group" style={{ margin: 0 }}>
+                <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155" }}>ক্যাটাগরি ছবি (Image Upload)</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={e => setCategoryImageFile(e.target.files?.[0] || null)}
+                  className="admin-input-field"
+                  style={{ padding: "6px" }}
+                />
+                <span style={{ fontSize: "11px", color: "#64748b" }}>কম্পিউটার বা ডিভাইস থেকে ছবি আপলোড করুন</span>
+              </div>
+
+              <div className="admin-form-group" style={{ margin: 0 }}>
+                <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155" }}>অথবা ছবির সরাসরি লিঙ্ক (Image URL)</label>
+                <input
+                  type="url"
+                  placeholder="https://images.unsplash.com/..."
+                  value={categoryForm.image_url}
+                  onChange={e => setCategoryForm({ ...categoryForm, image_url: e.target.value })}
+                  className="admin-input-field"
+                />
+              </div>
+
+              {categoryForm.image_url && (
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px", background: "#f8fafc", borderRadius: "8px" }}>
+                  <img src={categoryForm.image_url} alt="Preview" style={{ width: "48px", height: "48px", objectFit: "cover", borderRadius: "6px" }} />
+                  <span style={{ fontSize: "12px", color: "#64748b" }}>ছবির প্রিভিউ</span>
+                </div>
+              )}
+
+              <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", fontWeight: 600, color: "#0f172a", cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={categoryForm.is_featured}
+                  onChange={e => setCategoryForm({ ...categoryForm, is_featured: e.target.checked })}
+                />
+                হোমপেজে ফিচার্ড ক্যাটাগরি হিসেবে দেখান (Featured on Homepage)
+              </label>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", paddingTop: "14px", borderTop: "1px solid #e2e8f0" }}>
+                <button
+                  type="button"
+                  onClick={() => setShowCategoryModal(false)}
+                  className="admin-header-link"
+                  style={{ padding: "8px 16px" }}
+                >
+                  বাতিল
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingCategory}
+                  className="admin-submit-btn"
+                  style={{ width: "auto", padding: "8px 20px", marginTop: 0 }}
+                >
+                  {savingCategory ? "সংরক্ষণ হচ্ছে..." : (editingCategory ? "আপডেট করুন" : "যোগ করুন")}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
       {/* Courier Booking Modal */}
