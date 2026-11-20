@@ -114,17 +114,18 @@ function LightEmeraldCard({ product, index }: { product: Product; index: number 
           onClick={(e) => handleAction(e, isAddToCartButton)}
           style={{
             width: "100%",
-            padding: "8px 4px",
+            padding: "8px 2px",
             borderRadius: "8px",
             border: isAddToCartButton ? "1.5px solid #065f46" : "none",
             backgroundColor: isAddToCartButton ? "#ffffff" : "#065f46",
             color: isAddToCartButton ? "#065f46" : "#ffffff",
-            fontSize: "12px",
+            fontSize: "11px",
             fontWeight: 800,
             cursor: "pointer",
             transition: "all 0.15s ease",
             whiteSpace: "nowrap",
             boxSizing: "border-box",
+            textAlign: "center",
           }}
         >
           {isAddToCartButton ? "কার্ট যোগ করুন" : "অর্ডার করুন"}
@@ -397,7 +398,7 @@ export function Model1DashboardPortal({
         </aside>
 
         {/* Right Main Fluid Canvas (100% Remaining Screen Width) */}
-        <main style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: "28px" }}>
+        <main className="model1-main-canvas" style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: "28px" }}>
           {/* Mobile Header (Exact to user uploaded reference) */}
           <div className="model1-mobile-header">
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
