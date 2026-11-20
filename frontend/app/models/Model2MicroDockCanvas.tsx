@@ -3,8 +3,100 @@
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { HeroSlider } from "../HeroSlider";
-import { ProductCard } from "../components";
+import { cleanImageUrl } from "../components";
+import { formatPrice } from "../formatters";
+import { useCart } from "../cart";
 import type { Product, HeroSlide, Review, Category } from "../types";
+
+function DarkCinematicCard({ product }: { product: Product }) {
+  const { add } = useCart();
+  const primaryImage = product.images?.find((x) => x.is_primary) || product.images?.[0];
+  const image = cleanImageUrl(primaryImage?.card_image || primaryImage?.hero_desktop || primaryImage?.image);
+  const currentPrice = product.discount_price || product.price;
+
+  const handleOrderNow = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    add(product, false);
+    window.location.href = "/checkout";
+  };
+
+  return (
+    <article
+      style={{
+        background: "linear-gradient(145deg, rgba(30, 41, 59, 0.75), rgba(15, 23, 42, 0.9))",
+        backdropFilter: "blur(14px)",
+        WebkitBackdropFilter: "blur(14px)",
+        borderRadius: "18px",
+        border: "1px solid rgba(16, 185, 129, 0.28)",
+        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.45)",
+        padding: "10px",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+        cursor: "pointer",
+        transition: "transform 0.2s ease, border-color 0.2s ease",
+      }}
+      onClick={() => {
+        window.location.href = `/products/${product.slug}`;
+      }}
+    >
+      <div
+        style={{
+          width: "100%",
+          aspectRatio: "1/1",
+          borderRadius: "12px",
+          overflow: "hidden",
+          backgroundColor: "#070d18",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          position: "relative",
+        }}
+      >
+        {image ? (
+          <img src={image} alt={product.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        ) : (
+          <span style={{ fontSize: "32px" }}>📦</span>
+        )}
+      </div>
+
+      <div style={{ marginTop: "10px", textAlign: "center" }}>
+        <div
+          style={{
+            fontSize: "15px",
+            fontWeight: 900,
+            color: "#fef08a",
+            letterSpacing: "0.5px",
+            marginBottom: "8px",
+          }}
+        >
+          {formatPrice(currentPrice, "bn")}
+        </div>
+
+        <button
+          type="button"
+          onClick={handleOrderNow}
+          style={{
+            width: "100%",
+            padding: "8px 14px",
+            borderRadius: "20px",
+            border: "1px solid rgba(16, 185, 129, 0.7)",
+            backgroundColor: "rgba(16, 185, 129, 0.15)",
+            color: "#ffffff",
+            fontSize: "12px",
+            fontWeight: 800,
+            cursor: "pointer",
+            boxShadow: "0 0 10px rgba(16, 185, 129, 0.25)",
+            transition: "all 0.15s ease",
+          }}
+        >
+          অর্ডার করুন
+        </button>
+      </div>
+    </article>
+  );
+}
 
 interface ModelProps {
   products: Product[];
@@ -169,7 +261,53 @@ export function Model2MicroDockCanvas({
                 Alor Chhoya
               </div>
             </div>
+
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              {/* Mobile Model Switcher Pill */}
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  backgroundColor: "rgba(30, 41, 59, 0.85)",
+                  padding: "2px 4px",
+                  borderRadius: "14px",
+                  border: "1px solid rgba(16, 185, 129, 0.4)",
+                  gap: "2px",
+                }}
+              >
+                <span style={{ fontSize: "10px", fontWeight: 800, color: "#94a3b8", padding: "0 3px" }}>
+                  মডেল:
+                </span>
+                <Link
+                  href="/?model=model1"
+                  style={{
+                    padding: "2px 7px",
+                    borderRadius: "8px",
+                    fontSize: "11px",
+                    fontWeight: 800,
+                    textDecoration: "none",
+                    backgroundColor: "transparent",
+                    color: "#94a3b8",
+                  }}
+                >
+                  ১
+                </Link>
+                <Link
+                  href="/?model=model2"
+                  style={{
+                    padding: "2px 7px",
+                    borderRadius: "8px",
+                    fontSize: "11px",
+                    fontWeight: 800,
+                    textDecoration: "none",
+                    backgroundColor: "#10b981",
+                    color: "#ffffff",
+                  }}
+                >
+                  ২
+                </Link>
+              </div>
+
               <Link href="/cart" style={{ width: "34px", height: "34px", borderRadius: "50%", backgroundColor: "rgba(6, 78, 59, 0.6)", border: "1px solid rgba(16, 185, 129, 0.5)", color: "#34d399", display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none", fontSize: "15px", position: "relative" }}>
                 🛒
                 <span style={{ position: "absolute", top: "2px", right: "2px", width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#f59e0b" }}></span>
@@ -372,9 +510,7 @@ export function Model2MicroDockCanvas({
           {filteredProducts.length > 0 ? (
             <div className="model-product-grid">
               {filteredProducts.map((p) => (
-                <div key={p.id} style={{ backgroundColor: "#ffffff", borderRadius: "16px", overflow: "hidden" }}>
-                  <ProductCard product={p} />
-                </div>
+                <DarkCinematicCard key={p.id} product={p} />
               ))}
             </div>
           ) : (

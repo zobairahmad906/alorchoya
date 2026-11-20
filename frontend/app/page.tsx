@@ -140,7 +140,7 @@ export default async function Home({ searchParams }: PageProps) {
   const validLayouts: HomepageLayout[] = ["model1", "model2"];
   const activeLayout = (queryParamModel && validLayouts.includes(queryParamModel as HomepageLayout))
     ? (queryParamModel as HomepageLayout)
-    : ((siteSettings?.homepage_layout && validLayouts.includes(siteSettings.homepage_layout)) ? siteSettings.homepage_layout : "model1");
+    : "model1";
 
   return <>
     <div id="top" />

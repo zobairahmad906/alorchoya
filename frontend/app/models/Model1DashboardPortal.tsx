@@ -3,8 +3,121 @@
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { HeroSlider } from "../HeroSlider";
-import { ProductCard } from "../components";
+import { cleanImageUrl, ProductCard } from "../components";
+import { formatPrice } from "../formatters";
+import { useCart } from "../cart";
 import type { Product, HeroSlide, Review, Category } from "../types";
+
+function LightEmeraldCard({ product, index }: { product: Product; index: number }) {
+  const { add } = useCart();
+  const primaryImage = product.images?.find((x) => x.is_primary) || product.images?.[0];
+  const image = cleanImageUrl(primaryImage?.card_image || primaryImage?.hero_desktop || primaryImage?.image);
+  const currentPrice = product.discount_price || product.price;
+  const isAvailable = product.stock === undefined || product.stock === null || Number(product.stock) > 0;
+
+  // Calculate discount percentage or fallback (30%, 10%, 15%, 25% like in screenshot)
+  const discountPct =
+    product.discount_price && Number(product.discount_price) < Number(product.price)
+      ? Math.round(((Number(product.price) - Number(product.discount_price)) / Number(product.price)) * 100)
+      : [30, 10, 15, 25][index % 4];
+
+  const isAddToCartButton = index % 2 === 1;
+
+  const handleAction = (e: React.MouseEvent, isCart: boolean) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (!isAvailable) return;
+    if (isCart) {
+      add(product, true);
+    } else {
+      add(product, false);
+      window.location.href = "/checkout";
+    }
+  };
+
+  return (
+    <article
+      style={{
+        backgroundColor: "#ffffff",
+        borderRadius: "14px",
+        border: "1px solid #e2e8f0",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+        padding: "10px",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+        position: "relative",
+        cursor: "pointer",
+        transition: "transform 0.2s ease, box-shadow 0.2s ease",
+      }}
+      onClick={() => {
+        window.location.href = `/products/${product.slug}`;
+      }}
+    >
+      {/* Green discount pill matching screenshot */}
+      <div
+        style={{
+          position: "absolute",
+          top: "12px",
+          left: "12px",
+          zIndex: 5,
+          backgroundColor: "#065f46",
+          color: "#ffffff",
+          fontSize: "11px",
+          fontWeight: 900,
+          padding: "2px 7px",
+          borderRadius: "6px",
+        }}
+      >
+        -{formatPrice(discountPct, "bn").replace("৳", "")}%
+      </div>
+
+      <div
+        style={{
+          width: "100%",
+          aspectRatio: "1/1",
+          borderRadius: "10px",
+          overflow: "hidden",
+          backgroundColor: "#f8fafc",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        {image ? (
+          <img src={image} alt={product.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        ) : (
+          <span style={{ fontSize: "32px" }}>📦</span>
+        )}
+      </div>
+
+      <div style={{ marginTop: "10px" }}>
+        <div style={{ fontSize: "16px", fontWeight: 900, color: "#0f172a", marginBottom: "8px" }}>
+          {formatPrice(currentPrice, "bn")}
+        </div>
+
+        <button
+          type="button"
+          onClick={(e) => handleAction(e, isAddToCartButton)}
+          style={{
+            width: "100%",
+            padding: "8px 12px",
+            borderRadius: "8px",
+            border: "none",
+            backgroundColor: "#065f46",
+            color: "#ffffff",
+            fontSize: "12px",
+            fontWeight: 800,
+            cursor: "pointer",
+            transition: "all 0.15s ease",
+          }}
+        >
+          {isAddToCartButton ? "কার্টে যোগ করুন" : "অর্ডার করুন"}
+        </button>
+      </div>
+    </article>
+  );
+}
 
 interface ModelProps {
   products: Product[];
@@ -229,12 +342,60 @@ export function Model1DashboardPortal({
                 <div style={{ fontSize: "10px", fontWeight: 700, color: "#047857" }}>আলোর ছোঁয়া</div>
               </div>
             </div>
-            <Link href="/cart" style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", width: "36px", height: "36px", borderRadius: "50%", backgroundColor: "#f1f5f9", textDecoration: "none", color: "#334155", fontSize: "16px" }}>
-              🛒
-              <span style={{ position: "absolute", top: "-2px", right: "-2px", backgroundColor: "#065f46", color: "#ffffff", fontSize: "10px", fontWeight: 900, width: "18px", height: "18px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                ৩
-              </span>
-            </Link>
+
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              {/* Mobile Model Switcher Pill */}
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  backgroundColor: "#f1f5f9",
+                  padding: "2px 4px",
+                  borderRadius: "14px",
+                  border: "1px solid #cbd5e1",
+                  gap: "2px",
+                }}
+              >
+                <span style={{ fontSize: "10px", fontWeight: 800, color: "#475569", padding: "0 2px" }}>
+                  মডেল:
+                </span>
+                <Link
+                  href="/?model=model1"
+                  style={{
+                    padding: "2px 7px",
+                    borderRadius: "8px",
+                    fontSize: "11px",
+                    fontWeight: 800,
+                    textDecoration: "none",
+                    backgroundColor: "#10b981",
+                    color: "#ffffff",
+                  }}
+                >
+                  ১
+                </Link>
+                <Link
+                  href="/?model=model2"
+                  style={{
+                    padding: "2px 7px",
+                    borderRadius: "8px",
+                    fontSize: "11px",
+                    fontWeight: 800,
+                    textDecoration: "none",
+                    backgroundColor: "transparent",
+                    color: "#475569",
+                  }}
+                >
+                  ২
+                </Link>
+              </div>
+
+              <Link href="/cart" style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", width: "36px", height: "36px", borderRadius: "50%", backgroundColor: "#f1f5f9", textDecoration: "none", color: "#334155", fontSize: "16px" }}>
+                🛒
+                <span style={{ position: "absolute", top: "-2px", right: "-2px", backgroundColor: "#065f46", color: "#ffffff", fontSize: "10px", fontWeight: 900, width: "18px", height: "18px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  ৩
+                </span>
+              </Link>
+            </div>
           </div>
 
           {/* Mobile Full-Width Search Bar */}
@@ -493,8 +654,8 @@ export function Model1DashboardPortal({
                 </span>
               </div>
 
-              {/* Category Filter Pills on Top of Grid */}
-              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+              {/* Category Filter Pills on Top of Grid (Desktop Only) */}
+              <div className="desktop-only-filter" style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                 <button
                   type="button"
                   onClick={() => setActiveCategorySlug("all")}
@@ -538,8 +699,8 @@ export function Model1DashboardPortal({
             {/* High-Density Responsive Fluid Grid (5-6 Columns on Widescreen, 2 cols on mobile) */}
             {filteredProducts.length > 0 ? (
               <div className="model-product-grid">
-                {filteredProducts.map((prod) => (
-                  <ProductCard key={prod.id} product={prod} />
+                {filteredProducts.map((prod, idx) => (
+                  <LightEmeraldCard key={prod.id} product={prod} index={idx} />
                 ))}
               </div>
             ) : (
