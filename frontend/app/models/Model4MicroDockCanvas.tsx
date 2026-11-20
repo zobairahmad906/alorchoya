@@ -22,7 +22,6 @@ export function Model4MicroDockCanvas({
   discountedProducts,
 }: ModelProps) {
   const [activeCategory, setActiveCategory] = useState<string>("all");
-  const [dockExpanded, setDockExpanded] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
 
   const filteredProducts = useMemo(() => {
@@ -46,20 +45,18 @@ export function Model4MicroDockCanvas({
     <div style={{ backgroundColor: "#0f172a", minHeight: "100vh", width: "100%", color: "#f8fafc" }}>
       {/* Edge-to-Edge Container with Left Floating Micro-Dock */}
       <div style={{ display: "flex", width: "100%", minHeight: "100vh" }}>
-        {/* Left Floating Micro-Dock (Mac / Linear Style) */}
+        {/* Left Persistent Category Panel */}
         <aside
           id="categories"
-          onMouseEnter={() => setDockExpanded(true)}
-          onMouseLeave={() => setDockExpanded(false)}
           style={{
-            width: dockExpanded ? "240px" : "72px",
-            transition: "width 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+            width: "250px",
+            minWidth: "240px",
             backgroundColor: "#1e293b",
             borderRight: "1px solid #334155",
             display: "flex",
             flexDirection: "column",
-            alignItems: dockExpanded ? "stretch" : "center",
-            padding: "16px 10px",
+            alignItems: "stretch",
+            padding: "16px 12px",
             gap: "10px",
             position: "sticky",
             top: 0,
@@ -71,13 +68,13 @@ export function Model4MicroDockCanvas({
             flexShrink: 0,
           }}
         >
-          {/* Dock Brand Icon */}
+          {/* Brand Header */}
           <div
             style={{
               display: "flex",
               alignItems: "center",
-              gap: "12px",
-              padding: "10px",
+              gap: "10px",
+              padding: "12px 14px",
               borderRadius: "12px",
               backgroundColor: "#0f172a",
               border: "1px solid #334155",
@@ -87,7 +84,10 @@ export function Model4MicroDockCanvas({
             onClick={() => setActiveCategory("all")}
           >
             <span style={{ fontSize: "20px" }}>🌟</span>
-            {dockExpanded && <span style={{ fontWeight: 800, fontSize: "14px", color: "#38bdf8", whiteSpace: "nowrap" }}>আলোর ছোঁয়া</span>}
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <span style={{ fontWeight: 800, fontSize: "14px", color: "#38bdf8" }}>ক্যাটাগরি সমূহ</span>
+              <span style={{ fontSize: "11px", color: "#94a3b8" }}>পণ্য নির্বাচন করুন</span>
+            </div>
           </div>
 
           {/* All Collection Button */}
@@ -98,25 +98,31 @@ export function Model4MicroDockCanvas({
               display: "flex",
               alignItems: "center",
               gap: "12px",
-              padding: "10px",
+              padding: "10px 14px",
               borderRadius: "10px",
               border: "none",
               backgroundColor: activeCategory === "all" ? "#0284c7" : "transparent",
               color: "#ffffff",
               cursor: "pointer",
               width: "100%",
-              justifyContent: dockExpanded ? "flex-start" : "center",
+              justifyContent: "flex-start",
               transition: "all 0.15s ease",
             }}
-            title="সব কালেকশন"
+            title="সকল পণ্য"
           >
             <span style={{ fontSize: "18px" }}>🔥</span>
-            {dockExpanded && <span style={{ fontWeight: 700, fontSize: "13px", whiteSpace: "nowrap" }}>সব পণ্য ({products.length})</span>}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flex: 1, minWidth: 0 }}>
+              <span style={{ fontWeight: 700, fontSize: "13px", color: activeCategory === "all" ? "#ffffff" : "#e2e8f0" }}>সকল পণ্য</span>
+              <span style={{ fontSize: "11px", backgroundColor: activeCategory === "all" ? "rgba(255,255,255,0.25)" : "#334155", color: "#ffffff", padding: "2px 7px", borderRadius: "10px", fontWeight: 800 }}>
+                {products.length}
+              </span>
+            </div>
           </button>
 
-          {/* Category Icons in Dock */}
+          {/* Category Items in Dock */}
           {categories.map((cat) => {
             const isActive = activeCategory === cat.slug;
+            const catImg = cat.image || cat.image_url;
             return (
               <button
                 key={cat.slug}
@@ -126,31 +132,35 @@ export function Model4MicroDockCanvas({
                   display: "flex",
                   alignItems: "center",
                   gap: "12px",
-                  padding: "10px",
+                  padding: "10px 14px",
                   borderRadius: "10px",
                   border: "none",
                   backgroundColor: isActive ? "#0284c7" : "transparent",
                   color: isActive ? "#ffffff" : "#94a3b8",
                   cursor: "pointer",
                   width: "100%",
-                  justifyContent: dockExpanded ? "flex-start" : "center",
+                  justifyContent: "flex-start",
                   transition: "all 0.15s ease",
                 }}
                 title={cat.name}
               >
-                <span style={{ fontSize: "18px" }}>{cat.icon || "🏷️"}</span>
-                {dockExpanded && (
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flex: 1, minWidth: 0 }}>
-                    <span style={{ fontWeight: 700, fontSize: "13px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                      {cat.name}
+                <div style={{ width: "26px", height: "26px", borderRadius: "6px", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "#0f172a", flexShrink: 0 }}>
+                  {catImg ? (
+                    <img src={catImg} alt={cat.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  ) : (
+                    <span style={{ fontSize: "16px" }}>{cat.icon || "🏷️"}</span>
+                  )}
+                </div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flex: 1, minWidth: 0, gap: "6px" }}>
+                  <span style={{ fontWeight: 700, fontSize: "13px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: isActive ? "#ffffff" : "#cbd5e1" }}>
+                    {cat.name}
+                  </span>
+                  {cat.badge && (
+                    <span style={{ fontSize: "10px", backgroundColor: "#f59e0b", color: "#000", padding: "1px 5px", borderRadius: "4px", fontWeight: 800, flexShrink: 0 }}>
+                      {cat.badge}
                     </span>
-                    {cat.badge && (
-                      <span style={{ fontSize: "10px", backgroundColor: "#f59e0b", color: "#000", padding: "1px 5px", borderRadius: "4px", fontWeight: 800 }}>
-                        {cat.badge}
-                      </span>
-                    )}
-                  </div>
-                )}
+                  )}
+                </div>
               </button>
             );
           })}
