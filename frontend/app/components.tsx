@@ -143,6 +143,10 @@ export function Header() {
             <Link href="/categories">{t("categories")}</Link>
             <Link href="/offers">{t("offers")}</Link>
             <Link href="/track-order">{t("tracking")}</Link>
+            <Link href="/dashboard" style={{ color: "#0284c7", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: "4px" }}>
+              <span>⚙️</span>
+              <span>{locale === "en" ? "Dashboard" : "ড্যাশবোর্ড"}</span>
+            </Link>
           </nav>
           <div className="nav-right" style={{ position: "relative" }}>
             {searchOpen ? (
@@ -255,8 +259,9 @@ export function Header() {
             )}
             {account?.authenticated ? (
               <>
-                <Link className="profile-nav" href="/dashboard" title={t("admin")} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "32px", height: "32px", borderRadius: "50%", backgroundColor: "#0f172a", color: "#38bdf8", fontSize: "0.8rem", fontWeight: 800, textDecoration: "none", border: "1px solid #0284c7" }}>
-                  ⚙️
+                <Link className="profile-nav" href="/dashboard" title="অ্যাডমিন ড্যাশবোর্ড" style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "6px 12px", borderRadius: "20px", backgroundColor: "#0f172a", color: "#38bdf8", fontSize: "0.82rem", fontWeight: 700, textDecoration: "none", border: "1px solid #0284c7" }}>
+                  <span>⚙️</span>
+                  <span>{locale === "en" ? "Dashboard" : "ড্যাশবোর্ড"}</span>
                 </Link>
                 <Link className="profile-nav" href="/account" title={account.name || t("account")}>
                   {account.profile?.avatar_url ? <img src={account.profile.avatar_url} alt="" /> : <span>{(account.name || "A").slice(0, 1)}</span>}
@@ -265,8 +270,9 @@ export function Header() {
             ) : (
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                 <Link className="account-link" href="/account">{t("signUp")}</Link>
-                <Link href="/dashboard" title="অ্যাডমিন ড্যাশবোর্ড" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "30px", height: "30px", borderRadius: "50%", backgroundColor: "#f1f5f9", color: "#475569", fontSize: "0.85rem", textDecoration: "none", border: "1px solid #cbd5e1" }}>
-                  ⚙️
+                <Link href="/dashboard" title="অ্যাডমিন ড্যাশবোর্ড" style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "6px 12px", borderRadius: "20px", backgroundColor: "#0f172a", color: "#38bdf8", fontSize: "0.82rem", fontWeight: 700, textDecoration: "none", border: "1px solid #0284c7" }}>
+                  <span>⚙️</span>
+                  <span>{locale === "en" ? "Dashboard" : "ড্যাশবোর্ড"}</span>
                 </Link>
               </div>
             )}

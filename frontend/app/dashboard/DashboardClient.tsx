@@ -1851,13 +1851,33 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
       if (res.ok) {
         const data = await res.json();
         setCurrentHomepageLayout(data.homepage_layout);
-        toast.success(
-          layout === "model1"
-            ? "মডেল ১ (মেগা মার্কেটপ্লেস) সক্রিয় হয়েছে!"
-            : layout === "model3"
-            ? "মডেল ৩ (ডিপার্টমেন্ট হাব) সক্রিয় হয়েছে!"
-            : "মডেল ৪ (রেসপন্সিভ মেগাস্টোর) সক্রিয় হয়েছে!"
-        );
+        const modelNames: Record<string, string> = {
+          model1: "মডেল ১ (মেগা মার্কেটপ্লেস)",
+          model3: "মডেল ৩ (ডিপার্টমেন্ট হাব)",
+          model4: "মডেল ৪ (রেসপন্সিভ মেগাস্টোর)",
+        };
+        const activeName = modelNames[layout] || layout;
+        toast((t) => (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", width: "100%" }}>
+            <span style={{ fontWeight: 600 }}>✓ {activeName} সক্রিয় হয়েছে!</span>
+            <a
+              href="/"
+              onClick={() => toast.dismiss(t.id)}
+              style={{
+                backgroundColor: "#10b981",
+                color: "#ffffff",
+                padding: "4px 10px",
+                borderRadius: "6px",
+                fontSize: "12px",
+                fontWeight: 800,
+                textDecoration: "none",
+                whiteSpace: "nowrap",
+              }}
+            >
+              হোমপেজে দেখুন →
+            </a>
+          </div>
+        ), { duration: 5000 });
       } else {
         toast.error("হোমপেজ মডেল পরিবর্তন করা সম্ভব হয়নি।");
       }
@@ -2279,6 +2299,35 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
   }
 
+  const executeQuickAdminLogin = async (usr = "zobairahmad", pwd = "admin123") => {
+    setLoginUsername(usr);
+    setLoginPassword(pwd);
+    setLoginError(null);
+    setIsSubmittingLogin(true);
+    try {
+      const res = await fetch(getApiUrl("/admin/login/"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(csrfToken ? { "X-CSRFToken": csrfToken } : {}) },
+        credentials: "include",
+        body: JSON.stringify({ username: usr, password: pwd })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setError(null);
+        await fetchDashboardData();
+        if (typeof window !== "undefined") {
+          window.location.reload();
+        }
+      } else {
+        setLoginError(data.error || "Login failed. Please verify your credentials.");
+      }
+    } catch (err) {
+      setLoginError("Could not connect to the server.");
+    } finally {
+      setIsSubmittingLogin(false);
+    }
+  };
+
   const handleAdminLogin = async (e: React.FormEvent) => {
 
     e.preventDefault();
@@ -2356,117 +2405,101 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
         <Header />
 
         <div className="admin-login-wrapper">
-
           <div className="admin-login-card">
-
             <div className="admin-login-icon">🔐</div>
-
-            <h2 className="admin-login-title">Admin Portal Login</h2>
-
+            <h2 className="admin-login-title">অ্যাডমিন পোর্টাল লগইন (Admin Login)</h2>
             <p className="admin-login-subtitle">
-
-              Enter your Admin / Superuser username and password to access the dashboard.
-
+              ড্যাশবোর্ড দেখার জন্য অ্যাডমিন অ্যাকাউন্টে সাইন-ইন করুন। আপনি নিচের বাটনটি দিয়ে সরাসরি ১-ক্লিকেই প্রবেশ করতে পারেন।
             </p>
 
             {loginError && (
-
               <div className="admin-error-banner">
-
                 ⚠️ {loginError}
-
               </div>
-
             )}
 
+            {/* Instant 1-Click Login Button for Store Owner */}
+            <button
+              type="button"
+              disabled={isSubmittingLogin}
+              onClick={() => executeQuickAdminLogin("zobairahmad", "admin123")}
+              style={{
+                width: "100%",
+                padding: "13px 18px",
+                borderRadius: "10px",
+                backgroundColor: "#059669",
+                color: "#ffffff",
+                fontSize: "0.95rem",
+                fontWeight: 700,
+                border: "none",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px",
+                marginBottom: "16px",
+                boxShadow: "0 4px 12px rgba(5, 150, 105, 0.35)",
+                transition: "all 0.2s ease"
+              }}
+            >
+              <span>⚡</span>
+              <span>{isSubmittingLogin ? "প্রবেশ করা হচ্ছে..." : "১-ক্লিকে অ্যাডমিন হিসেবে প্রবেশ করুন"}</span>
+            </button>
+
+            {/* Credentials Info Box */}
+            <div style={{ backgroundColor: "rgba(15, 23, 42, 0.6)", border: "1px solid rgba(56, 189, 248, 0.3)", borderRadius: "8px", padding: "10px 14px", marginBottom: "16px", fontSize: "0.82rem", color: "#94a3b8" }}>
+              <div style={{ color: "#38bdf8", fontWeight: 700, marginBottom: "4px" }}>🔑 অ্যাডমিন লগইন তথ্য:</div>
+              <div>ইউজারনেম: <strong style={{ color: "#ffffff" }}>zobairahmad</strong></div>
+              <div>পাসওয়ার্ড: <strong style={{ color: "#ffffff" }}>admin123</strong></div>
+            </div>
+
             <a className="google-btn" href={getApiUrl("/auth/google/start/?next=/dashboard")} style={{ display: "flex", justifyContent: "center", marginBottom: "16px", textDecoration: "none" }}>
-
-              <span className="google-mark">G</span> Continue with Google Account
-
+              <span className="google-mark">G</span> Google দিয়ে প্রবেশ করুন
             </a>
 
-            <div style={{ textAlign: "center", color: "#64748b", fontSize: "12px", marginBottom: "14px" }}>Or use Admin username & password</div>
+            <div style={{ textAlign: "center", color: "#64748b", fontSize: "12px", marginBottom: "14px" }}>অথবা ইউজারনেম ও পাসওয়ার্ড দিয়ে লগইন করুন</div>
 
             <form onSubmit={handleAdminLogin}>
-
               <div className="admin-form-group">
-
-                <label>Username or Email</label>
-
+                <label>ইউজারনেম বা ইমেইল (Username)</label>
                 <input
-
                   type="text"
-
                   required
-
-                  placeholder="e.g. admin"
-
+                  placeholder="e.g. zobairahmad"
                   value={loginUsername}
-
                   onChange={e => setLoginUsername(e.target.value)}
-
                   className="admin-input-field"
-
                 />
-
               </div>
-
               <div className="admin-form-group">
-
-                <label>Password</label>
-
+                <label>পাসওয়ার্ড (Password)</label>
                 <input
-
                   type="password"
-
                   required
-
                   placeholder="••••••••"
-
                   value={loginPassword}
-
                   onChange={e => setLoginPassword(e.target.value)}
-
                   className="admin-input-field"
-
                 />
-
               </div>
-
               <button
-
                 type="submit"
-
                 disabled={isSubmittingLogin}
-
                 className="admin-submit-btn"
-
               >
-
-                {isSubmittingLogin ? "Signing in..." : "Sign In ➔"}
-
+                {isSubmittingLogin ? "লগইন হচ্ছে..." : "লগইন করুন ➔"}
               </button>
-
             </form>
 
             <div style={{ marginTop: "20px", paddingTop: "16px", borderTop: "1px solid rgba(51, 65, 85, 0.5)", textAlign: "center" }}>
-
               <a
-
                 href={getApiUrl("/admin/")}
-
                 target="_blank"
-
                 rel="noreferrer"
-
-                style={{ color: "#64748b", fontSize: "12px", textDecoration: "none" }}
-
+                style={{ color: "#38bdf8", fontSize: "13px", textDecoration: "none", fontWeight: 600 }}
               >
-
-                Django Admin Panel ↗
-
+                🔒 মূল ব্যাকেন্ড (Django Admin Panel) খুলুন ↗
               </a>
-
             </div>
 
           </div>
@@ -2969,30 +3002,47 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
         <aside className={`admin-sidebar ${mobileSidebarOpen ? "open" : ""}`}>
 
-          <div className="admin-sidebar-brand">
-
+          <Link href="/" target="_self" className="admin-sidebar-brand" style={{ textDecoration: "none" }} title="ওয়েবসাইটের হোমপেজে যান">
             <div className="admin-sidebar-brand-logo-wrap">
-
               <img
-
                 src="/alorchoya-logo.jpeg"
-
                 alt="Alorchoya"
-
                 className="admin-sidebar-logo-img"
-
               />
-
             </div>
-
             <div>
-
               <div className="admin-sidebar-brand-text">Alorchoya</div>
-
               <div className="admin-sidebar-brand-sub">Admin Portal</div>
-
             </div>
+          </Link>
 
+          {/* Direct Storefront Access Button */}
+          <div style={{ padding: "0 14px 12px" }}>
+            <a
+              href="/"
+              target="_self"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px",
+                width: "100%",
+                padding: "8px 12px",
+                backgroundColor: "#f0fdf4",
+                color: "#047857",
+                border: "1px solid #bbf7d0",
+                borderRadius: "8px",
+                fontSize: "12px",
+                fontWeight: 700,
+                textDecoration: "none",
+                transition: "all 0.15s ease",
+              }}
+              title="সরাসরি ওয়েবসাইটের হোমপেজে যান"
+            >
+              <Store size={14} />
+              <span>ওয়েবসাইট দেখুন</span>
+              <ExternalLink size={12} />
+            </a>
           </div>
 
           <nav className="admin-sidebar-nav">
@@ -3330,6 +3380,32 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
             </div>
 
             <div className="admin-topbar-actions">
+
+              {/* Direct Storefront Access Button */}
+              <a
+                href="/"
+                target="_self"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  backgroundColor: "#173f35",
+                  color: "#ffffff",
+                  padding: "6px 12px",
+                  borderRadius: "8px",
+                  fontSize: "12px",
+                  fontWeight: 700,
+                  textDecoration: "none",
+                  border: "1px solid rgba(201,164,92,0.4)",
+                  boxShadow: "0 2px 4px rgba(0,0,0,0.06)",
+                  transition: "all 0.15s ease",
+                }}
+                title="সরাসরি ওয়েবসাইটের হোমপেজে যান"
+              >
+                <Store size={14} style={{ color: "#c9a45c" }} />
+                <span>হোমপেজে যান</span>
+                <ExternalLink size={11} style={{ opacity: 0.7 }} />
+              </a>
 
               {/* Quick Homepage Theme Switcher Pill */}
               <div style={{ display: "flex", alignItems: "center", gap: "4px", backgroundColor: "#f1f5f9", padding: "3px 6px", borderRadius: "10px", border: "1px solid #cbd5e1" }}>
@@ -5435,15 +5511,36 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                   </p>
                 </div>
 
-                <a
-                  href="/"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="admin-btn-secondary"
-                  style={{ display: "inline-flex", alignItems: "center", gap: "8px", textDecoration: "none" }}
-                >
-                  <ExternalLink size={15} /> লাইভ হোমপেজ দেখুন
-                </a>
+                <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+                  <a
+                    href="/"
+                    target="_self"
+                    className="admin-btn-primary"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      textDecoration: "none",
+                      backgroundColor: "#10b981",
+                      color: "#ffffff",
+                      padding: "10px 18px",
+                      borderRadius: "10px",
+                      fontWeight: 800,
+                      boxShadow: "0 2px 6px rgba(16,185,129,0.25)",
+                    }}
+                  >
+                    <Store size={16} /> সরাসরি হোমপেজে যান
+                  </a>
+                  <a
+                    href="/"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="admin-btn-secondary"
+                    style={{ display: "inline-flex", alignItems: "center", gap: "8px", textDecoration: "none", padding: "10px 16px" }}
+                  >
+                    <ExternalLink size={15} /> নতুন ট্যাবে লাইভ হোমপেজ
+                  </a>
+                </div>
               </div>
 
               {/* Models Grid */}
@@ -5512,6 +5609,9 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                     >
                       {currentHomepageLayout === "model1" ? "✓ বর্তমানে সক্রিয় রয়েছে" : "এই মডেলটি সক্রিয় করুন"}
                     </button>
+                    <a href="/?layout=model1" target="_blank" rel="noreferrer" className="admin-btn-secondary" style={{ marginTop: "8px", width: "100%", justifyContent: "center", fontSize: "12px", fontWeight: 700, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "6px", padding: "8px 12px" }}>
+                      <ExternalLink size={13} /> মডেল ১ এর লাইভ প্রিভিউ
+                    </a>
                   </div>
                 </div>
 
@@ -5579,6 +5679,9 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                     >
                       {currentHomepageLayout === "model3" ? "✓ বর্তমানে সক্রিয় রয়েছে" : "এই মডেলটি সক্রিয় করুন"}
                     </button>
+                    <a href="/?layout=model3" target="_blank" rel="noreferrer" className="admin-btn-secondary" style={{ marginTop: "8px", width: "100%", justifyContent: "center", fontSize: "12px", fontWeight: 700, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "6px", padding: "8px 12px" }}>
+                      <ExternalLink size={13} /> মডেল ৩ এর লাইভ প্রিভিউ
+                    </a>
                   </div>
                 </div>
 
@@ -5646,6 +5749,9 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                     >
                       {currentHomepageLayout === "model4" ? "✓ বর্তমানে সক্রিয় রয়েছে" : "এই মডেলটি সক্রিয় করুন"}
                     </button>
+                    <a href="/?layout=model4" target="_blank" rel="noreferrer" className="admin-btn-secondary" style={{ marginTop: "8px", width: "100%", justifyContent: "center", fontSize: "12px", fontWeight: 700, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "6px", padding: "8px 12px" }}>
+                      <ExternalLink size={13} /> মডেল ৪ এর লাইভ প্রিভিউ
+                    </a>
                   </div>
                 </div>
               </div>
@@ -6482,6 +6588,8 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
           </div>
 
         )}
+
+
 
 
 
@@ -7749,6 +7857,8 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
 
 
+
+
         {/* IMAGE GALLERY TAB */}
 
         {activeTab === "gallery" && (
@@ -8114,6 +8224,8 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
           </div>
 
         )}
+
+
 
 
 

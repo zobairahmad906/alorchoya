@@ -1637,7 +1637,10 @@ class PublicSiteSettingsView(APIView):
 
     def get(self, request):
         settings = SiteSettings.get_solo()
-        return Response(SiteSettingsSerializer(settings).data)
+        response = Response(SiteSettingsSerializer(settings).data)
+        response["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+        response["Pragma"] = "no-cache"
+        return response
 
 
 class AdminSiteSettingsView(APIView):
@@ -1646,15 +1649,25 @@ class AdminSiteSettingsView(APIView):
 
     def get(self, request):
         settings = SiteSettings.get_solo()
-        return Response(SiteSettingsSerializer(settings).data)
+        response = Response(SiteSettingsSerializer(settings).data)
+        response["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+        return response
 
     def patch(self, request):
         settings = SiteSettings.get_solo()
         serializer = SiteSettingsSerializer(settings, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data)
+            response = Response(serializer.data)
+            response["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+            return response
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def put(self, request):
+        return self.patch(request)
+
+    def post(self, request):
+        return self.patch(request)
 
 
 class AdminCategoryListCreateView(APIView):

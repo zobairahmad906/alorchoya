@@ -7,6 +7,10 @@ import { Model4ResponsiveMegastore } from "./models/Model4ResponsiveMegastore";
 import type { Product, Review, HeroSlide, Category, SiteSettings } from "./types";
 import { getTranslations } from "next-intl/server";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
+
 const API = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
 async function getProducts(): Promise<Product[]> {
@@ -47,14 +51,34 @@ async function getCategories(): Promise<Category[]> {
 
 async function getSiteSettings(): Promise<SiteSettings> {
   try {
-    const response = await fetch(`${API}/site-settings/`, { next: { revalidate: 5 } });
-    return response.ok ? response.json() : { homepage_layout: "model1" };
+    const response = await fetch(`${API}/site-settings/`, {
+      cache: "no-store",
+      headers: {
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache",
+      },
+    });
+    if (response.ok) {
+      return await response.json();
+    }
+    return { homepage_layout: "model1" };
   } catch {
     return { homepage_layout: "model1" };
   }
 }
 
-export default async function Home() {
+interface PageProps {
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }> | { [key: string]: string | string[] | undefined };
+}
+
+export default async function Home({ searchParams }: PageProps) {
+  const resolvedParams = searchParams ? await Promise.resolve(searchParams) : {};
+  const queryParamModel = typeof resolvedParams?.model === "string"
+    ? resolvedParams.model
+    : typeof resolvedParams?.layout === "string"
+    ? resolvedParams.layout
+    : null;
+
   const [products, featuredReviews, heroSlides, backendCategories, siteSettings] = await Promise.all([
     getProducts(),
     getFeaturedReviews(),
@@ -114,7 +138,10 @@ export default async function Home() {
   }
   const categories = Array.from(categoryMap.values()).sort((a, b) => (a.display_order || 99) - (b.display_order || 99));
 
-  const activeLayout = siteSettings.homepage_layout || "model1";
+  const validLayouts = ["model1", "model3", "model4"];
+  const activeLayout = (queryParamModel && validLayouts.includes(queryParamModel))
+    ? (queryParamModel as "model1" | "model3" | "model4")
+    : (siteSettings?.homepage_layout || "model1");
 
   return <>
     <Header />
