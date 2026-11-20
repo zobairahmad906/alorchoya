@@ -525,8 +525,8 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
   const [categories, setCategories] = useState<CategoryItem[]>([]);
 
-  // Homepage Layout Theme State (3 Full-Screen Models)
-  const [currentHomepageLayout, setCurrentHomepageLayout] = useState<"model1" | "model2" | "model3">("model1");
+  // Homepage Layout Theme State (2 Full-Screen Models)
+  const [currentHomepageLayout, setCurrentHomepageLayout] = useState<"model1" | "model2">("model1");
   const [savingLayout, setSavingLayout] = useState<boolean>(false);
 
   // Category Management State
@@ -1835,8 +1835,8 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
   };
 
-  // HOMEPAGE LAYOUT THEME SWITCHER (3 Full-Screen Models)
-  const handleSwitchHomepageLayout = async (layout: "model1" | "model2" | "model3") => {
+  // HOMEPAGE LAYOUT THEME SWITCHER (2 Full-Screen Models)
+  const handleSwitchHomepageLayout = async (layout: "model1" | "model2") => {
     try {
       setSavingLayout(true);
       const res = await fetch(getApiUrl("/admin/site-settings/"), {
@@ -1853,8 +1853,7 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
         setCurrentHomepageLayout(data.homepage_layout);
         const modelNames: Record<string, string> = {
           model1: "মডেল ১ (ড্যাশবোর্ড পোর্টাল)",
-          model2: "মডেল ২ (স্প্লিট-স্ক্রিন আধুনিক স্টুডিও)",
-          model3: "মডেল ৩ (সিনেমাটিক ক্যানভাস)",
+          model2: "মডেল ২ (সিনেমাটিক ক্যানভাস)",
         };
         const activeName = modelNames[layout] || layout;
         toast((t) => (
@@ -3143,7 +3142,7 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                 <span>{tDash("layout")}</span>
               </div>
               <span className="admin-nav-badge success" style={{ textTransform: "uppercase" }}>
-                {currentHomepageLayout === "model1" ? "মডেল ১" : currentHomepageLayout === "model2" ? "মডেল ২" : "মডেল ৩"}
+                {currentHomepageLayout === "model1" ? "মডেল ১" : "মডেল ২"}
               </span>
             </Link>
 
@@ -3407,13 +3406,12 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                 <ExternalLink size={11} style={{ opacity: 0.7 }} />
               </a>
 
-              {/* Quick Homepage Theme Switcher Pill (3 Models) */}
+              {/* Quick Homepage Theme Switcher Pill (2 Models) */}
               <div style={{ display: "flex", alignItems: "center", gap: "3px", backgroundColor: "#f1f5f9", padding: "3px 6px", borderRadius: "10px", border: "1px solid #cbd5e1" }}>
                 <span style={{ fontSize: "11px", fontWeight: 700, color: "#64748b", paddingLeft: "4px" }}>🏠 মডেল:</span>
                 {[
                   { id: "model1", label: "১", title: "মডেল ১: ড্যাশবোর্ড পোর্টাল ও সাইডবার" },
-                  { id: "model2", label: "২", title: "মডেল ২: স্প্লিট-স্ক্রিন আধুনিক স্টুডিও" },
-                  { id: "model3", label: "৩", title: "মডেল ৩: সিনেমাটিক ক্যানভাস ও স্থায়ী প্যানেল" },
+                  { id: "model2", label: "২", title: "মডেল ২: সিনেমাটিক ক্যানভাস ও স্থায়ী প্যানেল" },
                 ].map((m) => (
                   <button
                     key={m.id}
@@ -5594,85 +5592,17 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                     flexDirection: "column",
                   }}
                 >
-                  <div style={{ position: "relative", height: "180px", backgroundColor: "#1c1917", overflow: "hidden" }}>
+                  <div style={{ position: "relative", height: "180px", backgroundColor: "#0f172a", overflow: "hidden" }}>
                     <img
-                      src="/lookbook-living-room.jpg"
+                      src="/alorsoya_widescreen_ui_mockup_v2_1795181192737.jpg"
                       alt="Model 2"
                       style={{ width: "100%", height: "100%", objectFit: "cover" }}
                       onError={(e) => { (e.target as HTMLElement).style.display = "none"; }}
                     />
-                    <div style={{ position: "absolute", top: "12px", left: "12px", backgroundColor: "#1c1917", color: "#fef08a", padding: "4px 10px", borderRadius: "8px", fontWeight: 800, fontSize: "12px" }}>
+                    <div style={{ position: "absolute", top: "12px", left: "12px", backgroundColor: "#0f172a", color: "#38bdf8", padding: "4px 10px", borderRadius: "8px", fontWeight: 800, fontSize: "12px" }}>
                       মডেল ২
                     </div>
                     {currentHomepageLayout === "model2" && (
-                      <div style={{ position: "absolute", top: "12px", right: "12px", backgroundColor: "#10b981", color: "#fff", padding: "4px 12px", borderRadius: "20px", fontWeight: 800, fontSize: "12px", display: "flex", alignItems: "center", gap: "4px" }}>
-                        ✓ সক্রিয় মডেল
-                      </div>
-                    )}
-                  </div>
-
-                  <div style={{ padding: "20px", flex: 1, display: "flex", flexDirection: "column" }}>
-                    <h4 style={{ fontSize: "18px", fontWeight: 800, color: "#0f172a", margin: "0 0 6px" }}>
-                      স্প্লিট-স্ক্রিন আধুনিক স্টুডিও
-                    </h4>
-                    <span style={{ fontSize: "12px", color: "#78716c", fontWeight: 700, marginBottom: "12px" }}>
-                      IKEA / Zara Home 30/70 Split Canvas
-                    </span>
-                    <ul style={{ margin: "0 0 20px", paddingLeft: "18px", fontSize: "13px", color: "#475569", lineHeight: 1.6 }}>
-                      <li>বামে ৩০% ফিক্সড লুকবুক ও কিউরেটেড কালেকশন প্যানেল</li>
-                      <li>ডানে ৭০% মসৃণ ক্যাটালগ ও দাম অনুযায়ী সর্টিং ফিল্টার</li>
-                      <li>ফার্নিচার ও পোশাকের মতো প্রিমিয়াম পণ্যের জন্য আদর্শ</li>
-                    </ul>
-
-                    <button
-                      type="button"
-                      onClick={() => handleSwitchHomepageLayout("model2")}
-                      disabled={savingLayout || currentHomepageLayout === "model2"}
-                      style={{
-                        marginTop: "auto",
-                        width: "100%",
-                        padding: "12px",
-                        borderRadius: "10px",
-                        border: "none",
-                        fontWeight: 800,
-                        fontSize: "14px",
-                        cursor: currentHomepageLayout === "model2" ? "default" : "pointer",
-                        backgroundColor: currentHomepageLayout === "model2" ? "#10b981" : "#1c1917",
-                        color: "#ffffff",
-                        transition: "all 0.2s ease",
-                      }}
-                    >
-                      {currentHomepageLayout === "model2" ? "✓ বর্তমানে সক্রিয় রয়েছে" : "এই মডেলটি সক্রিয় করুন"}
-                    </button>
-                    <a href="/?layout=model2" target="_blank" rel="noreferrer" className="admin-btn-secondary" style={{ marginTop: "8px", width: "100%", justifyContent: "center", fontSize: "12px", fontWeight: 700, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "6px", padding: "8px 12px" }}>
-                      <ExternalLink size={13} /> মডেল ২ এর লাইভ প্রিভিউ
-                    </a>
-                  </div>
-                </div>
-
-                {/* Model 3 Card */}
-                <div
-                  style={{
-                    borderRadius: "16px",
-                    border: currentHomepageLayout === "model3" ? "3px solid #10b981" : "1px solid #e2e8f0",
-                    backgroundColor: currentHomepageLayout === "model3" ? "#f0fdf4" : "#ffffff",
-                    boxShadow: "0 4px 16px rgba(0,0,0,0.06)",
-                    overflow: "hidden",
-                    display: "flex",
-                    flexDirection: "column",
-                  }}
-                >
-                  <div style={{ position: "relative", height: "180px", backgroundColor: "#0f172a", overflow: "hidden" }}>
-                    <img
-                      src="/alorsoya_widescreen_ui_mockup_v2_1795181192737.jpg"
-                      alt="Model 3"
-                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                      onError={(e) => { (e.target as HTMLElement).style.display = "none"; }}
-                    />
-                    <div style={{ position: "absolute", top: "12px", left: "12px", backgroundColor: "#0f172a", color: "#38bdf8", padding: "4px 10px", borderRadius: "8px", fontWeight: 800, fontSize: "12px" }}>
-                      মডেল ৩
-                    </div>
-                    {currentHomepageLayout === "model3" && (
                       <div style={{ position: "absolute", top: "12px", right: "12px", backgroundColor: "#10b981", color: "#fff", padding: "4px 12px", borderRadius: "20px", fontWeight: 800, fontSize: "12px", display: "flex", alignItems: "center", gap: "4px" }}>
                         ✓ সক্রিয় মডেল
                       </div>
@@ -5694,8 +5624,8 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
 
                     <button
                       type="button"
-                      onClick={() => handleSwitchHomepageLayout("model3")}
-                      disabled={savingLayout || currentHomepageLayout === "model3"}
+                      onClick={() => handleSwitchHomepageLayout("model2")}
+                      disabled={savingLayout || currentHomepageLayout === "model2"}
                       style={{
                         marginTop: "auto",
                         width: "100%",
@@ -5704,16 +5634,16 @@ export default function DashboardClient({ initialTab = "overview" }: { initialTa
                         border: "none",
                         fontWeight: 800,
                         fontSize: "14px",
-                        cursor: currentHomepageLayout === "model3" ? "default" : "pointer",
-                        backgroundColor: currentHomepageLayout === "model3" ? "#10b981" : "#0f172a",
+                        cursor: currentHomepageLayout === "model2" ? "default" : "pointer",
+                        backgroundColor: currentHomepageLayout === "model2" ? "#10b981" : "#0f172a",
                         color: "#ffffff",
                         transition: "all 0.2s ease",
                       }}
                     >
-                      {currentHomepageLayout === "model3" ? "✓ বর্তমানে সক্রিয় রয়েছে" : "এই মডেলটি সক্রিয় করুন"}
+                      {currentHomepageLayout === "model2" ? "✓ বর্তমানে সক্রিয় রয়েছে" : "এই মডেলটি সক্রিয় করুন"}
                     </button>
-                    <a href="/?layout=model3" target="_blank" rel="noreferrer" className="admin-btn-secondary" style={{ marginTop: "8px", width: "100%", justifyContent: "center", fontSize: "12px", fontWeight: 700, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "6px", padding: "8px 12px" }}>
-                      <ExternalLink size={13} /> মডেল ৩ এর লাইভ প্রিভিউ
+                    <a href="/?layout=model2" target="_blank" rel="noreferrer" className="admin-btn-secondary" style={{ marginTop: "8px", width: "100%", justifyContent: "center", fontSize: "12px", fontWeight: 700, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "6px", padding: "8px 12px" }}>
+                      <ExternalLink size={13} /> মডেল ২ এর লাইভ প্রিভিউ
                     </a>
                   </div>
                 </div>

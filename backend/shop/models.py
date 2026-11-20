@@ -273,8 +273,7 @@ class CourierConfig(models.Model):
 class SiteSettings(models.Model):
     LAYOUT_CHOICES = (
         ("model1", "Model 1 - Dashboard Portal & Sidebar (ড্যাশবোর্ড পোর্টাল)"),
-        ("model2", "Model 2 - Split-Canvas Studio 30/70 (স্প্লিট-স্ক্রিন স্টুডিও)"),
-        ("model3", "Model 3 - Cinematic Canvas & Panel (সিনেমাটিক ক্যানভাস)"),
+        ("model2", "Model 2 - Cinematic Canvas & Panel (সিনেমাটিক ক্যানভাস)"),
     )
     homepage_layout = models.CharField(max_length=20, choices=LAYOUT_CHOICES, default="model1", help_text="সক্রিয় হোমপেজ মডেল")
     site_title = models.CharField(max_length=150, blank=True, default="আলোর ছোঁয়া মার্ট")

@@ -14,7 +14,7 @@ interface ModelProps {
   discountedProducts: Product[];
 }
 
-export function Model3MicroDockCanvas({
+export function Model2MicroDockCanvas({
   products,
   categories,
   heroSlides,
