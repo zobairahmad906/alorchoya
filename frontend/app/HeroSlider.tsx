@@ -14,6 +14,7 @@ interface HeroSliderProps {
   defaultTitle?: string;
   defaultLede?: string;
   shopButtonText?: string;
+  variant?: "portal" | "studio" | "cinematic";
 }
 
 type UnifiedSlide = {
@@ -38,6 +39,7 @@ export function HeroSlider({
   defaultTitle,
   defaultLede,
   shopButtonText,
+  variant = "portal",
 }: HeroSliderProps) {
   const locale = useLocale();
   const tHome = useTranslations("home");
@@ -186,12 +188,12 @@ export function HeroSlider({
 
   return (
     <section
-      className="hero-slider-section"
+      className={`hero-slider-section hero-variant-${variant}`}
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      <div className="wrap hero-slider-container">
-        <div className="hero-split hero-split-anim">
+      <div className={`wrap hero-slider-container hero-container-${variant}`}>
+        <div className={`hero-split hero-split-anim hero-split-${variant}`}>
           <div className="hero-split-copy">
             <div className="hero-badge-row">
               <span className="hero-badge">{activeSlide.eyebrow}</span>

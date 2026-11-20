@@ -260,6 +260,7 @@ export function Model1DashboardPortal({
             <HeroSlider
               products={products.slice(0, 5)}
               heroSlides={heroSlides}
+              variant="portal"
               eyebrow="★ আলোর ছোঁয়া মেগা পোর্টাল"
               defaultTitle="নতুন কালেকশন ও স্পেশাল ছাড় সরাসরি ফ্যাক্টরি মূল্যে"
               defaultLede="ফার্নিচার, পোশাক, জুতো, ঘড়ি ও লাইফস্টাইল পণ্য।"

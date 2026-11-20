@@ -184,6 +184,7 @@ export function Model3MicroDockCanvas({
             <HeroSlider
               products={products.slice(0, 5)}
               heroSlides={heroSlides}
+              variant="cinematic"
               eyebrow="★ সিনেমাটিক ক্যানভাস এক্সক্লুসিভ"
               defaultTitle="প্রান্ত-থেকে-প্রান্ত সর্বোচ্চ ভিউতে কেনাকাটার সেরা অভিজ্ঞতা"
               defaultLede="ফার্নিচার, পোশাক, জুতো, ঘড়ি ও লাইফস্টাইল পণ্য।"

@@ -215,6 +215,7 @@ export function Model2SplitCanvasStudio({
             <HeroSlider
               products={products.slice(0, 5)}
               heroSlides={heroSlides}
+              variant="studio"
               eyebrow="★ স্প্লিট-ক্যানভাস স্টুডিও কালেকশন"
               defaultTitle="আকর্ষণীয় ডিজাইন ও নিখুঁত ফিনিশিংয়ের নিশ্চয়তা"
               defaultLede="ফার্নিচার, পোশাক, জুতো, ঘড়ি ও লাইফস্টাইল পণ্য।"

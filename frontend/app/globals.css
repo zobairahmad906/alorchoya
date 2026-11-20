@@ -8960,57 +8960,242 @@ body:has(.admin-container) .mobile-bottom-nav {
    MODEL 1 + MODEL 2: LUXURY BOUTIQUE & SHOP THE LOOK STYLES
    ======================================================== */
 
-/* --- MODEL 1: LUXURY SPLIT HERO ENHANCEMENT --- */
+/* --- COMPACT & REFINED HERO SLIDER VARIANTS --- */
 .hero-slider-section {
   position: relative;
-  padding: 18px 0 28px;
+  padding: 8px 0 14px;
+  background: transparent !important;
 }
 
+.hero-slider-container {
+  max-width: 100% !important;
+  padding: 0 !important;
+}
+
+/* Base Split Container */
 .hero-split {
-  background: linear-gradient(135deg, #fdfbf7 0%, #f7f3ec 100%) !important;
-  border: 1px solid rgba(220, 214, 202, 0.7) !important;
-  border-radius: 20px !important;
-  padding: 36px 44px !important;
-  box-shadow: 0 16px 40px -10px rgba(27, 43, 35, 0.08) !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr) !important;
+  gap: 20px !important;
+  align-items: center !important;
+  border-radius: 18px !important;
   transition: all 0.3s ease;
+  box-sizing: border-box !important;
 }
 
-.hero-split-media {
-  border-radius: 16px !important;
-  box-shadow: 0 18px 38px -12px rgba(27, 43, 35, 0.16) !important;
-  border: 3px solid #ffffff !important;
+/* 1. Portal Variant (Model 1) */
+.hero-split-portal {
+  background: linear-gradient(135deg, #fdfbf7 0%, #f7f3ec 100%) !important;
+  border: 1px solid rgba(220, 214, 202, 0.8) !important;
+  padding: 20px 28px !important;
+  box-shadow: 0 10px 28px -8px rgba(27, 43, 35, 0.08) !important;
+}
+.hero-split-portal .hero-product-title {
+  color: #173f35 !important;
+  font-size: clamp(20px, 2.3vw, 25px) !important;
+  line-height: 1.25 !important;
+  margin: 0 0 6px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.01em !important;
+}
+.hero-split-portal .hero-product-desc {
+  font-size: 13px !important;
+  line-height: 1.5 !important;
+  color: #64748b !important;
+  margin: 0 0 12px !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+  max-width: 44ch !important;
+}
+.hero-split-portal .hero-split-media {
+  max-width: 320px !important;
+  max-height: 250px !important;
+  aspect-ratio: 4 / 3 !important;
+  border-radius: 14px !important;
+  border: 2px solid #ffffff !important;
+  background: #ffffff !important;
+  box-shadow: 0 10px 26px -8px rgba(27, 43, 35, 0.12) !important;
 }
 
-.hero-split-copy .hero-product-title {
-  color: #173f35;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+/* 2. Studio Variant (Model 2 - Split Canvas) */
+.hero-split-studio {
+  background: linear-gradient(135deg, #ffffff 0%, #faf8f5 100%) !important;
+  border: 1px solid #e7e5e4 !important;
+  padding: 18px 24px !important;
+  box-shadow: 0 6px 20px -6px rgba(0, 0, 0, 0.05) !important;
+}
+.hero-split-studio .hero-product-title {
+  color: #1c1917 !important;
+  font-size: clamp(19px, 2.1vw, 24px) !important;
+  line-height: 1.28 !important;
+  margin: 0 0 6px !important;
+  font-weight: 800 !important;
+}
+.hero-split-studio .hero-product-desc {
+  font-size: 12px !important;
+  line-height: 1.45 !important;
+  color: #78716c !important;
+  margin: 0 0 10px !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+  max-width: 42ch !important;
+}
+.hero-split-studio .hero-split-media {
+  max-width: 290px !important;
+  max-height: 230px !important;
+  aspect-ratio: 4 / 3 !important;
+  border-radius: 12px !important;
+  border: 1px solid #e7e5e4 !important;
+  background: #fdfbf7 !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06) !important;
 }
 
+/* 3. Cinematic Variant (Model 3 - Dark Canvas) */
+.hero-split-cinematic {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
+  border: 1px solid #334155 !important;
+  padding: 20px 28px !important;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.4) !important;
+}
+.hero-split-cinematic .hero-product-title {
+  color: #f8fafc !important;
+  font-size: clamp(20px, 2.2vw, 24px) !important;
+  line-height: 1.25 !important;
+  margin: 0 0 6px !important;
+  font-weight: 800 !important;
+}
+.hero-split-cinematic .hero-product-desc {
+  font-size: 13px !important;
+  line-height: 1.5 !important;
+  color: #94a3b8 !important;
+  margin: 0 0 12px !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+  max-width: 44ch !important;
+}
+.hero-split-cinematic .hero-split-media {
+  max-width: 320px !important;
+  max-height: 250px !important;
+  aspect-ratio: 4 / 3 !important;
+  border-radius: 14px !important;
+  border: 1px solid #334155 !important;
+  background: #0f172a !important;
+  box-shadow: 0 10px 30px rgba(56, 189, 248, 0.12) !important;
+}
+.hero-split-cinematic .hero-badge {
+  background: rgba(56, 189, 248, 0.12) !important;
+  color: #38bdf8 !important;
+}
+.hero-split-cinematic .hero-current-price {
+  color: #38bdf8 !important;
+}
+.hero-split-cinematic .hero-old-price {
+  color: #64748b !important;
+}
+.hero-split-cinematic .hero-btn-buy {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+  color: #ffffff !important;
+  border: none !important;
+}
+.hero-split-cinematic .btn-ghost {
+  background: transparent !important;
+  color: #94a3b8 !important;
+  border: 1px solid #475569 !important;
+}
+.hero-split-cinematic .btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: #ffffff !important;
+}
+
+/* Shared Compact Controls */
 .hero-badge-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 14px;
+  gap: 8px;
+  margin-bottom: 8px;
 }
-
 .hero-badge {
   background: rgba(23, 63, 53, 0.08);
   color: #173f35;
   font-weight: 700;
-  font-size: 0.82rem;
-  padding: 5px 14px;
+  font-size: 0.75rem;
+  padding: 3px 10px;
   border-radius: 9999px;
   letter-spacing: 0.02em;
 }
-
 .hero-cat-tag {
   background: #fef3c7;
   color: #92400e;
   font-weight: 700;
-  font-size: 0.8rem;
-  padding: 4px 12px;
+  font-size: 0.72rem;
+  padding: 2px 8px;
   border-radius: 9999px;
+}
+.hero-price-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.hero-current-price {
+  font-size: 18px;
+  font-weight: 800;
+  color: #047857;
+}
+.hero-old-price {
+  font-size: 13px;
+  color: #94a3b8;
+  text-decoration: line-through;
+}
+.hero-save-badge {
+  font-size: 11px;
+  background: #fee2e2;
+  color: #b91c1c;
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-weight: 800;
+}
+.hero-split .cta-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.hero-split .hero-btn-buy {
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 20px;
+}
+.hero-split .btn-ghost {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 20px;
+}
+.hero-controls-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+.hero-arrow-btn {
+  width: 26px;
+  height: 26px;
+  font-size: 15px;
+}
+.hero-dot {
+  width: 16px;
+  height: 4px;
+}
+.hero-dot.active {
+  width: 26px;
 }
 
 /* --- MODEL 2: EDITORIAL SHOP THE LOOK SECTION --- */
