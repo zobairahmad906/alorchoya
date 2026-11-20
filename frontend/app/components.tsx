@@ -3,7 +3,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useCart } from "./cart";
-import type { Product } from "./types";
+import type { Product, HomepageLayout } from "./types";
 import { useLocale, useTranslations } from "next-intl";
 import { formatPrice, formatNumber } from "./formatters";
 export { formatPrice, formatNumber };
@@ -76,8 +76,11 @@ export function ContactActions() {
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
-export function Header() {
+export function Header({ currentLayout }: { currentLayout?: HomepageLayout } = {}) {
+  const pathname = usePathname();
+  const router = useRouter();
   const { count } = useCart();
+  const [activeLayout, setActiveLayout] = useState<HomepageLayout>(currentLayout || "model1");
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Product[]>([]);
@@ -87,6 +90,56 @@ export function Header() {
   const t = useTranslations("nav");
   const tSearch = useTranslations("search");
   const tCommon = useTranslations("common");
+
+  useEffect(() => {
+    if (currentLayout) {
+      setActiveLayout(currentLayout);
+    } else if (typeof window !== "undefined") {
+      const p = new URLSearchParams(window.location.search);
+      const urlLayout = p.get("layout") || p.get("model");
+      if (urlLayout && ["model1", "model2", "model3", "model4"].includes(urlLayout)) {
+        setActiveLayout(urlLayout as HomepageLayout);
+      }
+    }
+  }, [currentLayout]);
+
+  const handleSwitchModel = async (layoutKey: HomepageLayout) => {
+    setActiveLayout(layoutKey);
+    try {
+      await fetch(API + "/site-settings/", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ homepage_layout: layoutKey }),
+      });
+    } catch {}
+
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.set("layout", layoutKey);
+      url.searchParams.delete("model");
+      if (window.location.pathname === "/") {
+        window.location.href = url.pathname + url.search;
+      } else {
+        window.location.href = `/?layout=${layoutKey}`;
+      }
+    }
+  };
+
+  const handleNavClick = (sectionId: string, fallbackPath: string) => (e: React.MouseEvent) => {
+    if (pathname === "/") {
+      e.preventDefault();
+      if (sectionId === "top") {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } else {
+        const el = document.getElementById(sectionId);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "start" });
+        } else {
+          router.push(fallbackPath);
+        }
+      }
+    }
+  };
 
   useEffect(() => {
     fetch(API + "/auth/me/", { credentials: "include" }).then(response => response.json()).then(setAccount).catch(() => setAccount({ authenticated: false }));
@@ -138,15 +191,11 @@ export function Header() {
             </span>
           </Link>
           <nav className="links">
-            <Link href="/">{t("home")}</Link>
-            <Link href="/shop">{t("shop")}</Link>
-            <Link href="/categories">{t("categories")}</Link>
-            <Link href="/offers">{t("offers")}</Link>
+            <Link href="/" onClick={handleNavClick("top", "/")}>{t("home")}</Link>
+            <Link href="/#shop" onClick={handleNavClick("shop", "/#shop")}>{t("shop")}</Link>
+            <Link href="/#categories" onClick={handleNavClick("categories", "/#categories")}>{t("categories")}</Link>
+            <Link href="/#offers" onClick={handleNavClick("offers", "/#offers")}>{t("offers")}</Link>
             <Link href="/track-order">{t("tracking")}</Link>
-            <Link href="/dashboard" style={{ color: "#0284c7", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: "4px" }}>
-              <span>⚙️</span>
-              <span>{locale === "en" ? "Dashboard" : "ড্যাশবোর্ড"}</span>
-            </Link>
           </nav>
           <div className="nav-right" style={{ position: "relative" }}>
             {searchOpen ? (
@@ -257,24 +306,62 @@ export function Header() {
                 <SearchIcon size={20} />
               </button>
             )}
+            {/* 4 Homepage Models Switcher Pill */}
+            <div
+              className="header-model-switcher"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                backgroundColor: "#f8fafc",
+                padding: "3px 4px",
+                borderRadius: "14px",
+                border: "1px solid #cbd5e1",
+                gap: "2px",
+              }}
+              role="group"
+              aria-label="Homepage Model Switcher"
+            >
+              <span style={{ fontSize: "11px", fontWeight: 800, color: "#475569", padding: "0 4px", display: "inline-flex", alignItems: "center", gap: "2px" }}>
+                🏠 মডেল:
+              </span>
+              {[
+                { id: "model1", label: "১", title: "মডেল ১: ড্যাশবোর্ড পোর্টাল" },
+                { id: "model2", label: "২", title: "মডেল ২: আল্ট্রা-ওয়াইড মেগাস্টোর" },
+                { id: "model3", label: "৩", title: "মডেল ৩: স্প্লিট-স্ক্রিন আধুনিক স্টুডিও" },
+                { id: "model4", label: "৪", title: "মডেল ৪: মাইক্রো-ডক ক্যানভাস" },
+              ].map((m) => {
+                const isActive = activeLayout === m.id;
+                return (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => handleSwitchModel(m.id as HomepageLayout)}
+                    title={m.title}
+                    style={{
+                      padding: "3px 8px",
+                      borderRadius: "8px",
+                      border: "none",
+                      fontSize: "12px",
+                      fontWeight: 800,
+                      cursor: "pointer",
+                      backgroundColor: isActive ? "#10b981" : "transparent",
+                      color: isActive ? "#ffffff" : "#475569",
+                      boxShadow: isActive ? "0 2px 4px rgba(16, 185, 129, 0.3)" : "none",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    {m.label}
+                  </button>
+                );
+              })}
+            </div>
+
             {account?.authenticated ? (
-              <>
-                <Link className="profile-nav" href="/dashboard" title="অ্যাডমিন ড্যাশবোর্ড" style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "6px 12px", borderRadius: "20px", backgroundColor: "#0f172a", color: "#38bdf8", fontSize: "0.82rem", fontWeight: 700, textDecoration: "none", border: "1px solid #0284c7" }}>
-                  <span>⚙️</span>
-                  <span>{locale === "en" ? "Dashboard" : "ড্যাশবোর্ড"}</span>
-                </Link>
-                <Link className="profile-nav" href="/account" title={account.name || t("account")}>
-                  {account.profile?.avatar_url ? <img src={account.profile.avatar_url} alt="" /> : <span>{(account.name || "A").slice(0, 1)}</span>}
-                </Link>
-              </>
+              <Link className="profile-nav" href="/account" title={account.name || t("account")}>
+                {account.profile?.avatar_url ? <img src={account.profile.avatar_url} alt="" /> : <span>{(account.name || "A").slice(0, 1)}</span>}
+              </Link>
             ) : (
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <Link className="account-link" href="/account">{t("signUp")}</Link>
-                <Link href="/dashboard" title="অ্যাডমিন ড্যাশবোর্ড" style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "6px 12px", borderRadius: "20px", backgroundColor: "#0f172a", color: "#38bdf8", fontSize: "0.82rem", fontWeight: 700, textDecoration: "none", border: "1px solid #0284c7" }}>
-                  <span>⚙️</span>
-                  <span>{locale === "en" ? "Dashboard" : "ড্যাশবোর্ড"}</span>
-                </Link>
-              </div>
+              <Link className="account-link" href="/account">{t("signUp")}</Link>
             )}
             <div className="lang-switch-group" role="group" aria-label="Language selection">
               <button

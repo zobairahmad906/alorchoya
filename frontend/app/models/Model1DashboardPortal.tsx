@@ -103,6 +103,7 @@ export function Model1DashboardPortal({
       >
         {/* Persistent Left Category Sidebar (Like Admin Dashboard Sidebar) */}
         <aside
+          id="categories"
           style={{
             width: "280px",
             minWidth: "260px",
@@ -269,6 +270,7 @@ export function Model1DashboardPortal({
           {/* Flash Deals Edge-to-Edge Strip */}
           {flashProducts.length > 0 && (
             <section
+              id="offers"
               style={{
                 backgroundColor: "#ffffff",
                 borderRadius: "16px",
@@ -318,6 +320,7 @@ export function Model1DashboardPortal({
 
           {/* Main Product Catalog Section: 5-6 Columns High-Density Grid */}
           <section
+            id="shop"
             style={{
               backgroundColor: "#ffffff",
               borderRadius: "16px",

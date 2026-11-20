@@ -1642,6 +1642,19 @@ class PublicSiteSettingsView(APIView):
         response["Pragma"] = "no-cache"
         return response
 
+    def patch(self, request):
+        settings = SiteSettings.get_solo()
+        serializer = SiteSettingsSerializer(settings, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            response = Response(serializer.data)
+            response["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+            return response
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def put(self, request):
+        return self.patch(request)
+
 
 class AdminSiteSettingsView(APIView):
     authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)

@@ -91,6 +91,7 @@ export function Model3SplitCanvasStudio({
       >
         {/* Left 30% Fixed Sticky Studio Panel */}
         <aside
+          id="categories"
           style={{
             width: "320px",
             minWidth: "280px",
@@ -104,6 +105,7 @@ export function Model3SplitCanvasStudio({
         >
           {/* Lookbook / Curated Studio Banner */}
           <div
+            id="offers"
             style={{
               backgroundColor: "#173f35",
               color: "#ffffff",
@@ -222,6 +224,7 @@ export function Model3SplitCanvasStudio({
 
           {/* Quick Filter & Sort Bar */}
           <div
+            id="shop"
             style={{
               backgroundColor: "#ffffff",
               borderRadius: "14px",

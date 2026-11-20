@@ -45,6 +45,7 @@ export function Model2UltraWideMegastore({
     <div style={{ backgroundColor: "#f8fafc", minHeight: "100vh", width: "100%" }}>
       {/* 1. Full-Width Edge-to-Edge Circular Category Stories Bar */}
       <section
+        id="categories"
         style={{
           backgroundColor: "#ffffff",
           borderBottom: "1px solid #e2e8f0",
@@ -69,7 +70,7 @@ export function Model2UltraWideMegastore({
             type="button"
             onClick={() => {
               setActiveFilter("all");
-              document.getElementById("megastore-catalog")?.scrollIntoView({ behavior: "smooth" });
+              document.getElementById("shop")?.scrollIntoView({ behavior: "smooth" });
             }}
             style={{
               display: "flex",
@@ -120,7 +121,7 @@ export function Model2UltraWideMegastore({
                 type="button"
                 onClick={() => {
                   setActiveFilter(cat.slug);
-                  document.getElementById("megastore-catalog")?.scrollIntoView({ behavior: "smooth" });
+                  document.getElementById("shop")?.scrollIntoView({ behavior: "smooth" });
                 }}
                 style={{
                   display: "flex",
@@ -194,7 +195,7 @@ export function Model2UltraWideMegastore({
       </section>
 
       {/* 2. Edge-to-Edge Cinema Widescreen Hero Banner */}
-      <div style={{ padding: "16px clamp(16px, 2.5vw, 40px) 0", boxSizing: "border-box", width: "100%" }}>
+      <div id="offers" style={{ padding: "16px clamp(16px, 2.5vw, 40px) 0", boxSizing: "border-box", width: "100%" }}>
         <div style={{ borderRadius: "18px", overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.06)" }}>
           <HeroSlider
             products={products.slice(0, 5)}
@@ -252,7 +253,7 @@ export function Model2UltraWideMegastore({
       </div>
 
       {/* 4. Main 6-Column Edge-to-Edge Product Grid */}
-      <div id="megastore-catalog" style={{ padding: "24px clamp(16px, 2.5vw, 40px) 48px", boxSizing: "border-box", width: "100%" }}>
+      <div id="shop" style={{ padding: "24px clamp(16px, 2.5vw, 40px) 48px", boxSizing: "border-box", width: "100%" }}>
         <div
           style={{
             backgroundColor: "#ffffff",

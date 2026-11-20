@@ -48,6 +48,7 @@ export function Model4MicroDockCanvas({
       <div style={{ display: "flex", width: "100%", minHeight: "100vh" }}>
         {/* Left Floating Micro-Dock (Mac / Linear Style) */}
         <aside
+          id="categories"
           onMouseEnter={() => setDockExpanded(true)}
           onMouseLeave={() => setDockExpanded(false)}
           style={{
@@ -169,7 +170,7 @@ export function Model4MicroDockCanvas({
           }}
         >
           {/* Panoramic Widescreen Hero Slider */}
-          <div style={{ borderRadius: "20px", overflow: "hidden", border: "1px solid #1e293b", boxShadow: "0 8px 30px rgba(0,0,0,0.5)" }}>
+          <div id="offers" style={{ borderRadius: "20px", overflow: "hidden", border: "1px solid #1e293b", boxShadow: "0 8px 30px rgba(0,0,0,0.5)" }}>
             <HeroSlider
               products={products.slice(0, 5)}
               heroSlides={heroSlides}
@@ -182,6 +183,7 @@ export function Model4MicroDockCanvas({
 
           {/* Interactive Filter Strip with Search */}
           <div
+            id="shop"
             style={{
               backgroundColor: "#1e293b",
               borderRadius: "16px",

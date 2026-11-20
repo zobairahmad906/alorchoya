@@ -145,7 +145,8 @@ export default async function Home({ searchParams }: PageProps) {
     : ((siteSettings?.homepage_layout && validLayouts.includes(siteSettings.homepage_layout)) ? siteSettings.homepage_layout : "model1");
 
   return <>
-    <Header />
+    <div id="top" />
+    <Header currentLayout={activeLayout} />
     {discountedProducts.length > 0 && <div className="announce">{t("announce", { count: discountedProducts.length, discount: maxDiscount })}</div>}
     <main style={{ width: "100%", overflowX: "hidden" }}>
       {/* 4 Full-Screen Edge-to-Edge Models Switcher */}

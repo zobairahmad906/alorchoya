@@ -1,7 +1,7 @@
 "use client";
 import { FormEvent, useState } from "react";
 import { Header } from "../components";
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+const API = process.env.NEXT_PUBLIC_API_URL || "/api";
 const labels: Record<string, string> = { pending: "অপেক্ষমাণ", confirmed: "নিশ্চিত", processing: "প্রস্তুত হচ্ছে", paid: "পেমেন্ট সম্পন্ন", shipped: "শিপ করা হয়েছে", delivered: "ডেলিভারি সম্পন্ন", cancelled: "বাতিল" };
 const steps = ["pending", "confirmed", "processing", "shipped", "delivered"];
 export default function TrackOrderPage() {
