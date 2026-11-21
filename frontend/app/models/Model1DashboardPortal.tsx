@@ -828,24 +828,24 @@ export function Model1DashboardPortal({
             />
           </div>
 
-          {/* Flash Deals Edge-to-Edge Strip (Desktop Only) */}
+          {/* Flash Deals Edge-to-Edge Strip (All Versions: Mobile & Desktop) */}
           {flashProducts.length > 0 && (
             <section
               id="offers"
-              className="model1-section-card desktop-only-flash"
+              className="model1-section-card"
               style={{
                 backgroundColor: "#ffffff",
                 borderRadius: "16px",
                 border: "1px solid #fecdd3",
-                padding: "20px 24px",
+                padding: "18px clamp(12px, 2vw, 24px)",
                 boxShadow: "0 2px 12px rgba(225,29,72,0.05)",
               }}
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px", marginBottom: "16px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                   <span style={{ fontSize: "22px" }}>⚡</span>
                   <div>
-                    <h3 style={{ margin: 0, fontSize: "18px", fontWeight: 900, color: "#be123c" }}>
+                    <h3 style={{ margin: 0, fontSize: "17px", fontWeight: 900, color: "#be123c" }}>
                       আজকের মেগা ফ্ল্যাশ সেল (সীমিত সময়)
                     </h3>
                     <span style={{ fontSize: "12px", color: "#64748b" }}>স্টক শেষ হওয়ার আগেই লুফে নিন</span>
@@ -871,10 +871,10 @@ export function Model1DashboardPortal({
                 </div>
               </div>
 
-              {/* Flash Products Fluid Grid (2 columns on mobile) */}
+              {/* Flash Products Fluid Grid (2 columns on mobile, 5-6 columns on desktop) */}
               <div className="model-product-grid">
-                {flashProducts.map((p) => (
-                  <ProductCard key={p.id} product={p} />
+                {flashProducts.map((p, idx) => (
+                  <LightEmeraldCard key={p.id} product={p} index={idx} />
                 ))}
               </div>
             </section>

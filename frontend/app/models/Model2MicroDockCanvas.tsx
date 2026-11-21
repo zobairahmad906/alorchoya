@@ -173,6 +173,21 @@ export function Model2MicroDockCanvas({
 }: ModelProps) {
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [timeLeft, setTimeLeft] = useState({ hours: 8, minutes: 45, seconds: 20 });
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev.seconds > 0) return { ...prev, seconds: prev.seconds - 1 };
+        if (prev.minutes > 0) return { ...prev, minutes: 59, seconds: 59 };
+        if (prev.hours > 0) return { ...prev, hours: prev.hours - 1, minutes: 59, seconds: 59 };
+        return { hours: 12, minutes: 0, seconds: 0 };
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const flashProducts = (discountedProducts && discountedProducts.length > 0 ? discountedProducts : products).slice(0, 5);
 
   // 4 Discounted special products for the interactive promo slider (rotating one after another)
   const promoProducts = useMemo(() => {
@@ -710,6 +725,58 @@ export function Model2MicroDockCanvas({
               shopButtonText="অর্ডার করুন"
             />
           </div>
+
+          {/* Flash Deals Section (All Versions: Mobile & Desktop) */}
+          {flashProducts.length > 0 && (
+            <section
+              style={{
+                background: "linear-gradient(145deg, rgba(30, 41, 59, 0.85), rgba(15, 23, 42, 0.95))",
+                backdropFilter: "blur(14px)",
+                WebkitBackdropFilter: "blur(14px)",
+                borderRadius: "16px",
+                border: "1px solid rgba(225, 29, 72, 0.35)",
+                padding: "20px clamp(12px, 2vw, 24px)",
+                boxShadow: "0 8px 32px rgba(225, 29, 72, 0.12), 0 4px 16px rgba(0, 0, 0, 0.4)",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px", marginBottom: "16px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <span style={{ fontSize: "22px" }}>⚡</span>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: "17px", fontWeight: 900, color: "#fda4af", letterSpacing: "0.3px" }}>
+                      আজকের মেগা ফ্ল্যাশ সেল (সীমিত সময়)
+                    </h3>
+                    <span style={{ fontSize: "12px", color: "#94a3b8" }}>স্টক শেষ হওয়ার আগেই লুফে নিন</span>
+                  </div>
+                </div>
+
+                {/* Countdown Timer */}
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <span style={{ fontSize: "12px", fontWeight: 700, color: "#94a3b8" }}>অফার শেষ হতে বাকি:</span>
+                  <div style={{ display: "flex", gap: "4px" }}>
+                    <span style={{ backgroundColor: "#e11d48", color: "#ffffff", padding: "4px 8px", borderRadius: "6px", fontWeight: 900, fontSize: "13px" }}>
+                      {String(timeLeft.hours).padStart(2, "0")}h
+                    </span>
+                    <span style={{ fontWeight: 800, color: "#fda4af" }}>:</span>
+                    <span style={{ backgroundColor: "#e11d48", color: "#ffffff", padding: "4px 8px", borderRadius: "6px", fontWeight: 900, fontSize: "13px" }}>
+                      {String(timeLeft.minutes).padStart(2, "0")}m
+                    </span>
+                    <span style={{ fontWeight: 800, color: "#fda4af" }}>:</span>
+                    <span style={{ backgroundColor: "#e11d48", color: "#ffffff", padding: "4px 8px", borderRadius: "6px", fontWeight: 900, fontSize: "13px" }}>
+                      {String(timeLeft.seconds).padStart(2, "0")}s
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Flash Products Fluid Grid (2 columns on mobile, 5-6 columns on desktop) */}
+              <div className="model-product-grid">
+                {flashProducts.map((p) => (
+                  <DarkCinematicCard key={p.id} product={p} />
+                ))}
+              </div>
+            </section>
+          )}
 
           {/* Interactive Filter Strip with Search (Desktop Only) */}
           <div
