@@ -13,12 +13,21 @@ function DarkCinematicCard({ product }: { product: Product }) {
   const primaryImage = product.images?.find((x) => x.is_primary) || product.images?.[0];
   const image = cleanImageUrl(primaryImage?.card_image || primaryImage?.hero_desktop || primaryImage?.image);
   const currentPrice = product.discount_price || product.price;
+  const isAvailable = product.stock === undefined || product.stock === null || Number(product.stock) > 0;
 
   const handleOrderNow = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
+    if (!isAvailable) return;
     add(product, false);
     window.location.href = "/checkout";
+  };
+
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (!isAvailable) return;
+    add(product, true);
   };
 
   return (
@@ -74,40 +83,74 @@ function DarkCinematicCard({ product }: { product: Product }) {
         )}
       </div>
 
-      <div style={{ marginTop: "8px", textAlign: "center" }}>
+      <div style={{ marginTop: "8px" }}>
+        <h4 style={{ margin: "0 0 4px", fontSize: "12px", fontWeight: 700, color: "#f8fafc", lineHeight: 1.3, display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical", overflow: "hidden", textAlign: "center" }}>
+          {product.name}
+        </h4>
         <div
           style={{
-            fontSize: "15px",
+            fontSize: "14px",
             fontWeight: 900,
             color: "#fef08a",
             letterSpacing: "0.5px",
             marginBottom: "6px",
+            textAlign: "center",
           }}
         >
           {formatPrice(currentPrice, "bn")}
         </div>
 
-        <button
-          type="button"
-          onClick={handleOrderNow}
-          style={{
-            width: "100%",
-            padding: "8px 10px",
-            borderRadius: "20px",
-            border: "1px solid rgba(16, 185, 129, 0.7)",
-            backgroundColor: "rgba(16, 185, 129, 0.15)",
-            color: "#ffffff",
-            fontSize: "12px",
-            fontWeight: 800,
-            cursor: "pointer",
-            boxShadow: "0 0 10px rgba(16, 185, 129, 0.25)",
-            transition: "all 0.15s ease",
-            whiteSpace: "nowrap",
-            boxSizing: "border-box",
-          }}
-        >
-          অর্ডার করুন
-        </button>
+        <div style={{ display: "flex", gap: "5px", alignItems: "center" }} onClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            onClick={handleOrderNow}
+            disabled={!isAvailable}
+            style={{
+              flex: 1,
+              minWidth: 0,
+              padding: "7px 2px",
+              borderRadius: "16px",
+              border: "1px solid rgba(16, 185, 129, 0.8)",
+              background: isAvailable ? "linear-gradient(135deg, #059669, #0d9488)" : "rgba(30, 41, 59, 0.5)",
+              color: "#ffffff",
+              fontSize: "11px",
+              fontWeight: 800,
+              cursor: isAvailable ? "pointer" : "not-allowed",
+              boxShadow: isAvailable ? "0 0 10px rgba(16, 185, 129, 0.3)" : "none",
+              transition: "all 0.15s ease",
+              whiteSpace: "nowrap",
+              boxSizing: "border-box",
+              textAlign: "center",
+            }}
+          >
+            অর্ডার করুন
+          </button>
+
+          <button
+            type="button"
+            onClick={handleAddToCart}
+            disabled={!isAvailable}
+            style={{
+              flex: 1,
+              minWidth: 0,
+              padding: "6px 2px",
+              borderRadius: "16px",
+              border: "1px solid rgba(16, 185, 129, 0.5)",
+              backgroundColor: "rgba(16, 185, 129, 0.15)",
+              color: isAvailable ? "#34d399" : "#64748b",
+              fontSize: "11px",
+              fontWeight: 800,
+              cursor: isAvailable ? "pointer" : "not-allowed",
+              boxShadow: "0 0 8px rgba(16, 185, 129, 0.15)",
+              transition: "all 0.15s ease",
+              whiteSpace: "nowrap",
+              boxSizing: "border-box",
+              textAlign: "center",
+            }}
+          >
+            কার্টে যোগ করুন
+          </button>
+        </div>
       </div>
     </article>
   );

@@ -21,18 +21,19 @@ function LightEmeraldCard({ product, index }: { product: Product; index: number 
       ? Math.round(((Number(product.price) - Number(product.discount_price)) / Number(product.price)) * 100)
       : [30, 10, 15, 25][index % 4];
 
-  const isAddToCartButton = index % 2 === 1;
-
-  const handleAction = (e: React.MouseEvent, isCart: boolean) => {
+  const handleOrderNow = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
     if (!isAvailable) return;
-    if (isCart) {
-      add(product, true);
-    } else {
-      add(product, false);
-      window.location.href = "/checkout";
-    }
+    add(product, false);
+    window.location.href = "/checkout";
+  };
+
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (!isAvailable) return;
+    add(product, true);
   };
 
   return (
@@ -105,31 +106,62 @@ function LightEmeraldCard({ product, index }: { product: Product; index: number 
       </div>
 
       <div style={{ marginTop: "8px" }}>
-        <div style={{ fontSize: "15px", fontWeight: 900, color: "#0f172a", marginBottom: "6px" }}>
+        <h4 style={{ margin: "0 0 4px", fontSize: "12px", fontWeight: 700, color: "#1e293b", lineHeight: 1.3, display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+          {product.name}
+        </h4>
+        <div style={{ fontSize: "14px", fontWeight: 900, color: "#065f46", marginBottom: "6px" }}>
           {formatPrice(currentPrice, "bn")}
         </div>
 
-        <button
-          type="button"
-          onClick={(e) => handleAction(e, isAddToCartButton)}
-          style={{
-            width: "100%",
-            padding: "8px 2px",
-            borderRadius: "8px",
-            border: isAddToCartButton ? "1.5px solid #065f46" : "none",
-            backgroundColor: isAddToCartButton ? "#ffffff" : "#065f46",
-            color: isAddToCartButton ? "#065f46" : "#ffffff",
-            fontSize: "11px",
-            fontWeight: 800,
-            cursor: "pointer",
-            transition: "all 0.15s ease",
-            whiteSpace: "nowrap",
-            boxSizing: "border-box",
-            textAlign: "center",
-          }}
-        >
-          {isAddToCartButton ? "কার্ট যোগ করুন" : "অর্ডার করুন"}
-        </button>
+        <div style={{ display: "flex", gap: "5px", alignItems: "center" }} onClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            onClick={handleOrderNow}
+            disabled={!isAvailable}
+            style={{
+              flex: 1,
+              minWidth: 0,
+              padding: "7px 2px",
+              borderRadius: "8px",
+              border: "none",
+              backgroundColor: isAvailable ? "#065f46" : "#cbd5e1",
+              color: "#ffffff",
+              fontSize: "11px",
+              fontWeight: 800,
+              cursor: isAvailable ? "pointer" : "not-allowed",
+              transition: "all 0.15s ease",
+              whiteSpace: "nowrap",
+              boxSizing: "border-box",
+              textAlign: "center",
+            }}
+          >
+            অর্ডার করুন
+          </button>
+
+          <button
+            type="button"
+            onClick={handleAddToCart}
+            disabled={!isAvailable}
+            style={{
+              flex: 1,
+              minWidth: 0,
+              padding: "6px 2px",
+              borderRadius: "8px",
+              border: "1.5px solid #065f46",
+              backgroundColor: "#ffffff",
+              color: isAvailable ? "#065f46" : "#94a3b8",
+              fontSize: "11px",
+              fontWeight: 800,
+              cursor: isAvailable ? "pointer" : "not-allowed",
+              transition: "all 0.15s ease",
+              whiteSpace: "nowrap",
+              boxSizing: "border-box",
+              textAlign: "center",
+            }}
+          >
+            কার্টে যোগ করুন
+          </button>
+        </div>
       </div>
     </article>
   );
