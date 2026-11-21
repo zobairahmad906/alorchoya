@@ -182,6 +182,7 @@ export function Model1DashboardPortal({
   reviews,
   discountedProducts,
 }: ModelProps) {
+  const { count: cartCount } = useCart();
   const [activeCategorySlug, setActiveCategorySlug] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [timeLeft, setTimeLeft] = useState({ hours: 8, minutes: 45, seconds: 20 });
@@ -467,6 +468,26 @@ export function Model1DashboardPortal({
             </div>
             <div style={{ fontSize: "13px", fontWeight: 800, color: "#0f172a" }}>01302 111188</div>
             <div style={{ fontSize: "11px", color: "#10b981", fontWeight: 600, marginTop: "2px" }}>২৪/৭ অর্ডার হেল্পলাইন</div>
+            <Link
+              href="/track-order"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "6px",
+                marginTop: "10px",
+                padding: "8px 12px",
+                backgroundColor: "#ecfdf5",
+                color: "#047857",
+                border: "1px solid #a7f3d0",
+                borderRadius: "8px",
+                fontWeight: 800,
+                fontSize: "12px",
+                textDecoration: "none",
+              }}
+            >
+              🚚 অর্ডার ট্র্যাক করুন
+            </Link>
           </div>
         </aside>
 
@@ -531,11 +552,65 @@ export function Model1DashboardPortal({
                 </Link>
               </div>
 
-              <Link href="/cart" style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", width: "36px", height: "36px", borderRadius: "50%", backgroundColor: "#f1f5f9", textDecoration: "none", color: "#334155", fontSize: "16px" }}>
+              <Link
+                href="/track-order"
+                title="অর্ডার ট্র্যাক করুন"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: "36px",
+                  height: "36px",
+                  borderRadius: "50%",
+                  backgroundColor: "#ecfdf5",
+                  border: "1px solid #a7f3d0",
+                  textDecoration: "none",
+                  fontSize: "16px",
+                }}
+              >
+                🚚
+              </Link>
+
+              <Link
+                href="/cart"
+                title="কার্ট দেখুন"
+                style={{
+                  position: "relative",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: "36px",
+                  height: "36px",
+                  borderRadius: "50%",
+                  backgroundColor: "#f1f5f9",
+                  textDecoration: "none",
+                  color: "#334155",
+                  fontSize: "16px",
+                }}
+              >
                 🛒
-                <span style={{ position: "absolute", top: "-2px", right: "-2px", backgroundColor: "#065f46", color: "#ffffff", fontSize: "10px", fontWeight: 900, width: "18px", height: "18px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  ৩
-                </span>
+                {cartCount > 0 && (
+                  <span
+                    style={{
+                      position: "absolute",
+                      top: "-2px",
+                      right: "-2px",
+                      backgroundColor: "#065f46",
+                      color: "#ffffff",
+                      fontSize: "10px",
+                      fontWeight: 900,
+                      minWidth: "18px",
+                      height: "18px",
+                      padding: "0 4px",
+                      borderRadius: "9px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    {cartCount}
+                  </span>
+                )}
               </Link>
             </div>
           </div>

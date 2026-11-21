@@ -2,13 +2,27 @@
 
 import Link from "next/link";
 import { useCart } from "../cart";
-import { Header, formatPrice, formatNumber } from "../components";
+import { Header, formatPrice, formatNumber, cleanImageUrl } from "../components";
 import { useLocale, useTranslations } from "next-intl";
 
 export default function CartPage() {
-  const { items, total, change, remove } = useCart();
+  const { items, total, change, remove, hydrated } = useCart();
   const locale = useLocale();
   const t = useTranslations("cart");
+
+  if (!hydrated) {
+    return (
+      <>
+        <Header />
+        <main className="cart-page-wrapper">
+          <div className="cart-container" style={{ textAlign: "center", padding: "100px 20px" }}>
+            <div style={{ fontSize: "2.5rem", marginBottom: "16px" }}>🛒</div>
+            <h2 style={{ fontSize: "1.25rem", color: "#0f172a", fontWeight: 700 }}>কার্ট লোড হচ্ছে...</h2>
+          </div>
+        </main>
+      </>
+    );
+  }
 
   return (
     <>
@@ -47,7 +61,11 @@ export default function CartPage() {
                   {items.map((item) => {
                     const unitPrice = Number(item.discount_price || item.price);
                     const lineTotal = unitPrice * item.quantity;
-                    const imageSrc = item.images[0]?.card_image || item.images[0]?.hero_desktop || item.images[0]?.image;
+                    const imageSrc = cleanImageUrl(
+                      item.images?.[0]?.card_image ||
+                      item.images?.[0]?.hero_desktop ||
+                      item.images?.[0]?.image
+                    );
 
                     return (
                       <article key={item.id} className="cart-item-card">

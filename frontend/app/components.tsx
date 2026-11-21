@@ -237,7 +237,7 @@ export function Header({ currentLayout }: { currentLayout?: HomepageLayout } = {
                           {tSearch("instantResults", { count: locale === "en" ? searchResults.length : formatNumber(searchResults.length, "bn") })}
                         </div>
                         {searchResults.map((prod) => {
-                          const rawImg = prod.images.find(x => x.is_primary)?.card_image || prod.images.find(x => x.is_primary)?.hero_desktop || prod.images[0]?.image;
+                          const rawImg = prod.images?.find(x => x.is_primary)?.card_image || prod.images?.find(x => x.is_primary)?.hero_desktop || prod.images?.[0]?.image;
                           const img = cleanImageUrl(rawImg);
                           const price = prod.discount_price || prod.price;
                           return (
@@ -382,6 +382,27 @@ export function Header({ currentLayout }: { currentLayout?: HomepageLayout } = {
                 EN
               </button>
             </div>
+            <Link
+              className="header-track-btn"
+              href="/track-order"
+              title="অর্ডার ট্র্যাক করুন"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "4px",
+                padding: "6px 11px",
+                borderRadius: "12px",
+                backgroundColor: "#ecfdf5",
+                color: "#047857",
+                fontSize: "12px",
+                fontWeight: 700,
+                textDecoration: "none",
+                border: "1px solid #a7f3d0",
+                whiteSpace: "nowrap",
+              }}
+            >
+              🚚 <span className="track-label">ট্র্যাক</span>
+            </Link>
             <Link className="cart-nav" href="/cart" aria-label={t("cart")}>
               <CartIcon /> <span>{count}</span>
             </Link>
@@ -680,7 +701,7 @@ function CartDrawer({ open, close }: { open: boolean; close: () => void }) {
   const { items, total, change, remove } = useCart();
   const locale = useLocale();
   const t = useTranslations("shop");
-  return <div className={`drawer-wrap ${open ? "is-open" : ""}`} aria-hidden={!open}><button className="drawer-backdrop" aria-label={t("close")} onClick={close} /><aside className="drawer"><div className="drawer-head"><div><p>{t("cartTitle")}</p><h2>{items.length ? t("cartItems") : t("cartEmpty")}</h2></div><button onClick={close} aria-label={t("close")}>×</button></div><div className="drawer-items">{items.map(item => <div className="drawer-item" key={item.id}><div className="drawer-thumb">{item.images[0]?.image ? <img src={cleanImageUrl(item.images[0].card_image || item.images[0].hero_desktop || item.images[0].image)} alt="" /> : "আ"}</div><div><h3>{item.name}</h3><p>{formatPrice(item.discount_price || item.price, locale)}</p><div className="drawer-quantity"><button onClick={() => change(item.id, item.quantity - 1)}>−</button><span>{formatNumber(item.quantity, locale)}</span><button onClick={() => change(item.id, item.quantity + 1)}>+</button><button className="remove" onClick={() => remove(item.id)}>{t("remove")}</button></div></div></div>)}</div>{items.length > 0 ? <div className="drawer-foot"><div><span>{t("subtotal")}</span><strong>{formatPrice(total, locale)}</strong></div><Link className="wide" onClick={close} href="/checkout">{t("checkout")} →</Link></div> : <Link className="wide" onClick={close} href="/shop">{t("shopNow")}</Link>}</aside></div>;
+  return <div className={`drawer-wrap ${open ? "is-open" : ""}`} aria-hidden={!open}><button className="drawer-backdrop" aria-label={t("close")} onClick={close} /><aside className="drawer"><div className="drawer-head"><div><p>{t("cartTitle")}</p><h2>{items.length ? t("cartItems") : t("cartEmpty")}</h2></div><button onClick={close} aria-label={t("close")}>×</button></div><div className="drawer-items">{items.map(item => <div className="drawer-item" key={item.id}><div className="drawer-thumb">{item.images?.[0]?.image ? <img src={cleanImageUrl(item.images[0].card_image || item.images[0].hero_desktop || item.images[0].image)} alt="" /> : "আ"}</div><div><h3>{item.name}</h3><p>{formatPrice(item.discount_price || item.price, locale)}</p><div className="drawer-quantity"><button onClick={() => change(item.id, item.quantity - 1)}>−</button><span>{formatNumber(item.quantity, locale)}</span><button onClick={() => change(item.id, item.quantity + 1)}>+</button><button className="remove" onClick={() => remove(item.id)}>{t("remove")}</button></div></div></div>)}</div>{items.length > 0 ? <div className="drawer-foot"><div><span>{t("subtotal")}</span><strong>{formatPrice(total, locale)}</strong></div><Link className="wide" onClick={close} href="/checkout">{t("checkout")} →</Link></div> : <Link className="wide" onClick={close} href="/shop">{t("shopNow")}</Link>}</aside></div>;
 }
 
 export function MobileBottomNav() {
@@ -722,6 +743,7 @@ export function MobileBottomNav() {
     <Link href="/shop"><ShopIcon /><span>{t("shop")}</span></Link>
     <Link href="/cart"><CartIcon /><b>{formatNumber(count, locale)}</b><span>{t("cart")}</span></Link>
     <Link className="mobile-home" href="/">⌂<span>{t("home")}</span></Link>
+    <Link href="/track-order" className="mobile-track-link"><span style={{ fontSize: "18px", lineHeight: 1 }}>🚚</span><span>ট্র্যাক</span></Link>
     <Link className="mobile-account" href="/account" title={profileLabel}>{account?.authenticated && account.profile?.avatar_url ? <img src={account.profile.avatar_url} alt={profileLabel} /> : account?.authenticated ? <strong>{(account.name || "A").slice(0, 1)}</strong> : "◉"}<span>{t("account")}</span></Link>
     <button className={`mobile-more-trigger${moreOpen ? " is-open" : ""}`} type="button" onClick={() => setMoreOpen(open => !open)} aria-expanded={moreOpen} aria-haspopup="menu"><span className="mobile-more-icon">⋯</span><span>{t("more")}</span></button>
     {moreOpen && <div className="mobile-more-menu" role="menu">

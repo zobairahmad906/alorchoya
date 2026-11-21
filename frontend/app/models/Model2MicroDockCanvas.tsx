@@ -171,6 +171,7 @@ export function Model2MicroDockCanvas({
   reviews,
   discountedProducts,
 }: ModelProps) {
+  const { count: cartCount } = useCart();
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [timeLeft, setTimeLeft] = useState({ hours: 8, minutes: 45, seconds: 20 });
@@ -402,6 +403,29 @@ export function Model2MicroDockCanvas({
               </button>
             );
           })}
+
+          {/* Persistent Order Tracking Link inside Dock */}
+          <div style={{ marginTop: "auto", paddingTop: "14px", borderTop: "1px solid #334155", display: "flex", flexDirection: "column", gap: "8px" }}>
+            <Link
+              href="/track-order"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px",
+                padding: "10px 12px",
+                borderRadius: "10px",
+                backgroundColor: "rgba(16, 185, 129, 0.15)",
+                border: "1px solid rgba(16, 185, 129, 0.4)",
+                color: "#34d399",
+                fontWeight: 800,
+                fontSize: "12px",
+                textDecoration: "none",
+              }}
+            >
+              🚚 অর্ডার ট্র্যাক করুন
+            </Link>
+          </div>
         </aside>
 
         {/* 95% Expansive Main Canvas */}
@@ -475,9 +499,67 @@ export function Model2MicroDockCanvas({
                 </Link>
               </div>
 
-              <Link href="/cart" style={{ width: "34px", height: "34px", borderRadius: "50%", backgroundColor: "rgba(6, 78, 59, 0.6)", border: "1px solid rgba(16, 185, 129, 0.5)", color: "#34d399", display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none", fontSize: "15px", position: "relative" }}>
+              <Link
+                href="/track-order"
+                title="অর্ডার ট্র্যাক করুন"
+                style={{
+                  width: "34px",
+                  height: "34px",
+                  borderRadius: "50%",
+                  backgroundColor: "rgba(6, 78, 59, 0.6)",
+                  border: "1px solid rgba(16, 185, 129, 0.5)",
+                  color: "#34d399",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  textDecoration: "none",
+                  fontSize: "15px",
+                }}
+              >
+                🚚
+              </Link>
+
+              <Link
+                href="/cart"
+                title="কার্ট দেখুন"
+                style={{
+                  width: "34px",
+                  height: "34px",
+                  borderRadius: "50%",
+                  backgroundColor: "rgba(6, 78, 59, 0.6)",
+                  border: "1px solid rgba(16, 185, 129, 0.5)",
+                  color: "#34d399",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  textDecoration: "none",
+                  fontSize: "15px",
+                  position: "relative",
+                }}
+              >
                 🛒
-                <span style={{ position: "absolute", top: "2px", right: "2px", width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#f59e0b" }}></span>
+                {cartCount > 0 && (
+                  <span
+                    style={{
+                      position: "absolute",
+                      top: "-2px",
+                      right: "-2px",
+                      backgroundColor: "#10b981",
+                      color: "#ffffff",
+                      fontSize: "10px",
+                      fontWeight: 900,
+                      minWidth: "16px",
+                      height: "16px",
+                      padding: "0 3px",
+                      borderRadius: "8px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    {cartCount}
+                  </span>
+                )}
               </Link>
             </div>
           </div>

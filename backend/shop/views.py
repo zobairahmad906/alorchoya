@@ -190,15 +190,27 @@ class DeliveryZoneList(generics.ListAPIView):
 class OrderTrack(APIView):
     permission_classes = (permissions.AllowAny,)
     def get(self, request):
-        order_id = self.request.query_params.get("id", "").strip()
-        phone = self.request.query_params.get("phone", "").strip()
+        raw_id = self.request.query_params.get("id", "").strip()
+        raw_phone = self.request.query_params.get("phone", "").strip()
+        
+        # Convert Bengali numerals to standard ASCII digits
+        trans = str.maketrans("০১২৩৪৫৬৭৮৯", "0123456789")
+        order_id = raw_id.translate(trans).strip()
+        phone = "".join(c for c in raw_phone.translate(trans) if c.isdigit())
+        
         if not order_id and not phone:
             return Response({"detail": "অর্ডার আইডি অথবা ফোন নম্বর দিন।"}, status=400)
+            
         orders = Order.objects.all().order_by("-created_at")
         if order_id:
-            orders = orders.filter(id=order_id)
+            if order_id.isdigit():
+                orders = orders.filter(id=int(order_id))
+            else:
+                return Response({"detail": "সঠিক অর্ডার নম্বর লিখুন।"}, status=400)
         if phone:
-            orders = orders.filter(phone=phone)
+            # Match either exact phone or normalized phone ending
+            orders = orders.filter(phone__icontains=phone)
+            
         if not orders.exists():
             return Response({"detail": "এই তথ্য দিয়ে কোনো অর্ডার পাওয়া যায়নি।"}, status=404)
         first_order = orders.first()

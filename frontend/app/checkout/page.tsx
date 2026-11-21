@@ -2,10 +2,10 @@
 
 import { FormEvent, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Header } from "../components";
+import { Header, cleanImageUrl } from "../components";
 import { useCart } from "../cart";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+const API = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 type CourierOption = { id: string; name: string; live_quote: boolean };
 type LocationOption = { id: string; name: string };
@@ -768,7 +768,11 @@ export default function CheckoutPage() {
                 <div className="summary-items-list">
                   {items.map((item) => {
                     const price = Number(item.discount_price || item.price);
-                    const imageSrc = item.images[0]?.card_image || item.images[0]?.hero_desktop || item.images[0]?.image;
+                    const imageSrc = cleanImageUrl(
+                      item.images?.[0]?.card_image ||
+                      item.images?.[0]?.hero_desktop ||
+                      item.images?.[0]?.image
+                    );
 
                     return (
                       <div key={item.id} className="summary-item-row">
