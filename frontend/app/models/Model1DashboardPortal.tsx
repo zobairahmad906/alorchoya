@@ -154,6 +154,47 @@ export function Model1DashboardPortal({
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [timeLeft, setTimeLeft] = useState({ hours: 8, minutes: 45, seconds: 20 });
 
+  // 4 Discounted special products for the interactive promo slider (rotating one after another)
+  const promoProducts = useMemo(() => {
+    if (discountedProducts && discountedProducts.length > 0) {
+      return discountedProducts.slice(0, 4);
+    }
+    return products.slice(0, 4);
+  }, [discountedProducts, products]);
+
+  const [activeSlide, setActiveSlide] = useState(0);
+
+  // Auto rotate one after another every 3.8 seconds
+  useEffect(() => {
+    if (promoProducts.length <= 1) return;
+    const timer = setInterval(() => {
+      setActiveSlide((prev) => (prev + 1) % promoProducts.length);
+    }, 3800);
+    return () => clearInterval(timer);
+  }, [promoProducts.length]);
+
+  const currentSlideProd = promoProducts[activeSlide] || promoProducts[0];
+  const slidePrimaryImg = currentSlideProd?.images?.find((x) => x.is_primary) || currentSlideProd?.images?.[0];
+  const slideImgUrl = cleanImageUrl(slidePrimaryImg?.card_image || slidePrimaryImg?.hero_desktop || slidePrimaryImg?.image);
+  const slideCurrentPrice = currentSlideProd?.discount_price || currentSlideProd?.price;
+  const slideOldPrice = currentSlideProd?.discount_price && Number(currentSlideProd.discount_price) < Number(currentSlideProd.price) ? currentSlideProd.price : null;
+  const slideDiscountPct = slideOldPrice
+    ? Math.round(((Number(slideOldPrice) - Number(slideCurrentPrice)) / Number(slideOldPrice)) * 100)
+    : 50;
+
+  const bannerTouchStartX = useRef<number>(0);
+  const onBannerTouchStart = (e: React.TouchEvent) => {
+    bannerTouchStartX.current = e.touches[0].clientX;
+  };
+  const onBannerTouchEnd = (e: React.TouchEvent) => {
+    const diff = bannerTouchStartX.current - e.changedTouches[0].clientX;
+    if (diff > 40) {
+      setActiveSlide((prev) => (prev + 1) % promoProducts.length);
+    } else if (diff < -40) {
+      setActiveSlide((prev) => (prev - 1 + promoProducts.length) % promoProducts.length);
+    }
+  };
+
   const categoryScrollRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
   const startX = useRef(0);
@@ -612,40 +653,132 @@ export function Model1DashboardPortal({
             })}
           </div>
 
-          {/* Mobile Emerald Promo Banner (Exact to reference image) */}
+          {/* Mobile Emerald Promo Slider (Rotating 4 Discounted Products) */}
           <div className="model1-mobile-promo">
-            <div style={{
-              background: "linear-gradient(135deg, #064e3b 0%, #047857 50%, #065f46 100%)",
-              borderRadius: "16px",
-              padding: "20px 16px",
-              textAlign: "center",
-              color: "#ffffff",
-              boxShadow: "0 6px 20px rgba(6, 78, 59, 0.25)",
-              border: "1px solid rgba(201, 164, 92, 0.4)",
-              position: "relative",
-              overflow: "hidden"
-            }}>
+            <div
+              onTouchStart={onBannerTouchStart}
+              onTouchEnd={onBannerTouchEnd}
+              style={{
+                background: "linear-gradient(135deg, #064e3b 0%, #047857 50%, #065f46 100%)",
+                borderRadius: "16px",
+                padding: "16px 14px 12px",
+                color: "#ffffff",
+                boxShadow: "0 6px 20px rgba(6, 78, 59, 0.25)",
+                border: "1px solid rgba(201, 164, 92, 0.4)",
+                position: "relative",
+                overflow: "hidden",
+                minHeight: "165px",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+              }}
+            >
               <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, opacity: 0.12, backgroundImage: "radial-gradient(#c9a45c 1.5px, transparent 1.5px)", backgroundSize: "12px 12px" }}></div>
-              <div style={{ position: "relative", zIndex: 2 }}>
-                <h3 style={{ margin: "0 0 10px", fontSize: "17px", fontWeight: 900, color: "#fef08a", letterSpacing: "0.3px" }}>
-                  ঈদ স্পেশাল অফার - ৫০% পর্যন্ত ছাড়
-                </h3>
-                <a
-                  href="#shop"
+              
+              <div style={{ position: "relative", zIndex: 2, display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
+                {/* Left Text & CTA */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", marginBottom: "4px" }}>
+                    <span style={{ fontSize: "11px", fontWeight: 800, color: "#fef08a", letterSpacing: "0.3px" }}>
+                      ✨ ঈদ স্পেশাল অফার
+                    </span>
+                    {slideDiscountPct > 0 && (
+                      <span style={{ fontSize: "9px", fontWeight: 800, backgroundColor: "rgba(254, 240, 138, 0.2)", color: "#fef08a", border: "1px solid rgba(254, 240, 138, 0.4)", padding: "1px 5px", borderRadius: "5px" }}>
+                        -{slideDiscountPct}% ছাড়
+                      </span>
+                    )}
+                  </div>
+
+                  <h3 style={{ margin: "0 0 6px", fontSize: "14px", fontWeight: 800, color: "#ffffff", lineHeight: 1.3, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                    {currentSlideProd?.name}
+                  </h3>
+
+                  <div style={{ display: "flex", alignItems: "baseline", gap: "6px", marginBottom: "10px" }}>
+                    <span style={{ fontSize: "16px", fontWeight: 900, color: "#fef08a" }}>
+                      {formatPrice(slideCurrentPrice, "bn")}
+                    </span>
+                    {slideOldPrice && (
+                      <span style={{ fontSize: "11px", color: "rgba(255, 255, 255, 0.7)", textDecoration: "line-through" }}>
+                        {formatPrice(slideOldPrice, "bn")}
+                      </span>
+                    )}
+                  </div>
+
+                  <Link
+                    href={`/products/${currentSlideProd?.slug}`}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      backgroundColor: "#ffffff",
+                      color: "#064e3b",
+                      padding: "6px 18px",
+                      borderRadius: "20px",
+                      fontWeight: 900,
+                      fontSize: "11px",
+                      textDecoration: "none",
+                      boxShadow: "0 3px 10px rgba(0, 0, 0, 0.2)",
+                    }}
+                  >
+                    এখনই কিনুন →
+                  </Link>
+                </div>
+
+                {/* Right Image */}
+                <div
                   style={{
-                    display: "inline-block",
-                    backgroundColor: "#ffffff",
-                    color: "#064e3b",
-                    padding: "7px 22px",
-                    borderRadius: "24px",
-                    fontWeight: 900,
-                    fontSize: "12px",
-                    textDecoration: "none",
-                    boxShadow: "0 3px 8px rgba(0,0,0,0.15)"
+                    width: "110px",
+                    height: "110px",
+                    borderRadius: "14px",
+                    overflow: "hidden",
+                    backgroundColor: "rgba(255, 255, 255, 0.15)",
+                    border: "1px solid rgba(254, 240, 138, 0.35)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: "4px",
+                    flexShrink: 0,
+                    boxShadow: "0 4px 16px rgba(0,0,0,0.2)",
                   }}
                 >
-                  এখনই কিনুন
-                </a>
+                  {slideImgUrl ? (
+                    <img
+                      key={currentSlideProd?.id}
+                      src={slideImgUrl}
+                      alt={currentSlideProd?.name}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "contain",
+                        animation: "fadeIn 0.3s ease",
+                      }}
+                    />
+                  ) : (
+                    <span style={{ fontSize: "36px" }}>🎁</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Dots Indicator for the 4 Products */}
+              <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "6px", marginTop: "10px", position: "relative", zIndex: 2 }}>
+                {promoProducts.map((_, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setActiveSlide(idx)}
+                    style={{
+                      width: activeSlide === idx ? "20px" : "6px",
+                      height: "5px",
+                      borderRadius: "3px",
+                      backgroundColor: activeSlide === idx ? "#fef08a" : "rgba(255, 255, 255, 0.35)",
+                      border: "none",
+                      padding: 0,
+                      cursor: "pointer",
+                      transition: "all 0.3s ease",
+                    }}
+                    aria-label={`Slide ${idx + 1}`}
+                  />
+                ))}
               </div>
             </div>
           </div>
