@@ -825,6 +825,18 @@ export function Model2MicroDockCanvas({
             </div>
           </div>
 
+          {/* Mobile Cinematic Catalog Header (Visible on Mobile only) */}
+          <div className="model2-mobile-catalog-header">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "6px", padding: "0 2px" }}>
+              <h2 style={{ margin: 0, fontSize: "18px", fontWeight: 800, color: "#f8fafc", letterSpacing: "0.3px" }}>
+                {activeCategory === "all" ? "সিনেমাটিক ক্যাটালগ" : categories.find((c) => c.slug === activeCategory)?.name || "ক্যাটাগরি"}
+              </h2>
+              <span style={{ fontSize: "12px", color: "#94a3b8" }}>
+                উপলব্ধ পণ্য: <strong style={{ color: "#34d399" }}>{filteredProducts.length}টি</strong>
+              </span>
+            </div>
+          </div>
+
           {/* 6 to 7 Columns Ultra-Wide Product Matrix (2 cols on mobile) */}
           {filteredProducts.length > 0 ? (
             <div className="model-product-grid">

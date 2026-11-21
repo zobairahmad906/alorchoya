@@ -10184,7 +10184,11 @@ body:has(.admin-container) .mobile-bottom-nav {
     box-sizing: border-box !important;
   }
   .model1-catalog-header {
-    display: none !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+    margin-bottom: 14px !important;
+    padding: 0 4px !important;
   }
   footer {
     overflow-x: hidden !important;
@@ -10235,6 +10239,10 @@ body:has(.admin-container) .mobile-bottom-nav {
 }
 
 .model2-mobile-promo {
+  display: none;
+}
+
+.model2-mobile-catalog-header {
   display: none;
 }
 
@@ -10313,7 +10321,10 @@ body:has(.admin-container) .mobile-bottom-nav {
     box-sizing: border-box !important;
     overflow-x: hidden !important;
   }
-  .model2-catalog-header {
-    display: none !important;
+  .model2-mobile-catalog-header {
+    display: block !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    margin-bottom: 8px !important;
   }
 }
