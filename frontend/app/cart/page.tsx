@@ -131,6 +131,29 @@ export default function CartPage() {
                     );
                   })}
                 </div>
+
+                {/* Mobile / Inline High-Conversion Checkout Prompt */}
+                <div className="mobile-cart-prompt">
+                  <a
+                    href="/checkout"
+                    className="checkout-btn"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      window.location.href = "/checkout";
+                    }}
+                  >
+                    <span className="checkout-btn-content">
+                      <span className="checkout-btn-icon">⚡</span>
+                      <span className="checkout-btn-text">
+                        {t("proceedCheckout")}
+                      </span>
+                      <span className="checkout-btn-arrow">➔</span>
+                    </span>
+                    <span className="checkout-btn-sub">
+                      ক্যাশ অন ডেলিভারি • দ্রুত ও নিরাপদ শিপিং
+                    </span>
+                  </a>
+                </div>
               </section>
 
               {/* Order Summary Sidebar */}
@@ -155,9 +178,25 @@ export default function CartPage() {
                   </div>
                 </div>
 
-                <Link href="/checkout" className="checkout-btn">
-                  {t("proceedCheckout")}
-                </Link>
+                <a
+                  href="/checkout"
+                  className="checkout-btn"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    window.location.href = "/checkout";
+                  }}
+                >
+                  <span className="checkout-btn-content">
+                    <span className="checkout-btn-icon">⚡</span>
+                    <span className="checkout-btn-text">
+                      {t("proceedCheckout")}
+                    </span>
+                    <span className="checkout-btn-arrow">➔</span>
+                  </span>
+                  <span className="checkout-btn-sub">
+                    ক্যাশ অন ডেলিভারি • দ্রুত ও নিরাপদ শিপিং
+                  </span>
+                </a>
 
                 <div className="trust-badge">
                   🛡️ <span>{t("trustBadge")}</span>
@@ -425,17 +464,76 @@ export default function CartPage() {
           color: #059669;
         }
         .checkout-btn {
-          display: block;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justifyContent: center;
           width: 100%;
           text-align: center;
-          background-color: #10b981;
-          color: #ffffff;
-          font-weight: 700;
-          font-size: 1.05rem;
-          padding: 14px 20px;
-          border-radius: 10px;
+          background: linear-gradient(135deg, #ff5722 0%, #ea580c 50%, #c2410c 100%);
+          color: #ffffff !important;
+          font-weight: 800;
+          padding: 16px 22px;
+          border-radius: 14px;
           text-decoration: none;
-          box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+          box-shadow: 0 10px 25px -4px rgba(234, 88, 12, 0.48), 0 4px 12px rgba(0, 0, 0, 0.15);
+          border: 1.5px solid rgba(255, 255, 255, 0.3);
+          cursor: pointer;
+          transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+          position: relative;
+          overflow: hidden;
+          letter-spacing: 0.3px;
+        }
+        .checkout-btn:hover {
+          background: linear-gradient(135deg, #ff6e40 0%, #f97316 50%, #ea580c 100%);
+          transform: translateY(-2px) scale(1.01);
+          box-shadow: 0 14px 32px -4px rgba(234, 88, 12, 0.6), 0 6px 16px rgba(0, 0, 0, 0.2);
+          color: #ffffff !important;
+        }
+        .checkout-btn:active {
+          transform: translateY(1px) scale(0.99);
+          box-shadow: 0 6px 16px -2px rgba(234, 88, 12, 0.4);
+        }
+        .checkout-btn-content {
+          display: inline-flex;
+          align-items: center;
+          justifyContent: center;
+          gap: 10px;
+          line-height: 1.2;
+        }
+        .checkout-btn-icon {
+          font-size: 1.4rem;
+          filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+        }
+        .checkout-btn-text {
+          font-weight: 900;
+          font-size: 1.22rem;
+          text-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+          letter-spacing: 0.2px;
+        }
+        .checkout-btn-arrow {
+          font-size: 1.3rem;
+          font-weight: 900;
+          transition: transform 0.2s ease;
+        }
+        .checkout-btn:hover .checkout-btn-arrow {
+          transform: translateX(5px);
+        }
+        .checkout-btn-sub {
+          display: block;
+          font-size: 0.82rem;
+          font-weight: 700;
+          color: #ffedd5;
+          margin-top: 5px;
+          opacity: 0.95;
+          letter-spacing: 0.2px;
+          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+        .mobile-cart-prompt {
+          display: none;
+          margin-top: 20px;
+          padding-top: 16px;
+          border-top: 1px dashed #e2e8f0;
         }
         .trust-badge {
           margin-top: 16px;
@@ -490,6 +588,9 @@ export default function CartPage() {
           }
           .cart-summary-sidebar {
             position: static;
+          }
+          .mobile-cart-prompt {
+            display: block;
           }
         }
         @media (max-width: 640px) {

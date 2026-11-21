@@ -302,20 +302,21 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
                   style={{
                     padding: "12px 14px",
                     borderRadius: "10px",
-                    backgroundColor: "#10b981",
+                    background: "linear-gradient(135deg, #ff5722 0%, #ea580c 50%, #c2410c 100%)",
                     color: "#ffffff",
-                    fontWeight: 800,
-                    fontSize: "0.9rem",
+                    fontWeight: 900,
+                    fontSize: "0.95rem",
                     textDecoration: "none",
                     display: "inline-flex",
                     alignItems: "center",
                     justifyContent: "center",
                     gap: "6px",
-                    boxShadow: "0 4px 12px rgba(16, 185, 129, 0.3)",
+                    boxShadow: "0 6px 18px rgba(234, 88, 12, 0.45)",
+                    border: "1px solid rgba(255, 255, 255, 0.25)",
                     cursor: "pointer",
                   }}
                 >
-                  অর্ডার করুন ➔
+                  ⚡ অর্ডার সম্পন্ন করুন ➔
                 </a>
               </div>
               <button
