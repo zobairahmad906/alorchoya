@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useRef } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import Link from "next/link";
 import { HeroSlider } from "../HeroSlider";
 import { cleanImageUrl } from "../components";
@@ -130,6 +130,47 @@ export function Model2MicroDockCanvas({
 }: ModelProps) {
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
+
+  // 4 Discounted special products for the interactive promo slider (rotating one after another)
+  const promoProducts = useMemo(() => {
+    if (discountedProducts && discountedProducts.length > 0) {
+      return discountedProducts.slice(0, 4);
+    }
+    return products.slice(0, 4);
+  }, [discountedProducts, products]);
+
+  const [activeSlide, setActiveSlide] = useState(0);
+
+  // Auto rotate one after another every 3.8 seconds
+  useEffect(() => {
+    if (promoProducts.length <= 1) return;
+    const timer = setInterval(() => {
+      setActiveSlide((prev) => (prev + 1) % promoProducts.length);
+    }, 3800);
+    return () => clearInterval(timer);
+  }, [promoProducts.length]);
+
+  const currentSlideProd = promoProducts[activeSlide] || promoProducts[0];
+  const slidePrimaryImg = currentSlideProd?.images?.find((x) => x.is_primary) || currentSlideProd?.images?.[0];
+  const slideImgUrl = cleanImageUrl(slidePrimaryImg?.card_image || slidePrimaryImg?.hero_desktop || slidePrimaryImg?.image);
+  const slideCurrentPrice = currentSlideProd?.discount_price || currentSlideProd?.price;
+  const slideOldPrice = currentSlideProd?.discount_price && Number(currentSlideProd.discount_price) < Number(currentSlideProd.price) ? currentSlideProd.price : null;
+  const slideDiscountPct = slideOldPrice
+    ? Math.round(((Number(slideOldPrice) - Number(slideCurrentPrice)) / Number(slideOldPrice)) * 100)
+    : 15;
+
+  const bannerTouchStartX = useRef<number>(0);
+  const onBannerTouchStart = (e: React.TouchEvent) => {
+    bannerTouchStartX.current = e.touches[0].clientX;
+  };
+  const onBannerTouchEnd = (e: React.TouchEvent) => {
+    const diff = bannerTouchStartX.current - e.changedTouches[0].clientX;
+    if (diff > 40) {
+      setActiveSlide((prev) => (prev + 1) % promoProducts.length);
+    } else if (diff < -40) {
+      setActiveSlide((prev) => (prev - 1 + promoProducts.length) % promoProducts.length);
+    }
+  };
 
   const chipsScrollRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
@@ -484,46 +525,132 @@ export function Model2MicroDockCanvas({
               );
             })}
           </div>
-          {/* Mobile Cinematic Glass Promo (Exact to reference image) */}
+          {/* Mobile Cinematic Glass Promo Slider (Rotating 4 Discounted Products) */}
           <div className="model2-mobile-promo">
-            <div style={{
-              background: "linear-gradient(135deg, rgba(30, 41, 59, 0.75), rgba(15, 23, 42, 0.95))",
-              backdropFilter: "blur(14px)",
-              WebkitBackdropFilter: "blur(14px)",
-              borderRadius: "20px",
-              padding: "24px 16px",
-              textAlign: "center",
-              color: "#ffffff",
-              border: "1px solid rgba(16, 185, 129, 0.3)",
-              boxShadow: "0 8px 32px rgba(0, 0, 0, 0.5)",
-              position: "relative",
-              overflow: "hidden"
-            }}>
-              <div style={{ position: "relative", zIndex: 2 }}>
-                <h3 style={{ margin: "0 0 12px", fontSize: "19px", fontWeight: 900, color: "#f8fafc", letterSpacing: "0.5px" }}>
-                  এক্সক্লুসিভ কালেকশন
-                </h3>
-                <a
-                  href="#shop"
+            <div
+              onTouchStart={onBannerTouchStart}
+              onTouchEnd={onBannerTouchEnd}
+              style={{
+                background: "linear-gradient(135deg, rgba(30, 41, 59, 0.85), rgba(15, 23, 42, 0.95))",
+                backdropFilter: "blur(14px)",
+                WebkitBackdropFilter: "blur(14px)",
+                borderRadius: "20px",
+                padding: "16px 14px 12px",
+                color: "#ffffff",
+                border: "1px solid rgba(16, 185, 129, 0.35)",
+                boxShadow: "0 8px 32px rgba(0, 0, 0, 0.5)",
+                position: "relative",
+                overflow: "hidden",
+                minHeight: "165px",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+              }}
+            >
+              <div style={{ position: "relative", zIndex: 2, display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
+                {/* Left Text & CTA */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", marginBottom: "4px" }}>
+                    <span style={{ fontSize: "11px", fontWeight: 800, color: "#34d399", letterSpacing: "0.5px" }}>
+                      ✨ এক্সক্লুসিভ কালেকশন
+                    </span>
+                    {slideDiscountPct > 0 && (
+                      <span style={{ fontSize: "9px", fontWeight: 800, backgroundColor: "rgba(225, 29, 72, 0.25)", color: "#fda4af", border: "1px solid rgba(225, 29, 72, 0.4)", padding: "1px 5px", borderRadius: "5px" }}>
+                        -{slideDiscountPct}% ছাড়
+                      </span>
+                    )}
+                  </div>
+
+                  <h3 style={{ margin: "0 0 6px", fontSize: "14px", fontWeight: 800, color: "#f8fafc", lineHeight: 1.3, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                    {currentSlideProd?.name}
+                  </h3>
+
+                  <div style={{ display: "flex", alignItems: "baseline", gap: "6px", marginBottom: "10px" }}>
+                    <span style={{ fontSize: "16px", fontWeight: 900, color: "#fef08a" }}>
+                      {formatPrice(slideCurrentPrice, "bn")}
+                    </span>
+                    {slideOldPrice && (
+                      <span style={{ fontSize: "11px", color: "#64748b", textDecoration: "line-through" }}>
+                        {formatPrice(slideOldPrice, "bn")}
+                      </span>
+                    )}
+                  </div>
+
+                  <Link
+                    href={`/products/${currentSlideProd?.slug}`}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      background: "linear-gradient(135deg, #059669, #0d9488)",
+                      color: "#ffffff",
+                      padding: "6px 16px",
+                      borderRadius: "20px",
+                      fontWeight: 800,
+                      fontSize: "11px",
+                      textDecoration: "none",
+                      boxShadow: "0 4px 14px rgba(16, 185, 129, 0.4)",
+                    }}
+                  >
+                    এখনই কিনুন →
+                  </Link>
+                </div>
+
+                {/* Right Image */}
+                <div
                   style={{
-                    display: "inline-block",
-                    background: "linear-gradient(135deg, #059669, #0d9488)",
-                    color: "#ffffff",
-                    padding: "8px 24px",
-                    borderRadius: "24px",
-                    fontWeight: 800,
-                    fontSize: "12px",
-                    textDecoration: "none",
-                    boxShadow: "0 4px 14px rgba(16, 185, 129, 0.4)"
+                    width: "110px",
+                    height: "110px",
+                    borderRadius: "14px",
+                    overflow: "hidden",
+                    backgroundColor: "rgba(15, 23, 42, 0.7)",
+                    border: "1px solid rgba(16, 185, 129, 0.25)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: "4px",
+                    flexShrink: 0,
+                    boxShadow: "0 4px 16px rgba(0,0,0,0.3)",
                   }}
                 >
-                  এখনই কিনুন
-                </a>
-                <div style={{ display: "flex", justifyContent: "center", gap: "6px", marginTop: "14px" }}>
-                  <span style={{ width: "16px", height: "4px", borderRadius: "2px", backgroundColor: "#34d399" }}></span>
-                  <span style={{ width: "6px", height: "4px", borderRadius: "2px", backgroundColor: "#475569" }}></span>
-                  <span style={{ width: "6px", height: "4px", borderRadius: "2px", backgroundColor: "#475569" }}></span>
+                  {slideImgUrl ? (
+                    <img
+                      key={currentSlideProd?.id}
+                      src={slideImgUrl}
+                      alt={currentSlideProd?.name}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "contain",
+                        animation: "fadeIn 0.3s ease",
+                      }}
+                    />
+                  ) : (
+                    <span style={{ fontSize: "36px" }}>✨</span>
+                  )}
                 </div>
+              </div>
+
+              {/* Dots Indicator for the 4 Products */}
+              <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "6px", marginTop: "10px", position: "relative", zIndex: 2 }}>
+                {promoProducts.map((_, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setActiveSlide(idx)}
+                    style={{
+                      width: activeSlide === idx ? "20px" : "6px",
+                      height: "5px",
+                      borderRadius: "3px",
+                      backgroundColor: activeSlide === idx ? "#34d399" : "rgba(148, 163, 184, 0.4)",
+                      border: "none",
+                      padding: 0,
+                      cursor: "pointer",
+                      transition: "all 0.3s ease",
+                    }}
+                    aria-label={`Slide ${idx + 1}`}
+                  />
+                ))}
               </div>
             </div>
           </div>
