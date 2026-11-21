@@ -403,29 +403,6 @@ export function Model2MicroDockCanvas({
               </button>
             );
           })}
-
-          {/* Persistent Order Tracking Link inside Dock */}
-          <div style={{ marginTop: "auto", paddingTop: "14px", borderTop: "1px solid #334155", display: "flex", flexDirection: "column", gap: "8px" }}>
-            <Link
-              href="/track-order"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "8px",
-                padding: "10px 12px",
-                borderRadius: "10px",
-                backgroundColor: "rgba(16, 185, 129, 0.15)",
-                border: "1px solid rgba(16, 185, 129, 0.4)",
-                color: "#34d399",
-                fontWeight: 800,
-                fontSize: "12px",
-                textDecoration: "none",
-              }}
-            >
-              🚚 অর্ডার ট্র্যাক করুন
-            </Link>
-          </div>
         </aside>
 
         {/* 95% Expansive Main Canvas */}
@@ -499,29 +476,12 @@ export function Model2MicroDockCanvas({
                 </Link>
               </div>
 
-              <Link
-                href="/track-order"
-                title="অর্ডার ট্র্যাক করুন"
-                style={{
-                  width: "34px",
-                  height: "34px",
-                  borderRadius: "50%",
-                  backgroundColor: "rgba(6, 78, 59, 0.6)",
-                  border: "1px solid rgba(16, 185, 129, 0.5)",
-                  color: "#34d399",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  textDecoration: "none",
-                  fontSize: "15px",
-                }}
-              >
-                🚚
-              </Link>
-
-              <Link
+              <a
                 href="/cart"
                 title="কার্ট দেখুন"
+                onClick={() => {
+                  window.location.href = "/cart";
+                }}
                 style={{
                   width: "34px",
                   height: "34px",
@@ -560,7 +520,7 @@ export function Model2MicroDockCanvas({
                     {cartCount}
                   </span>
                 )}
-              </Link>
+              </a>
             </div>
           </div>
 

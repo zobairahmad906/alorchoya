@@ -195,7 +195,14 @@ export function Header({ currentLayout }: { currentLayout?: HomepageLayout } = {
             <Link href="/#shop" onClick={handleNavClick("shop", "/#shop")}>{t("shop")}</Link>
             <Link href="/#categories" onClick={handleNavClick("categories", "/#categories")}>{t("categories")}</Link>
             <Link href="/#offers" onClick={handleNavClick("offers", "/#offers")}>{t("offers")}</Link>
-            <Link href="/track-order">{t("tracking")}</Link>
+            <a
+              href="/track-order"
+              onClick={() => {
+                window.location.href = "/track-order";
+              }}
+            >
+              {t("tracking")}
+            </a>
           </nav>
           <div className="nav-right" style={{ position: "relative" }}>
             {searchOpen ? (
@@ -382,30 +389,16 @@ export function Header({ currentLayout }: { currentLayout?: HomepageLayout } = {
                 EN
               </button>
             </div>
-            <Link
-              className="header-track-btn"
-              href="/track-order"
-              title="অর্ডার ট্র্যাক করুন"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "4px",
-                padding: "6px 11px",
-                borderRadius: "12px",
-                backgroundColor: "#ecfdf5",
-                color: "#047857",
-                fontSize: "12px",
-                fontWeight: 700,
-                textDecoration: "none",
-                border: "1px solid #a7f3d0",
-                whiteSpace: "nowrap",
+            <a
+              className="cart-nav"
+              href="/cart"
+              aria-label={t("cart")}
+              onClick={() => {
+                window.location.href = "/cart";
               }}
             >
-              🚚 <span className="track-label">ট্র্যাক</span>
-            </Link>
-            <Link className="cart-nav" href="/cart" aria-label={t("cart")}>
               <CartIcon /> <span>{count}</span>
-            </Link>
+            </a>
           </div>
         </div>
       </header>
@@ -741,9 +734,8 @@ export function MobileBottomNav() {
 
   return <nav className="mobile-bottom-nav" aria-label="Mobile navigation">
     <Link href="/shop"><ShopIcon /><span>{t("shop")}</span></Link>
-    <Link href="/cart"><CartIcon /><b>{formatNumber(count, locale)}</b><span>{t("cart")}</span></Link>
+    <a href="/cart"><CartIcon /><b>{formatNumber(count, locale)}</b><span>{t("cart")}</span></a>
     <Link className="mobile-home" href="/">⌂<span>{t("home")}</span></Link>
-    <Link href="/track-order" className="mobile-track-link"><span style={{ fontSize: "18px", lineHeight: 1 }}>🚚</span><span>ট্র্যাক</span></Link>
     <Link className="mobile-account" href="/account" title={profileLabel}>{account?.authenticated && account.profile?.avatar_url ? <img src={account.profile.avatar_url} alt={profileLabel} /> : account?.authenticated ? <strong>{(account.name || "A").slice(0, 1)}</strong> : "◉"}<span>{t("account")}</span></Link>
     <button className={`mobile-more-trigger${moreOpen ? " is-open" : ""}`} type="button" onClick={() => setMoreOpen(open => !open)} aria-expanded={moreOpen} aria-haspopup="menu"><span className="mobile-more-icon">⋯</span><span>{t("more")}</span></button>
     {moreOpen && <div className="mobile-more-menu" role="menu">

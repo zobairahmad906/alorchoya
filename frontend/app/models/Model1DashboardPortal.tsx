@@ -468,26 +468,6 @@ export function Model1DashboardPortal({
             </div>
             <div style={{ fontSize: "13px", fontWeight: 800, color: "#0f172a" }}>01302 111188</div>
             <div style={{ fontSize: "11px", color: "#10b981", fontWeight: 600, marginTop: "2px" }}>২৪/৭ অর্ডার হেল্পলাইন</div>
-            <Link
-              href="/track-order"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "6px",
-                marginTop: "10px",
-                padding: "8px 12px",
-                backgroundColor: "#ecfdf5",
-                color: "#047857",
-                border: "1px solid #a7f3d0",
-                borderRadius: "8px",
-                fontWeight: 800,
-                fontSize: "12px",
-                textDecoration: "none",
-              }}
-            >
-              🚚 অর্ডার ট্র্যাক করুন
-            </Link>
           </div>
         </aside>
 
@@ -552,28 +532,12 @@ export function Model1DashboardPortal({
                 </Link>
               </div>
 
-              <Link
-                href="/track-order"
-                title="অর্ডার ট্র্যাক করুন"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  width: "36px",
-                  height: "36px",
-                  borderRadius: "50%",
-                  backgroundColor: "#ecfdf5",
-                  border: "1px solid #a7f3d0",
-                  textDecoration: "none",
-                  fontSize: "16px",
-                }}
-              >
-                🚚
-              </Link>
-
-              <Link
+              <a
                 href="/cart"
                 title="কার্ট দেখুন"
+                onClick={() => {
+                  window.location.href = "/cart";
+                }}
                 style={{
                   position: "relative",
                   display: "flex",
@@ -611,7 +575,7 @@ export function Model1DashboardPortal({
                     {cartCount}
                   </span>
                 )}
-              </Link>
+              </a>
             </div>
           </div>
 

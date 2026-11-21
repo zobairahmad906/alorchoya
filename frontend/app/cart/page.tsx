@@ -6,23 +6,9 @@ import { Header, formatPrice, formatNumber, cleanImageUrl } from "../components"
 import { useLocale, useTranslations } from "next-intl";
 
 export default function CartPage() {
-  const { items, total, change, remove, hydrated } = useCart();
+  const { items, total, change, remove } = useCart();
   const locale = useLocale();
   const t = useTranslations("cart");
-
-  if (!hydrated) {
-    return (
-      <>
-        <Header />
-        <main className="cart-page-wrapper">
-          <div className="cart-container" style={{ textAlign: "center", padding: "100px 20px" }}>
-            <div style={{ fontSize: "2.5rem", marginBottom: "16px" }}>🛒</div>
-            <h2 style={{ fontSize: "1.25rem", color: "#0f172a", fontWeight: 700 }}>কার্ট লোড হচ্ছে...</h2>
-          </div>
-        </main>
-      </>
-    );
-  }
 
   return (
     <>

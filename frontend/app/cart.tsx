@@ -1,7 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useRef, useState } from "react";
-import Link from "next/link";
+import { createContext, useContext, useEffect, useState } from "react";
 import type { CartItem, Product } from "./types";
 
 function cleanCartImg(url?: string | null): string | undefined {
@@ -32,106 +31,89 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [hydrated, setHydrated] = useState(false);
   const [popupItem, setPopupItem] = useState<AddedItem | null>(null);
 
-  // Initialize cart synchronously on client mount
+  // Read cart once on initial client mount
   useEffect(() => {
-    const readLocal = () => {
-      try {
-        const saved = localStorage.getItem("atelier-cart");
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed)) {
-            const valid = parsed
-              .filter((x) => x && x.id && Number(x.quantity) > 0)
-              .map((x) => ({ ...x, quantity: Number(x.quantity) }));
-            setItems(valid);
-            return;
-          }
+    try {
+      const saved = localStorage.getItem("atelier-cart");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          const valid = parsed
+            .filter((x) => x && x.id && Number(x.quantity) > 0)
+            .map((x) => ({ ...x, quantity: Number(x.quantity) }));
+          setItems(valid);
         }
-      } catch {
-        // ignore parse error
       }
-      setItems([]);
-    };
-
-    readLocal();
+    } catch {
+      // storage unavailable or invalid json
+    }
     setHydrated(true);
 
     const onStorage = (e: StorageEvent) => {
-      if (e.key === "atelier-cart") {
-        readLocal();
+      if (e.key === "atelier-cart" && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed)) {
+            setItems(parsed.filter((x) => x && x.id && Number(x.quantity) > 0));
+          }
+        } catch {}
       }
     };
-    const onCustomUpdate = () => readLocal();
 
     window.addEventListener("storage", onStorage);
-    window.addEventListener("cart-updated", onCustomUpdate);
-    return () => {
-      window.removeEventListener("storage", onStorage);
-      window.removeEventListener("cart-updated", onCustomUpdate);
-    };
+    return () => window.removeEventListener("storage", onStorage);
   }, []);
 
-  const saveCart = (nextItems: CartItem[]) => {
+  // Safely persist items to localStorage whenever state changes
+  useEffect(() => {
+    if (!hydrated) return;
     try {
-      localStorage.setItem("atelier-cart", JSON.stringify(nextItems));
-      window.dispatchEvent(new Event("cart-updated"));
+      localStorage.setItem("atelier-cart", JSON.stringify(items));
     } catch {
-      // storage unavailable
+      // storage quota or blocked
     }
-  };
+  }, [items, hydrated]);
 
+  // Pure add function: adds strictly 1 item when not present
   const add = (product: Product, showPopup: boolean = true) => {
-    let addedQty = 1;
+    let finalQty = 1;
     setItems((old) => {
-      const found = old.find((x) => x.id === product.id);
-      let updated: CartItem[];
+      const existing = old.find((x) => x.id === product.id);
       const maxStock = product.stock && Number(product.stock) > 0 ? Number(product.stock) : 99;
-      if (found) {
-        addedQty = Math.min(found.quantity + 1, maxStock);
-        updated = old.map((x) => (x.id === product.id ? { ...x, quantity: addedQty } : x));
-      } else {
-        updated = [...old, { ...product, quantity: 1 }];
-        addedQty = 1;
+      if (existing) {
+        finalQty = Math.min(existing.quantity + 1, maxStock);
+        return old.map((x) => (x.id === product.id ? { ...x, quantity: finalQty } : x));
       }
-      saveCart(updated);
-      return updated;
+      finalQty = 1;
+      return [...old, { ...product, quantity: 1 }];
     });
 
     if (showPopup) {
-      setPopupItem({ product, quantity: addedQty });
+      setPopupItem({ product, quantity: finalQty });
     }
   };
 
   const remove = (id: number) => {
-    setItems((old) => {
-      const updated = old.filter((x) => x.id !== id);
-      saveCart(updated);
-      return updated;
-    });
+    setItems((old) => old.filter((x) => x.id !== id));
   };
 
   const change = (id: number, quantity: number) => {
     setItems((old) => {
-      let updated: CartItem[];
       if (quantity < 1) {
-        updated = old.filter((x) => x.id !== id);
-      } else {
-        updated = old.map((x) => {
-          if (x.id === id) {
-            const maxStock = x.stock && Number(x.stock) > 0 ? Number(x.stock) : 99;
-            return { ...x, quantity: Math.min(quantity, maxStock) };
-          }
-          return x;
-        });
+        return old.filter((x) => x.id !== id);
       }
-      saveCart(updated);
-      return updated;
+      return old.map((x) => {
+        if (x.id === id) {
+          const maxStock = x.stock && Number(x.stock) > 0 ? Number(x.stock) : 99;
+          return { ...x, quantity: Math.min(quantity, maxStock) };
+        }
+        return x;
+      });
     });
   };
 
   const clear = () => {
     setItems([]);
-    saveCart([]);
   };
 
   const count = items.reduce((n, x) => n + (x.quantity || 0), 0);
@@ -287,9 +269,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             {/* Action Buttons */}
             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-                <Link
+                <a
                   href="/cart"
-                  onClick={() => setPopupItem(null)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    window.location.href = "/cart";
+                  }}
                   style={{
                     padding: "12px 14px",
                     borderRadius: "10px",
@@ -303,13 +288,17 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
                     justifyContent: "center",
                     gap: "6px",
                     border: "1px solid #cbd5e1",
+                    cursor: "pointer",
                   }}
                 >
                   🛒 কার্ট দেখুন
-                </Link>
-                <Link
+                </a>
+                <a
                   href="/checkout"
-                  onClick={() => setPopupItem(null)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    window.location.href = "/checkout";
+                  }}
                   style={{
                     padding: "12px 14px",
                     borderRadius: "10px",
@@ -323,10 +312,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
                     justifyContent: "center",
                     gap: "6px",
                     boxShadow: "0 4px 12px rgba(16, 185, 129, 0.3)",
+                    cursor: "pointer",
                   }}
                 >
                   অর্ডার করুন ➔
-                </Link>
+                </a>
               </div>
               <button
                 type="button"
