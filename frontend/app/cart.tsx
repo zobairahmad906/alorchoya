@@ -299,10 +299,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
                     e.preventDefault();
                     window.location.href = "/checkout";
                   }}
+                  className="cart-popup-checkout-btn"
                   style={{
                     padding: "12px 14px",
                     borderRadius: "10px",
-                    background: "linear-gradient(135deg, #ff5722 0%, #ea580c 50%, #c2410c 100%)",
+                    background: "linear-gradient(115deg, #047857 0%, #10b981 30%, #06b6d4 70%, #059669 100%)",
+                    backgroundSize: "250% 250%",
                     color: "#ffffff",
                     fontWeight: 900,
                     fontSize: "0.95rem",
@@ -311,14 +313,42 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
                     alignItems: "center",
                     justifyContent: "center",
                     gap: "6px",
-                    boxShadow: "0 6px 18px rgba(234, 88, 12, 0.45)",
-                    border: "1px solid rgba(255, 255, 255, 0.25)",
+                    boxShadow: "0 6px 18px rgba(16, 185, 129, 0.45), 0 0 15px rgba(6, 182, 212, 0.3)",
+                    border: "1px solid rgba(255, 255, 255, 0.4)",
                     cursor: "pointer",
+                    position: "relative",
+                    overflow: "hidden",
+                    animation: "auroraWave 4s ease infinite",
                   }}
                 >
-                  ⚡ অর্ডার সম্পন্ন করুন ➔
+                  <span style={{ position: "relative", zIndex: 2, display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                    ⚡ অর্ডার সম্পন্ন করুন ➔
+                  </span>
                 </a>
               </div>
+              <style>{`
+                @keyframes auroraWave {
+                  0% { background-position: 0% 50%; }
+                  50% { background-position: 100% 50%; }
+                  100% { background-position: 0% 50%; }
+                }
+                @keyframes shimmerWave {
+                  0% { transform: translateX(-150%) rotate(25deg); }
+                  100% { transform: translateX(250%) rotate(25deg); }
+                }
+                .cart-popup-checkout-btn::after {
+                  content: '';
+                  position: absolute;
+                  top: -50%;
+                  left: -50%;
+                  width: 40%;
+                  height: 200%;
+                  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+                  transform: rotate(25deg);
+                  animation: shimmerWave 2.8s infinite;
+                  pointer-events: none;
+                }
+              `}</style>
               <button
                 type="button"
                 onClick={() => setPopupItem(null)}

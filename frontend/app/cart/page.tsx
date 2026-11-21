@@ -463,6 +463,23 @@ export default function CartPage() {
         .total-amount {
           color: #059669;
         }
+        @keyframes auroraWave {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+        @keyframes shimmerWave {
+          0% { transform: translateX(-150%) rotate(25deg); }
+          100% { transform: translateX(250%) rotate(25deg); }
+        }
+        @keyframes pulseGlow {
+          0%, 100% {
+            box-shadow: 0 10px 25px -4px rgba(16, 185, 129, 0.5), 0 0 20px rgba(6, 182, 212, 0.35);
+          }
+          50% {
+            box-shadow: 0 14px 32px -4px rgba(16, 185, 129, 0.75), 0 0 30px rgba(6, 182, 212, 0.6);
+          }
+        }
         .checkout-btn {
           display: flex;
           flex-direction: column;
@@ -470,29 +487,38 @@ export default function CartPage() {
           justifyContent: center;
           width: 100%;
           text-align: center;
-          background: linear-gradient(135deg, #ff5722 0%, #ea580c 50%, #c2410c 100%);
+          background: linear-gradient(115deg, #047857 0%, #10b981 30%, #06b6d4 70%, #059669 100%);
+          background-size: 250% 250%;
+          animation: auroraWave 4s ease infinite, pulseGlow 3s ease-in-out infinite;
           color: #ffffff !important;
           font-weight: 800;
           padding: 16px 22px;
           border-radius: 14px;
           text-decoration: none;
-          box-shadow: 0 10px 25px -4px rgba(234, 88, 12, 0.48), 0 4px 12px rgba(0, 0, 0, 0.15);
-          border: 1.5px solid rgba(255, 255, 255, 0.3);
+          border: 1.5px solid rgba(255, 255, 255, 0.4);
           cursor: pointer;
-          transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+          transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
           position: relative;
           overflow: hidden;
           letter-spacing: 0.3px;
         }
+        .checkout-btn::after {
+          content: '';
+          position: absolute;
+          top: -50%;
+          left: -50%;
+          width: 40%;
+          height: 200%;
+          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+          transform: rotate(25deg);
+          animation: shimmerWave 2.8s infinite;
+          pointer-events: none;
+        }
         .checkout-btn:hover {
-          background: linear-gradient(135deg, #ff6e40 0%, #f97316 50%, #ea580c 100%);
           transform: translateY(-2px) scale(1.01);
-          box-shadow: 0 14px 32px -4px rgba(234, 88, 12, 0.6), 0 6px 16px rgba(0, 0, 0, 0.2);
-          color: #ffffff !important;
         }
         .checkout-btn:active {
           transform: translateY(1px) scale(0.99);
-          box-shadow: 0 6px 16px -2px rgba(234, 88, 12, 0.4);
         }
         .checkout-btn-content {
           display: inline-flex;
@@ -500,15 +526,17 @@ export default function CartPage() {
           justifyContent: center;
           gap: 10px;
           line-height: 1.2;
+          position: relative;
+          z-index: 2;
         }
         .checkout-btn-icon {
           font-size: 1.4rem;
-          filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+          filter: drop-shadow(0 2px 4px rgba(0,0,0,0.25));
         }
         .checkout-btn-text {
           font-weight: 900;
           font-size: 1.22rem;
-          text-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+          text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
           letter-spacing: 0.2px;
         }
         .checkout-btn-arrow {
@@ -523,11 +551,12 @@ export default function CartPage() {
           display: block;
           font-size: 0.82rem;
           font-weight: 700;
-          color: #ffedd5;
+          color: #d1fae5;
           margin-top: 5px;
-          opacity: 0.95;
           letter-spacing: 0.2px;
-          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+          position: relative;
+          z-index: 2;
         }
         .mobile-cart-prompt {
           display: none;
