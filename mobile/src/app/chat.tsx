@@ -15,7 +15,7 @@ import { WebView } from 'react-native-webview';
 import { C } from '@/constants/theme';
 
 export const SMART_AGENT_EMBED_URL =
-  'https://newsmartagent.com/widget/embed/9d94fbd8-167a-42d2-b3e8-389062ca8b49/';
+  'https://dev.newsmartagent.com/widget/embed/9d94fbd8-167a-42d2-b3e8-389062ca8b49/';
 
 export default function SmartAgentChatScreen() {
   const insets = useSafeAreaInsets();
