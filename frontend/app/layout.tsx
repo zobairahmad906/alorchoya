@@ -1,5 +1,4 @@
 import type { Viewport } from "next";
-import Script from "next/script";
 import "./globals.css";
 import { CartProvider } from "./cart";
 import { NextIntlClientProvider } from "next-intl";
@@ -32,11 +31,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           </CartProvider>
         </NextIntlClientProvider>
         {/* New Smart Agent Widget */}
-        <Script
-          src="https://newsmartagent.com/widget.js"
+        <script
+          src="https://dev.newsmartagent.com/widget.js"
           data-key="9d94fbd8-167a-42d2-b3e8-389062ca8b49"
           data-mode="drawer"
-          strategy="afterInteractive"
+          defer
         />
       </body>
     </html>
