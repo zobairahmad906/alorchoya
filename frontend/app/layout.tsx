@@ -1,4 +1,5 @@
 import type { Viewport } from "next";
+import Script from "next/script";
 import "./globals.css";
 import { CartProvider } from "./cart";
 import { NextIntlClientProvider } from "next-intl";
@@ -19,5 +20,25 @@ export const metadata = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const locale = await getLocale();
   const messages = await getMessages();
-  return <html lang={locale}><body><NextIntlClientProvider locale={locale} messages={messages}><CartProvider><>{children}<MobileBottomNav /></></CartProvider></NextIntlClientProvider></body></html>;
+  return (
+    <html lang={locale}>
+      <body>
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          <CartProvider>
+            <>
+              {children}
+              <MobileBottomNav />
+            </>
+          </CartProvider>
+        </NextIntlClientProvider>
+        {/* New Smart Agent Widget */}
+        <Script
+          src="https://newsmartagent.com/widget.js"
+          data-key="9d94fbd8-167a-42d2-b3e8-389062ca8b49"
+          data-mode="drawer"
+          strategy="afterInteractive"
+        />
+      </body>
+    </html>
+  );
 }
