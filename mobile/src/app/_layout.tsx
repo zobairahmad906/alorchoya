@@ -24,6 +24,7 @@ export default function RootLayout() {
           <Stack.Screen name="offers" options={{ headerShown: false }} />
           <Stack.Screen name="categories" options={{ headerShown: false }} />
           <Stack.Screen name="track-order" options={{ headerShown: false }} />
+          <Stack.Screen name="chat" options={{ headerShown: false, presentation: 'modal' }} />
         </Stack>
       </CartProvider>
     </SafeAreaProvider>

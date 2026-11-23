@@ -73,6 +73,14 @@ export function MobileBottomNav() {
             </TouchableOpacity>
 
             <TouchableOpacity
+              style={s.moreItem}
+              onPress={() => navigateTo('/chat')}
+              activeOpacity={0.7}>
+              <Text style={s.moreItemIcon}>🤖</Text>
+              <Text style={s.moreItemText}>এআই লাইভ চ্যাট</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
               style={[s.moreItem, { borderBottomWidth: 0 }]}
               onPress={openWhatsApp}
               activeOpacity={0.7}>

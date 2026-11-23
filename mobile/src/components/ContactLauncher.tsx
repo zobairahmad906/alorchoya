@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   Linking,
@@ -15,13 +16,15 @@ import { C } from '@/constants/theme';
 import { WHATSAPP } from '@/lib/api';
 
 const TEASERS = [
-  'পণ্য সম্পর্কে জানতে মেসেজ করুন',
-  'সহায়তার জন্য চ্যাট করুন',
-  'সরাসরি হোয়াটসঅ্যাপে কথা বলুন',
+  'এআই এজেন্টের সাথে লাইভ চ্যাট করুন 🤖',
+  'পণ্য সম্পর্কে জানতে সরাসরি মেসেজ দিন',
+  'সহায়তার জন্য যেকোনো প্রশ্ন করুন',
+  'সরাসরি হোয়াটসঅ্যাপে কথা বলুন ⚡',
 ];
 
 export function ContactLauncher({ bottomOffset }: { bottomOffset?: number } = {}) {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [teaserIdx, setTeaserIdx] = useState(0);
   const [displayText, setDisplayText] = useState('');
@@ -58,6 +61,11 @@ export function ContactLauncher({ bottomOffset }: { bottomOffset?: number } = {}
     Linking.openURL(url).catch(() => undefined);
   };
 
+  const openAiChat = () => {
+    setOpen(false);
+    router.push('/chat' as any);
+  };
+
   const bottomPadding = Math.max(insets.bottom, Platform.OS === 'android' ? 24 : 14);
   const computedBottom = bottomOffset !== undefined ? bottomOffset : 64 + bottomPadding;
 
@@ -68,7 +76,7 @@ export function ContactLauncher({ bottomOffset }: { bottomOffset?: number } = {}
         <TouchableOpacity
           style={s.teaserBubble}
           activeOpacity={0.8}
-          onPress={() => setOpen(true)}>
+          onPress={openAiChat}>
           <Text style={s.teaserText}>{displayText}</Text>
           <Text style={s.teaserCaret}>|</Text>
         </TouchableOpacity>
@@ -77,6 +85,16 @@ export function ContactLauncher({ bottomOffset }: { bottomOffset?: number } = {}
       {/* Expanded Options */}
       {open && (
         <View style={s.optionsCol}>
+          {/* 1. NewSmartAgent AI Chat Option */}
+          <TouchableOpacity
+            style={[s.optionBtn, { backgroundColor: C.forest, borderColor: '#c9a45c', borderWidth: 1 }]}
+            onPress={openAiChat}
+            activeOpacity={0.8}>
+            <Text style={{ fontSize: 16 }}>🤖</Text>
+            <Text style={[s.optionText, { color: '#fef08a' }]}>স্মার্ট এআই চ্যাট</Text>
+          </TouchableOpacity>
+
+          {/* 2. WhatsApp Option */}
           <TouchableOpacity
             style={[s.optionBtn, { backgroundColor: '#25D366' }]}
             onPress={() => openUrl(WHATSAPP)}
@@ -85,6 +103,7 @@ export function ContactLauncher({ bottomOffset }: { bottomOffset?: number } = {}
             <Text style={s.optionText}>WhatsApp</Text>
           </TouchableOpacity>
 
+          {/* 3. Messenger Option */}
           <TouchableOpacity
             style={[s.optionBtn, { backgroundColor: '#0084FF' }]}
             onPress={() => openUrl('https://m.me/alorchoyamart')}
